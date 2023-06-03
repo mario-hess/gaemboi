@@ -56,7 +56,7 @@ impl MemoryBankController for Mbc1 {
                 }
                 Mode::RomBanking => {
                     // Specify the upper two bits (5 and 6) of the ROM bank number
-                    base.rom_bank |= (value & 0b0000_0011) << 4;
+                    base.rom_bank |= (value & 0b0000_0011) << 5;
                 }
             },
             // 0x6000 - 0x7FFF
