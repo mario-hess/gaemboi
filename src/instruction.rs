@@ -1,10 +1,15 @@
 pub enum Mnemonic {
     Nop,
     JumpNN,
+    CpN,
+    IncPair(ArithmeticTarget),
     Add(ArithmeticTarget),
+    XorReg(ArithmeticTarget),
+    LoadNextToReg(ArithmeticTarget),
+    LoadRegToPairAddr(ArithmeticTarget, ArithmeticTarget),
 }
 
-enum ArithmeticTarget {
+pub enum ArithmeticTarget {
     A,
     B,
     C,
@@ -12,6 +17,9 @@ enum ArithmeticTarget {
     E,
     H,
     L,
+    BC,
+    DE,
+    HL,
 }
 
 
@@ -31,12 +39,13 @@ impl Instruction {
     }
    pub fn from_byte(value: u8) -> Self {
         match value {
-            0x00 => {
-                Instruction::new(Mnemonic::Nop, 1, 1)
-            }
-            0xC3 => {
-                Instruction::new(Mnemonic::JumpNN, 3, 4)
-            }
+            0x00 => Instruction::new(Mnemonic::Nop, 1, 1),
+            0x02 => Instruction::new(Mnemonic::LoadRegToPairAddr(ArithmeticTarget::BC, ArithmeticTarget::A), 1, 2),
+            0x03 => Instruction::new(Mnemonic::IncPair(ArithmeticTarget::BC), 1, 2),
+            0x3E => Instruction::new(Mnemonic::LoadNextToReg(ArithmeticTarget::A), 2, 2),
+            0xAF => Instruction::new(Mnemonic::XorReg(ArithmeticTarget::A), 1, 1),
+            0xC3 => Instruction::new(Mnemonic::JumpNN, 3, 4),
+            0xFE => Instruction::new(Mnemonic::CpN, 2, 2),
             _ => panic!("Instruction for byte {:#X} not implemented.", value),
         }
    } 

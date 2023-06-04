@@ -65,7 +65,29 @@ impl MemoryBus {
             _ => {
                 println!("Unknown address: Can't read byte.");
                 0x00
-            },
+            }
+        }
+    }
+
+    pub fn write_byte(&mut self, address: u16, value: u8) {
+        println!("{:#X}", address);
+        match address {
+            CARTRIDGE_ROM_START..=CARTRIDGE_ROM_END => {
+                // read from CARTRIDGE_ROM
+                self.cartridge.write(address, value);
+            }
+            /*
+            VRAM_START..=VRAM_END => {
+                // read from VRAM
+            }
+            CARTRIDGE_RAM_START..=CARTRIDGE_RAM_END => {
+                // read from CARTRIDGE_RAM
+            }
+            WRAM_START..=WRAM_END => {
+                // read from WRAM
+            }
+            */
+            _ => println!("Unknown address: Can't read byte."),
         }
     }
 }

@@ -1,4 +1,5 @@
 use crate::flags_register::FlagsRegister;
+use crate::instruction::ArithmeticTarget;
 
 pub struct Registers {
     a: u8,
@@ -6,7 +7,7 @@ pub struct Registers {
     c: u8,
     d: u8,
     e: u8,
-    f: FlagsRegister,
+    pub f: FlagsRegister,
     h: u8,
     l: u8,
 }
@@ -60,7 +61,7 @@ impl Registers {
         self.l = (value & 0xFF) as u8;
     }
 
-    pub fn get_a(self) -> u8 {
+    pub fn get_a(&self) -> u8 {
         self.a
     }
 
@@ -68,7 +69,7 @@ impl Registers {
         self.a = value;
     }
 
-    pub fn get_b(self) -> u8 {
+    pub fn get_b(&self) -> u8 {
         self.b
     }
 
@@ -76,7 +77,7 @@ impl Registers {
         self.b = value;
     }
 
-    pub fn get_c(self) -> u8 {
+    pub fn get_c(&self) -> u8 {
         self.c
     }
 
@@ -84,7 +85,7 @@ impl Registers {
         self.c = value;
     }
 
-    pub fn get_d(self) -> u8 {
+    pub fn get_d(&self) -> u8 {
         self.d
     }
 
@@ -92,7 +93,7 @@ impl Registers {
         self.d = value;
     }
 
-    pub fn get_e(self) -> u8 {
+    pub fn get_e(&self) -> u8 {
         self.e
     }
 
@@ -100,7 +101,7 @@ impl Registers {
         self.e = value;
     }
 
-    pub fn get_h(self) -> u8 {
+    pub fn get_h(&self) -> u8 {
         self.h
     }
 
@@ -108,11 +109,33 @@ impl Registers {
         self.h = value;
     }
 
-    pub fn get_l(self) -> u8 {
+    pub fn get_l(&self) -> u8 {
         self.l
     }
 
     pub fn set_l(&mut self, value: u8) {
         self.l = value;
+    }
+
+    pub fn get_register_value(&self, reg_target: &ArithmeticTarget) -> u8 {
+        match reg_target {
+            ArithmeticTarget::A => self.get_a(),
+            ArithmeticTarget::B => self.get_b(),
+            ArithmeticTarget::C => self.get_c(),
+            ArithmeticTarget::D => self.get_d(),
+            ArithmeticTarget::E => self.get_e(),
+            ArithmeticTarget::H => self.get_h(),
+            ArithmeticTarget::L => self.get_l(),
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn get_pair_value(&self, pair_target: &ArithmeticTarget) -> u16 {
+        match pair_target {
+            ArithmeticTarget::BC => self.get_bc(),
+            ArithmeticTarget::DE => self.get_de(),
+            ArithmeticTarget::HL => self.get_hl(),
+            _ => unreachable!(),
+        }
     }
 }

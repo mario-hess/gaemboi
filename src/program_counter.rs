@@ -18,4 +18,9 @@ impl ProgramCounter {
     pub fn increment(&mut self, value: u16) {
         self.value += value;
     }
+
+    pub fn next(&mut self) -> u16 {
+        self.value += 1;
+        self.value
+    }
 }
