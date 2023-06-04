@@ -21,20 +21,15 @@ This is a Nintendo Game Boy emulator written in Rust. It aims to accurately emul
 
 - Rust (https://www.rust-lang.org/tools/install)
 
-### Installation
+### Development
 
-1. Clone the repository:
+Clone the repository:
 ```
 git clone https://github.com/mario-hess/gemboi
 ```
 
-2. Build the emulator:
-```
-cd gemboi
-cargo build --release
-```
-
 ### Usage
+
 Create a folder named 'roms' in the root directory, and place your rom in there.
 Run the emulator with a specified ROM file:
 ```
