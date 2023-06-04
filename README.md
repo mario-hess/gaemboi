@@ -25,12 +25,12 @@ This is a Nintendo Game Boy emulator written in Rust. It aims to accurately emul
 
 1. Clone the repository:
 ```
-git clone https://github.com/your-username/game-boy-emulator.git
+git clone https://github.com/mario-hess/gemboi
 ```
 
 2. Build the emulator:
 ```
-cd game-boy-emulator
+cd gemboi
 cargo build --release
 ```
 
