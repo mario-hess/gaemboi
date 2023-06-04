@@ -138,4 +138,26 @@ impl Registers {
             _ => unreachable!(),
         }
     }
+
+    pub fn get_register_setter(&self, reg_target: &Target) -> fn(&mut Registers, u8) {
+        match reg_target {
+            Target::A => Registers::set_a,
+            Target::B => Registers::set_b,
+            Target::C => Registers::set_c,
+            Target::D => Registers::set_d,
+            Target::E => Registers::set_e,
+            Target::H => Registers::set_h,
+            Target::L => Registers::set_l,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn get_pair_setter(&self, pair_target: &Target) -> fn(&mut Registers, u16) {
+        match pair_target {
+            Target::BC => Registers::set_bc,
+            Target::DE => Registers::set_de,
+            Target::HL => Registers::set_hl,
+            _ => unreachable!(),
+        }
+    }
 }

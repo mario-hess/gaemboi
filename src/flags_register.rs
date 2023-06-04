@@ -51,6 +51,13 @@ impl FlagsRegister {
     pub fn get_carry(&self) -> bool {
         self.carry
     }
+
+    pub fn set_flags(&mut self, zero: bool, subtract: bool, half_carry: bool, carry: bool) {
+        self.zero = zero;
+        self.subtract = subtract;
+        self.half_carry = half_carry;
+        self.carry = carry;
+    }
 }
 
 impl std::convert::From<FlagsRegister> for u8 {

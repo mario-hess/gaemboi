@@ -38,17 +38,12 @@ impl Cpu {
             Mnemonic::Nop => self.nop(instruction),
             Mnemonic::JumpNN => self.jump_nn(),
             Mnemonic::CpN => self.cp_n(instruction),
-            Mnemonic::IncPair(ref pair_target) => self.inc_pair(&instruction, pair_target),
-            Mnemonic::XorReg(ref reg_target) => self.xor_reg(&instruction, reg_target),
-            Mnemonic::LoadRegToPairAddr(ref pair_target, ref reg_target) => self
-                .load_reg_to_pair_addr(
-                    &instruction,
-                    self.registers.get_pair_value(pair_target),
-                    self.registers.get_register_value(reg_target),
-                ),
-            Mnemonic::LoadNextToReg(ref reg_target) => {
-                self.load_next_to_reg(&instruction, reg_target)
+            Mnemonic::IncPair(ref target) => self.inc_pair(&instruction, target),
+            Mnemonic::XorReg(ref target) => self.xor_reg(&instruction, target),
+            Mnemonic::LoadRegToPairAddr(ref pair_target, ref reg_target) => {
+                self.load_reg_to_pair_addr(&instruction, pair_target, reg_target)
             }
+            Mnemonic::LoadNextToReg(ref target) => self.load_next_to_reg(&instruction, target),
             _ => panic!("Unknown mnemonic."),
         }
     }
@@ -66,7 +61,6 @@ impl Cpu {
         // jump to nn, PC=nn
         let low_byte = self.memory_bus.read_byte(self.program_counter.next()) as u16;
         let high_byte = self.memory_bus.read_byte(self.program_counter.next()) as u16;
-
         let address = (high_byte << 8) | low_byte;
 
         self.program_counter.set(address);
@@ -76,67 +70,41 @@ impl Cpu {
 
     fn cp_n(&mut self, instruction: Instruction) {
         // compare A-n
-        let n = self.memory_bus.read_byte(self.program_counter.next());
+        let byte = self.memory_bus.read_byte(self.program_counter.next());
         let a = self.registers.get_a();
 
-        let zero = a.wrapping_sub(n) == 0;
-        let half_carry = (a & 0x0F) < (n & 0x0F);
-        let carry = a < n;
+        let zero = a.wrapping_sub(byte) == 0;
+        let half_carry = (a & 0x0F) < (byte & 0x0F);
+        let carry = a < byte;
 
-        self.registers.f.set_zero(zero);
-        self.registers.f.set_subtract(true);
-        self.registers.f.set_half_carry(half_carry);
-        self.registers.f.set_carry(carry);
+        self.registers.f.set_flags(zero, true, half_carry, carry);
 
         self.program_counter.increment(instruction.length);
     }
 
     // Increment instructions
 
-    fn inc_pair(&mut self, instruction: &Instruction, pair_target: &Target) {
-        match pair_target {
-            Target::BC => {
-                let bc = self.registers.get_bc();
-                self.registers.set_bc(bc.wrapping_add(1));
-            }
-            Target::DE => {
-                let de = self.registers.get_de();
-                self.registers.set_de(de.wrapping_add(1));
-            }
-            Target::HL => {
-                let hl = self.registers.get_hl();
-                self.registers.set_hl(hl.wrapping_add(1));
-            }
-            _ => panic!("inc_pair: Target not found."),
-        }
+    fn inc_pair(&mut self, instruction: &Instruction, target: &Target) {
+        let value = self.registers.get_pair_value(target);
+        let set_reg = self.registers.get_pair_setter(target);
+        set_reg(&mut self.registers, value.wrapping_add(1));
+
         self.program_counter.increment(instruction.length);
     }
 
     // XOR instructions
-    #[allow(clippy::type_complexity)]
-    fn xor_reg(&mut self, instruction: &Instruction, reg_target: &Target) {
-        let n = self.memory_bus.read_byte(self.program_counter.next());
-        let (get_reg, set_reg): (fn(&Registers) -> u8, fn(&mut Registers, u8)) = match reg_target {
-            Target::A => (Registers::get_a, Registers::set_a),
-            Target::B => (Registers::get_b, Registers::set_b),
-            Target::C => (Registers::get_c, Registers::set_c),
-            Target::D => (Registers::get_d, Registers::set_d),
-            Target::E => (Registers::get_e, Registers::set_e),
-            Target::H => (Registers::get_h, Registers::set_h),
-            Target::L => (Registers::get_l, Registers::set_l),
-            _ => unreachable!(),
-        };
 
-        let reg = get_reg(&self.registers);
-        let result = reg ^ n;
+    #[allow(clippy::type_complexity)]
+    fn xor_reg(&mut self, instruction: &Instruction, target: &Target) {
+        let byte = self.memory_bus.read_byte(self.program_counter.next());
+        let value = self.registers.get_register_value(target);
+        let set_reg = self.registers.get_register_setter(target);
+
+        let result = value ^ byte;
         let flag = result == 0;
 
         set_reg(&mut self.registers, result);
-
-        self.registers.f.set_zero(flag);
-        self.registers.f.set_subtract(false);
-        self.registers.f.set_half_carry(false);
-        self.registers.f.set_carry(false);
+        self.registers.f.set_flags(flag, false, false, false);
 
         self.program_counter.increment(instruction.length);
     }
@@ -146,25 +114,21 @@ impl Cpu {
     fn load_reg_to_pair_addr(
         &mut self,
         instruction: &Instruction,
-        pair_address: u16,
-        register: u8,
+        pair_target: &Target,
+        reg_target: &Target,
     ) {
-        self.memory_bus.write_byte(pair_address, register);
+        let address = self.registers.get_pair_value(pair_target);
+        let value = self.registers.get_register_value(reg_target);
+        self.memory_bus.write_byte(address, value);
+
         self.program_counter.increment(instruction.length);
     }
 
-    fn load_next_to_reg(&mut self, instruction: &Instruction, reg_target: &Target) {
-        let n = self.memory_bus.read_byte(self.program_counter.next());
-        match reg_target {
-            Target::A => self.registers.set_a(n),
-            Target::B => self.registers.set_b(n),
-            Target::C => self.registers.set_c(n),
-            Target::D => self.registers.set_d(n),
-            Target::E => self.registers.set_e(n),
-            Target::H => self.registers.set_h(n),
-            Target::L => self.registers.set_l(n),
-            _ => panic!("load_next_to_reg: Target not found."),
-        }
+    fn load_next_to_reg(&mut self, instruction: &Instruction, target: &Target) {
+        let byte = self.memory_bus.read_byte(self.program_counter.next());
+        let set_reg = self.registers.get_register_setter(target);
+        set_reg(&mut self.registers, byte);
+
         self.program_counter.increment(instruction.length);
     }
 }
