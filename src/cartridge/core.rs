@@ -1,6 +1,6 @@
 use crate::cartridge::{RAM_BANK_SIZE, RAM_SIZE_ADDRESS, ROM_BANK_SIZE};
 
-pub struct Base {
+pub struct Core {
     pub rom_data: Vec<u8>,
     pub ram_data: Option<Vec<u8>>,
     pub rom_bank: u8,
@@ -10,13 +10,11 @@ pub struct Base {
     pub ram_enabled: bool,
 }
 
-impl Base {
+impl Core {
     pub fn new(rom_data: &[u8]) -> Self {
-        let ram_data = create_ram(get_ram_size(rom_data));
-
+        let ram_data = create_ram(rom_data);
         let rom_bank = 1;
         let ram_bank = 0;
-
         let rom_offset: usize = ROM_BANK_SIZE;
         let ram_offset: usize = RAM_BANK_SIZE;
         let ram_enabled = false;
@@ -32,8 +30,9 @@ impl Base {
         }
     }
 }
-fn get_ram_size(rom_data: &[u8]) -> Option<usize> {
-    match rom_data[RAM_SIZE_ADDRESS] {
+
+fn create_ram(rom_data: &[u8]) -> Option<Vec<u8>> {
+    let ram_size = match rom_data[RAM_SIZE_ADDRESS] {
         0x00 => None,
         0x01 => None,
         0x02 => Some(8 * 1024),
@@ -41,9 +40,7 @@ fn get_ram_size(rom_data: &[u8]) -> Option<usize> {
         0x04 => Some(128 * 1024),
         0x05 => Some(64 * 1024),
         _ => None,
-    }
-}
+    };
 
-fn create_ram(ram_size: Option<usize>) -> Option<Vec<u8>> {
     ram_size.map(|size| vec![0; size])
 }

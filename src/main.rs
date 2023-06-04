@@ -1,3 +1,32 @@
+use std::env;
+use std::fs::File;
+use std::io::Read;
+
+mod cartridge;
+mod cpu;
+mod flags_register;
+mod gpu;
+mod instruction;
+mod machine;
+mod memory_bus;
+mod program_counter;
+mod registers;
+
+use crate::machine::Machine;
+
 fn main() {
-    println!("Hello, world!");
+    let args: Vec<String> = env::args().collect();
+    if args.len() < 2 {
+        panic!("Error: No file path provided.");
+    }
+
+    let rom_path = "roms/".to_owned() + &args[1];
+
+    let mut file = File::open(rom_path).expect("Error: Can't open file.");
+    let mut rom_data = Vec::new();
+    file.read_to_end(&mut rom_data)
+        .expect("Error: Can't read file.");
+
+    let mut machine = Machine::new(rom_data);
+    machine.run();
 }
