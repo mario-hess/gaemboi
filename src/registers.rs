@@ -1,5 +1,5 @@
 use crate::flags_register::FlagsRegister;
-use crate::instruction::ArithmeticTarget;
+use crate::instruction::Target;
 
 pub struct Registers {
     a: u8,
@@ -117,24 +117,24 @@ impl Registers {
         self.l = value;
     }
 
-    pub fn get_register_value(&self, reg_target: &ArithmeticTarget) -> u8 {
+    pub fn get_register_value(&self, reg_target: &Target) -> u8 {
         match reg_target {
-            ArithmeticTarget::A => self.get_a(),
-            ArithmeticTarget::B => self.get_b(),
-            ArithmeticTarget::C => self.get_c(),
-            ArithmeticTarget::D => self.get_d(),
-            ArithmeticTarget::E => self.get_e(),
-            ArithmeticTarget::H => self.get_h(),
-            ArithmeticTarget::L => self.get_l(),
+            Target::A => self.get_a(),
+            Target::B => self.get_b(),
+            Target::C => self.get_c(),
+            Target::D => self.get_d(),
+            Target::E => self.get_e(),
+            Target::H => self.get_h(),
+            Target::L => self.get_l(),
             _ => unreachable!(),
         }
     }
 
-    pub fn get_pair_value(&self, pair_target: &ArithmeticTarget) -> u16 {
+    pub fn get_pair_value(&self, pair_target: &Target) -> u16 {
         match pair_target {
-            ArithmeticTarget::BC => self.get_bc(),
-            ArithmeticTarget::DE => self.get_de(),
-            ArithmeticTarget::HL => self.get_hl(),
+            Target::BC => self.get_bc(),
+            Target::DE => self.get_de(),
+            Target::HL => self.get_hl(),
             _ => unreachable!(),
         }
     }

@@ -1,4 +1,4 @@
-use crate::instruction::{ArithmeticTarget, Instruction, Mnemonic};
+use crate::instruction::{Target, Instruction, Mnemonic};
 use crate::memory_bus::MemoryBus;
 use crate::program_counter::ProgramCounter;
 use crate::registers::Registers;
@@ -93,37 +93,37 @@ impl Cpu {
 
     // Increment instructions
 
-    fn inc_pair(&mut self, instruction: &Instruction, pair_target: &ArithmeticTarget) {
+    fn inc_pair(&mut self, instruction: &Instruction, pair_target: &Target) {
         match pair_target {
-            ArithmeticTarget::BC => {
+            Target::BC => {
                 let bc = self.registers.get_bc();
                 self.registers.set_bc(bc.wrapping_add(1));
             }
-            ArithmeticTarget::DE => {
+            Target::DE => {
                 let de = self.registers.get_de();
                 self.registers.set_de(de.wrapping_add(1));
             }
-            ArithmeticTarget::HL => {
+            Target::HL => {
                 let hl = self.registers.get_hl();
                 self.registers.set_hl(hl.wrapping_add(1));
             }
-            _ => panic!("inc_pair: ArithmeticTarget not found."),
+            _ => panic!("inc_pair: Target not found."),
         }
         self.program_counter.increment(instruction.length);
     }
 
     // XOR instructions
 
-    fn xor_reg(&mut self, instruction: &Instruction, reg_target: &ArithmeticTarget) {
+    fn xor_reg(&mut self, instruction: &Instruction, reg_target: &Target) {
         let n = self.memory_bus.read_byte(self.program_counter.next());
         let reg = match reg_target {
-            ArithmeticTarget::A => self.registers.get_a(),
-            ArithmeticTarget::B => self.registers.get_b(),
-            ArithmeticTarget::C => self.registers.get_c(),
-            ArithmeticTarget::D => self.registers.get_d(),
-            ArithmeticTarget::E => self.registers.get_e(),
-            ArithmeticTarget::H => self.registers.get_h(),
-            ArithmeticTarget::L => self.registers.get_l(),
+            Target::A => self.registers.get_a(),
+            Target::B => self.registers.get_b(),
+            Target::C => self.registers.get_c(),
+            Target::D => self.registers.get_d(),
+            Target::E => self.registers.get_e(),
+            Target::H => self.registers.get_h(),
+            Target::L => self.registers.get_l(),
             _ => unreachable!(),
         };
 
@@ -131,13 +131,13 @@ impl Cpu {
         let flag = result == 0;
 
         match reg_target {
-            ArithmeticTarget::A => self.registers.set_a(result),
-            ArithmeticTarget::B => self.registers.set_b(result),
-            ArithmeticTarget::C => self.registers.set_c(result),
-            ArithmeticTarget::D => self.registers.set_d(result),
-            ArithmeticTarget::E => self.registers.set_e(result),
-            ArithmeticTarget::H => self.registers.set_h(result),
-            ArithmeticTarget::L => self.registers.set_l(result),
+            Target::A => self.registers.set_a(result),
+            Target::B => self.registers.set_b(result),
+            Target::C => self.registers.set_c(result),
+            Target::D => self.registers.set_d(result),
+            Target::E => self.registers.set_e(result),
+            Target::H => self.registers.set_h(result),
+            Target::L => self.registers.set_l(result),
             _ => unreachable!(),
         };
 
@@ -161,17 +161,17 @@ impl Cpu {
         self.program_counter.increment(instruction.length);
     }
 
-    fn load_next_to_reg(&mut self, instruction: &Instruction, reg_target: &ArithmeticTarget) {
+    fn load_next_to_reg(&mut self, instruction: &Instruction, reg_target: &Target) {
         let n = self.memory_bus.read_byte(self.program_counter.next());
         match reg_target {
-            ArithmeticTarget::A => self.registers.set_a(n),
-            ArithmeticTarget::B => self.registers.set_b(n),
-            ArithmeticTarget::C => self.registers.set_c(n),
-            ArithmeticTarget::D => self.registers.set_d(n),
-            ArithmeticTarget::E => self.registers.set_e(n),
-            ArithmeticTarget::H => self.registers.set_h(n),
-            ArithmeticTarget::L => self.registers.set_l(n),
-            _ => panic!("load_next_to_reg: ArithmeticTarget not found."),
+            Target::A => self.registers.set_a(n),
+            Target::B => self.registers.set_b(n),
+            Target::C => self.registers.set_c(n),
+            Target::D => self.registers.set_d(n),
+            Target::E => self.registers.set_e(n),
+            Target::H => self.registers.set_h(n),
+            Target::L => self.registers.set_l(n),
+            _ => panic!("load_next_to_reg: Target not found."),
         }
         self.program_counter.increment(instruction.length);
     }
