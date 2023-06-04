@@ -1,4 +1,4 @@
-use crate::instruction::{Target, Instruction, Mnemonic};
+use crate::instruction::{Instruction, Mnemonic, Target};
 use crate::memory_bus::MemoryBus;
 use crate::program_counter::ProgramCounter;
 use crate::registers::Registers;
@@ -113,33 +113,25 @@ impl Cpu {
     }
 
     // XOR instructions
-
+    #[allow(clippy::type_complexity)]
     fn xor_reg(&mut self, instruction: &Instruction, reg_target: &Target) {
         let n = self.memory_bus.read_byte(self.program_counter.next());
-        let reg = match reg_target {
-            Target::A => self.registers.get_a(),
-            Target::B => self.registers.get_b(),
-            Target::C => self.registers.get_c(),
-            Target::D => self.registers.get_d(),
-            Target::E => self.registers.get_e(),
-            Target::H => self.registers.get_h(),
-            Target::L => self.registers.get_l(),
+        let (get_reg, set_reg): (fn(&Registers) -> u8, fn(&mut Registers, u8)) = match reg_target {
+            Target::A => (Registers::get_a, Registers::set_a),
+            Target::B => (Registers::get_b, Registers::set_b),
+            Target::C => (Registers::get_c, Registers::set_c),
+            Target::D => (Registers::get_d, Registers::set_d),
+            Target::E => (Registers::get_e, Registers::set_e),
+            Target::H => (Registers::get_h, Registers::set_h),
+            Target::L => (Registers::get_l, Registers::set_l),
             _ => unreachable!(),
         };
 
+        let reg = get_reg(&self.registers);
         let result = reg ^ n;
         let flag = result == 0;
 
-        match reg_target {
-            Target::A => self.registers.set_a(result),
-            Target::B => self.registers.set_b(result),
-            Target::C => self.registers.set_c(result),
-            Target::D => self.registers.set_d(result),
-            Target::E => self.registers.set_e(result),
-            Target::H => self.registers.set_h(result),
-            Target::L => self.registers.set_l(result),
-            _ => unreachable!(),
-        };
+        set_reg(&mut self.registers, result);
 
         self.registers.f.set_zero(flag);
         self.registers.f.set_subtract(false);
