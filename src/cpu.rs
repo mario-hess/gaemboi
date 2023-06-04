@@ -94,7 +94,6 @@ impl Cpu {
 
     // XOR instructions
 
-    #[allow(clippy::type_complexity)]
     fn xor_reg(&mut self, instruction: &Instruction, target: &Target) {
         let byte = self.memory_bus.read_byte(self.program_counter.next());
         let value = self.registers.get_register_value(target);
