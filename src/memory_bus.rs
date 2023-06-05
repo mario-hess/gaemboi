@@ -13,6 +13,9 @@ pub const CARTRIDGE_RAM_END: u16 = 0xBFFF;
 pub const WRAM_START: u16 = 0xC000;
 pub const WRAM_END: u16 = 0xDFFF;
 
+const HRAM_START: u16 = 0xFF80;
+const HRAM_END: u16 = 0xFFFE;
+
 pub const BOOT_ROM_END: u16 = 0x100;
 
 /*
@@ -33,6 +36,7 @@ pub const BOOT_ROM_END: u16 = 0x100;
 pub struct MemoryBus {
     cartridge: Cartridge,
     gpu: Gpu,
+    hram: [u8; 128],
 }
 
 impl MemoryBus {
@@ -42,52 +46,48 @@ impl MemoryBus {
         Self {
             cartridge,
             gpu: Gpu::new(),
+            hram: [0; 128],
         }
     }
 
     pub fn read_byte(&self, address: u16) -> u8 {
         match address {
-            CARTRIDGE_ROM_START..=CARTRIDGE_ROM_END => {
-                // read from CARTRIDGE_ROM
-                self.cartridge.read(address)
-            }
+            CARTRIDGE_ROM_START..=CARTRIDGE_ROM_END => self.cartridge.read(address),
             /*
             VRAM_START..=VRAM_END => {
                 // read from VRAM
             }
-            CARTRIDGE_RAM_START..=CARTRIDGE_RAM_END => {
-                // read from CARTRIDGE_RAM
-            }
+            */
+            CARTRIDGE_RAM_START..=CARTRIDGE_RAM_END => self.cartridge.read(address),
+            /*
             WRAM_START..=WRAM_END => {
                 // read from WRAM
             }
             */
+            HRAM_START..=HRAM_END => self.hram[address as usize - HRAM_START as usize],
             _ => {
-                println!("Unknown address: Can't read byte.");
+                println!("Unknown address: {:#X} Can't read byte.", address);
                 0x00
             }
         }
     }
 
     pub fn write_byte(&mut self, address: u16, value: u8) {
-        println!("{:#X}", address);
         match address {
-            CARTRIDGE_ROM_START..=CARTRIDGE_ROM_END => {
-                // read from CARTRIDGE_ROM
-                self.cartridge.write(address, value);
-            }
+            CARTRIDGE_ROM_START..=CARTRIDGE_ROM_END => self.cartridge.write(address, value),
             /*
             VRAM_START..=VRAM_END => {
                 // read from VRAM
             }
-            CARTRIDGE_RAM_START..=CARTRIDGE_RAM_END => {
-                // read from CARTRIDGE_RAM
-            }
+            */
+            CARTRIDGE_RAM_START..=CARTRIDGE_RAM_END => self.cartridge.write(address, value),
+            /*
             WRAM_START..=WRAM_END => {
                 // read from WRAM
             }
             */
-            _ => println!("Unknown address: Can't read byte."),
+            HRAM_START..=HRAM_END => self.hram[address as usize - HRAM_START as usize] = value,
+            _ => panic!("Unknown address: {:#X} Can't write byte.", address),
         }
     }
 }
