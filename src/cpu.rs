@@ -48,11 +48,11 @@ impl Cpu {
             Mnemonic::CPn => self.cp_n(),
             Mnemonic::INCPair(target) => self.inc_pair(target),
             Mnemonic::XORReg(target) => self.xor_reg(target),
-            Mnemonic::LDRegPair(pair_target, reg_target) => {
-                self.ld_reg_pair(pair_target, reg_target)
+            Mnemonic::LDPairReg(pair_target, reg_target) => {
+                self.ld_pair_reg(pair_target, reg_target)
             }
-            Mnemonic::LDPairReg(reg_target, pair_target) => {
-                self.ld_pair_reg(reg_target, pair_target)
+            Mnemonic::LDRegPair(reg_target, pair_target) => {
+                self.ld_reg_pair(reg_target, pair_target)
             }
             Mnemonic::LDRegN(target) => self.ld_reg_n(target),
             Mnemonic::LDnnA => self.ld_nn_a(),
@@ -163,7 +163,7 @@ impl Cpu {
     }
 
     // --- Load instructions ---
-    fn ld_reg_pair(&mut self, pair_target: Target, reg_target: Target) {
+    fn ld_pair_reg(&mut self, pair_target: Target, reg_target: Target) {
         // Load data from the 8-bit target register to the
         // absolute address specified by the 16-bit register
 
@@ -172,7 +172,7 @@ impl Cpu {
         self.memory_bus.write_byte(address, value);
     }
 
-    fn ld_pair_reg(&mut self, reg_target: Target, pair_target: Target) {
+    fn ld_reg_pair(&mut self, reg_target: Target, pair_target: Target) {
         // Load data from the absolute address specified
         // by the 16-bit register to the 8-bit register
 
