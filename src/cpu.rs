@@ -28,7 +28,7 @@ impl Cpu {
     }
 
     pub fn step(&mut self) {
-        print!("PC: {:#X} | ", self.program_counter.value);
+        print!("PC: {:#X} | ", self.program_counter.get());
         let byte = self.memory_bus.read_byte(self.program_counter.next());
         print!("Opcode: {:#X} | ", byte);
         let instruction = Instruction::from_byte(byte);
@@ -54,8 +54,10 @@ impl Cpu {
             Mnemonic::LDPairReg(reg_target, pair_target) => {
                 self.ld_pair_reg(reg_target, pair_target)
             }
-            Mnemonic::LoadNextToReg(target) => self.load_next_to_reg(target),
+            Mnemonic::LDRegN(target) => self.ld_reg_n(target),
+            Mnemonic::LDnnA => self.ld_nn_a(),
             Mnemonic::JRcce(flag) => self.jr_cc_e(flag),
+            Mnemonic::JRe => self.jr_e(),
             _ => panic!("Unknown mnemonic."),
         }
     }
@@ -90,12 +92,21 @@ impl Cpu {
         self.program_counter.set(address);
     }
 
+    fn jr_e(&mut self) {
+        // Unconditional jump to the relative address
+        // specified by the signed 8-bit immediate value
+
+        let address = self.memory_bus.read_byte(self.program_counter.next()) as i8;
+
+        self.program_counter.relative_jump(address);
+    }
+
     fn jr_cc_e(&mut self, flag: Flag) {
         // Conditional jump to the relative address specified
         // by the signed 8-bit immediate value, depending on the
         // flag condition
 
-        let value = self.memory_bus.read_byte(self.program_counter.next()) as i8;
+        let address = self.memory_bus.read_byte(self.program_counter.next()) as i8;
 
         let flag = match flag {
             Flag::Z => self.registers.f.get_zero(),
@@ -105,7 +116,7 @@ impl Cpu {
         };
 
         if flag {
-            self.program_counter.increment_signed(value);
+            self.program_counter.relative_jump(address);
         }
     }
 
@@ -153,7 +164,7 @@ impl Cpu {
 
     // --- Load instructions ---
     fn ld_reg_pair(&mut self, pair_target: Target, reg_target: Target) {
-        // Load data from the 8-bit target register to the 
+        // Load data from the 8-bit target register to the
         // absolute address specified by the 16-bit register
 
         let address = self.registers.get_pair_value(&pair_target);
@@ -171,11 +182,23 @@ impl Cpu {
         set_reg(&mut self.registers, value);
     }
 
-    fn load_next_to_reg(&mut self, target: Target) {
+    fn ld_reg_n(&mut self, target: Target) {
         // Load the immediate 8-bit value to the 8-bit target register
 
         let byte = self.memory_bus.read_byte(self.program_counter.next());
         let set_reg = self.registers.get_register_setter(&target);
         set_reg(&mut self.registers, byte);
+    }
+
+    fn ld_nn_a(&mut self) {
+        // Load data from the 8-bit A register to the absolute
+        // address specified by the 16-bit immediate values
+
+        let low_byte = self.memory_bus.read_byte(self.program_counter.next()) as u16;
+        let high_byte = self.memory_bus.read_byte(self.program_counter.next()) as u16;
+        let address = (high_byte << 8) | low_byte;
+        let a = self.registers.get_a();
+
+        self.memory_bus.write_byte(address, a);
     }
 }

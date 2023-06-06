@@ -36,6 +36,7 @@ pub const BOOT_ROM_END: u16 = 0x100;
 pub struct MemoryBus {
     cartridge: Cartridge,
     gpu: Gpu,
+    wram: [u8; 8192],
     hram: [u8; 128],
 }
 
@@ -46,6 +47,7 @@ impl MemoryBus {
         Self {
             cartridge,
             gpu: Gpu::new(),
+            wram: [0; 8192],
             hram: [0; 128],
         }
     }
@@ -59,11 +61,7 @@ impl MemoryBus {
             }
             */
             CARTRIDGE_RAM_START..=CARTRIDGE_RAM_END => self.cartridge.read(address),
-            /*
-            WRAM_START..=WRAM_END => {
-                // read from WRAM
-            }
-            */
+            WRAM_START..=WRAM_END => self.wram[address as usize - WRAM_START as usize],
             HRAM_START..=HRAM_END => self.hram[address as usize - HRAM_START as usize],
             _ => {
                 println!("Unknown address: {:#X} Can't read byte.", address);
@@ -81,11 +79,7 @@ impl MemoryBus {
             }
             */
             CARTRIDGE_RAM_START..=CARTRIDGE_RAM_END => self.cartridge.write(address, value),
-            /*
-            WRAM_START..=WRAM_END => {
-                // read from WRAM
-            }
-            */
+            WRAM_START..=WRAM_END => self.wram[address as usize - WRAM_START as usize] = value,
             HRAM_START..=HRAM_END => self.hram[address as usize - HRAM_START as usize] = value,
             _ => panic!("Unknown address: {:#X} Can't write byte.", address),
         }
