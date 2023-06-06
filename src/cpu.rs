@@ -11,6 +11,7 @@ pub struct Cpu {
     registers: Registers,
     program_counter: ProgramCounter,
     stack_pointer: u16,
+    interrupt_enabled: bool,
 }
 
 impl Cpu {
@@ -24,6 +25,7 @@ impl Cpu {
             registers: Registers::new(enable_flags),
             program_counter: ProgramCounter::new(),
             stack_pointer: STACK_POINTER_START,
+            interrupt_enabled: false,
         }
     }
 
@@ -46,8 +48,10 @@ impl Cpu {
             Mnemonic::Rst(address) => self.rst(address),
             Mnemonic::JPnn => self.jp_nn(),
             Mnemonic::CPn => self.cp_n(),
+            Mnemonic::CALLnn => self.call_nn(),
             Mnemonic::INCPair(target) => self.inc_pair(target),
             Mnemonic::XORReg(target) => self.xor_reg(target),
+            Mnemonic::LDRegReg(to, from) => self.ld_rr(to, from),
             Mnemonic::LDPairReg(pair_target, reg_target) => {
                 self.ld_pair_reg(pair_target, reg_target)
             }
@@ -56,8 +60,11 @@ impl Cpu {
             }
             Mnemonic::LDRegN(target) => self.ld_reg_n(target),
             Mnemonic::LDnnA => self.ld_nn_a(),
+            Mnemonic::LDHnA => self.ldh_n_a(),
+            Mnemonic::LDHAn => self.ldh_a_n(),
             Mnemonic::JRcce(flag) => self.jr_cc_e(flag),
             Mnemonic::JRe => self.jr_e(),
+            Mnemonic::DI => self.di(),
             _ => panic!("Unknown mnemonic."),
         }
     }
@@ -80,14 +87,20 @@ impl Cpu {
         self.program_counter.set(address);
     }
 
+    fn di(&mut self) {
+        // Disables interrupt handling by setting IME=0
+        // and cancelling any scheduled effects of the EI
+        // instruction if any.
+
+        self.interrupt_enabled = false;
+    }
+
     // --- Jump instructions ---
     fn jp_nn(&mut self) {
         // Unconditional jump to the absolute address
         // specified by the 16-bit immediate values
 
-        let low_byte = self.memory_bus.read_byte(self.program_counter.next()) as u16;
-        let high_byte = self.memory_bus.read_byte(self.program_counter.next()) as u16;
-        let address = (high_byte << 8) | low_byte;
+        let address = self.get_nn_little_endian();
 
         self.program_counter.set(address);
     }
@@ -163,6 +176,17 @@ impl Cpu {
     }
 
     // --- Load instructions ---
+    fn ld_rr(&mut self, to: Target, from: Target) {
+        // 8-bit load instructions transfer one byte of data
+        // between two 8-bit registers, or between one 8-bit
+        // register and location in memory
+
+        let set_reg = self.registers.get_register_setter(&to);
+        let value = self.registers.get_register_value(&from);
+
+        set_reg(&mut self.registers, value);
+    }
+
     fn ld_pair_reg(&mut self, pair_target: Target, reg_target: Target) {
         // Load data from the 8-bit target register to the
         // absolute address specified by the 16-bit register
@@ -194,11 +218,66 @@ impl Cpu {
         // Load data from the 8-bit A register to the absolute
         // address specified by the 16-bit immediate values
 
-        let low_byte = self.memory_bus.read_byte(self.program_counter.next()) as u16;
-        let high_byte = self.memory_bus.read_byte(self.program_counter.next()) as u16;
-        let address = (high_byte << 8) | low_byte;
+        let address = self.get_nn_little_endian();
         let a = self.registers.get_a();
 
         self.memory_bus.write_byte(address, a);
+    }
+
+    fn ldh_n_a(&mut self) {
+        // Load to the address specified by the 8-bit immediate
+        // data n, data from the 8-bit A register. The full 16-bit
+        // absolute address is obtained by setting the most significant
+        // byte to 0xFF and the least significant byte to the value of
+        // n, so the possible range is 0xFF00-0xFFFF.
+
+        let n = self.memory_bus.read_byte(self.program_counter.next()) as u16;
+        let address = 0xFF00 | n;
+
+        let value = self.registers.get_a();
+
+        self.memory_bus.write_byte(address, value)
+    }
+
+    fn ldh_a_n(&mut self) {
+        // Load to the 8-bit A register, data from the address specified
+        // by the 8-bit immediate data n. The full 16-bit absolute address
+        // is obtained by setting the most significant byte to 0xFF and
+        // the least significant byte to the value of n, so the possible
+        // range is 0xFF00-0xFFFF.
+
+        let n = self.memory_bus.read_byte(self.program_counter.next()) as u16;
+        let address = 0xFF00 | n;
+
+        let value = self.memory_bus.read_byte(address);
+        self.registers.set_a(value);
+    }
+
+    // --- Call instructions ---
+    fn call_nn(&mut self) {
+        // Unconditional function call to the absolute address
+        // specified by the 16-bit operand nn
+
+        let new_pc = self.get_nn_little_endian();
+        let old_pc = self.program_counter.get();
+
+        self.stack_pointer = self.stack_pointer.wrapping_sub(2);
+
+        let msb = (old_pc >> 8) as u8;
+        let lsb = old_pc as u8;
+
+        self.memory_bus.write_byte(self.stack_pointer, msb);
+        self.memory_bus
+            .write_byte(self.stack_pointer.wrapping_add(1), lsb);
+
+        self.program_counter.set(new_pc);
+    }
+
+    // --- Util ---
+    fn get_nn_little_endian(&mut self) -> u16 {
+        let low_byte = self.memory_bus.read_byte(self.program_counter.next()) as u16;
+        let high_byte = self.memory_bus.read_byte(self.program_counter.next()) as u16;
+
+        (high_byte << 8) | low_byte
     }
 }

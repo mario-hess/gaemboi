@@ -13,8 +13,14 @@ pub const CARTRIDGE_RAM_END: u16 = 0xBFFF;
 pub const WRAM_START: u16 = 0xC000;
 pub const WRAM_END: u16 = 0xDFFF;
 
+const IO_START: u16 = 0xFF00;
+const IO_END: u16 = 0xFF7F;
+
 const HRAM_START: u16 = 0xFF80;
 const HRAM_END: u16 = 0xFFFE;
+
+const INTERRUPT_ENABLE: u16 = 0xFFFF;
+
 
 pub const BOOT_ROM_END: u16 = 0x100;
 
@@ -37,7 +43,9 @@ pub struct MemoryBus {
     cartridge: Cartridge,
     gpu: Gpu,
     wram: [u8; 8192],
+    io: [u8; 128],
     hram: [u8; 128],
+    interrupt_enable: u8,
 }
 
 impl MemoryBus {
@@ -48,21 +56,21 @@ impl MemoryBus {
             cartridge,
             gpu: Gpu::new(),
             wram: [0; 8192],
+            io: [0; 128],
             hram: [0; 128],
+            interrupt_enable: 0,
         }
     }
 
     pub fn read_byte(&self, address: u16) -> u8 {
         match address {
             CARTRIDGE_ROM_START..=CARTRIDGE_ROM_END => self.cartridge.read(address),
-            /*
-            VRAM_START..=VRAM_END => {
-                // read from VRAM
-            }
-            */
+            VRAM_START..=VRAM_END => self.gpu.read_byte(address),
             CARTRIDGE_RAM_START..=CARTRIDGE_RAM_END => self.cartridge.read(address),
             WRAM_START..=WRAM_END => self.wram[address as usize - WRAM_START as usize],
+            IO_START..=IO_END => self.io[address as usize - IO_START as usize],
             HRAM_START..=HRAM_END => self.hram[address as usize - HRAM_START as usize],
+            INTERRUPT_ENABLE => self.interrupt_enable,
             _ => {
                 println!("Unknown address: {:#X} Can't read byte.", address);
                 0x00
@@ -73,14 +81,12 @@ impl MemoryBus {
     pub fn write_byte(&mut self, address: u16, value: u8) {
         match address {
             CARTRIDGE_ROM_START..=CARTRIDGE_ROM_END => self.cartridge.write(address, value),
-            /*
-            VRAM_START..=VRAM_END => {
-                // read from VRAM
-            }
-            */
+            VRAM_START..=VRAM_END => self.gpu.write_byte(address, value),
             CARTRIDGE_RAM_START..=CARTRIDGE_RAM_END => self.cartridge.write(address, value),
             WRAM_START..=WRAM_END => self.wram[address as usize - WRAM_START as usize] = value,
+            IO_START..=IO_END => self.io[address as usize - IO_START as usize] = value,
             HRAM_START..=HRAM_END => self.hram[address as usize - HRAM_START as usize] = value,
+            INTERRUPT_ENABLE => self.interrupt_enable = value,
             _ => panic!("Unknown address: {:#X} Can't write byte.", address),
         }
     }
