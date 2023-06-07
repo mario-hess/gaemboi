@@ -43,7 +43,7 @@ pub struct MemoryBus {
     cartridge: Cartridge,
     gpu: Gpu,
     wram: [u8; 8192],
-    io: [u8; 128],
+    pub io: [u8; 128],
     hram: [u8; 128],
     interrupt_enable: u8,
 }

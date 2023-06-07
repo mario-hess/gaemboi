@@ -26,7 +26,7 @@ impl Registers {
         }
     }
 
-    pub fn get_af(self) -> u16 {
+    pub fn get_af(&self) -> u16 {
         let f: u8 = self.f.into();
         (self.a as u16) << 8 | f as u16
     }
@@ -132,6 +132,7 @@ impl Registers {
 
     pub fn get_pair_value(&self, pair_target: &Target) -> u16 {
         match pair_target {
+            Target::AF => self.get_af(),
             Target::BC => self.get_bc(),
             Target::DE => self.get_de(),
             Target::HL => self.get_hl(),
@@ -154,6 +155,7 @@ impl Registers {
 
     pub fn get_pair_setter(&self, pair_target: &Target) -> fn(&mut Registers, u16) {
         match pair_target {
+            Target::AF => Registers::set_af,
             Target::BC => Registers::set_bc,
             Target::DE => Registers::set_de,
             Target::HL => Registers::set_hl,

@@ -39,8 +39,13 @@ impl Cpu {
             "Instruction: {:?} | new PC: {:#X}",
             instruction.mnemonic, self.program_counter.value
         );
-        println!("-------------------------------------------------------------");
         self.execute_instruction(instruction);
+        println!(
+            "Char at 0xFF01: [{}], Val at 0xFF02: [{:#X}]",
+            char::from(self.memory_bus.io[1]),
+            self.memory_bus.io[2]
+        );
+        println!("-------------------------------------------------------------");
     }
 
     pub fn execute_instruction(&mut self, instruction: Instruction) {
@@ -50,12 +55,14 @@ impl Cpu {
             Mnemonic::JPnn => self.jp_nn(),
             Mnemonic::CPn => self.cp_n(),
             Mnemonic::CALLnn => self.call_nn(),
+            Mnemonic::INCReg(target) => self.inc_reg(target),
             Mnemonic::INCPair(target) => self.inc_pair(target),
             Mnemonic::XORReg(target) => self.xor_reg(target),
             Mnemonic::LDRegReg(to, from) => self.ld_rr(to, from),
             Mnemonic::LDPairReg(pair_target, reg_target) => {
                 self.ld_pair_reg(pair_target, reg_target)
             }
+            Mnemonic::LDPairNN(target) => self.ld_pair_nn(target),
             Mnemonic::LDRegPair(reg_target, pair_target) => {
                 self.ld_reg_pair(reg_target, pair_target)
             }
@@ -66,7 +73,9 @@ impl Cpu {
             Mnemonic::JRce(flag) => self.jr_c_e(flag),
             Mnemonic::JRnce(flag) => self.jr_nc_e(flag),
             Mnemonic::JRe => self.jr_e(),
+            Mnemonic::PushPair(target) => self.push_pair(target),
             Mnemonic::DisableInterrupt => self.disable_interrupt(),
+            Mnemonic::Ret => self.ret(),
             Mnemonic::Prefix => self.prefix(),
             _ => panic!("Unknown mnemonic."),
         }
@@ -87,8 +96,8 @@ impl Cpu {
 
     fn execute_prefix(&mut self, instruction: Instruction) {
         match instruction.mnemonic {
-             Mnemonic::ResBReg(value, target) => self.res_b_reg(value, target),
-             _ => panic!("Unknown PREFIX Mnemnoic."),
+            Mnemonic::ResBReg(value, target) => self.res_b_reg(value, target),
+            _ => panic!("Unknown PREFIX Mnemnoic."),
         }
     }
 
@@ -116,6 +125,12 @@ impl Cpu {
         // instruction if any.
 
         self.interrupt_enabled = false;
+    }
+
+    fn ret(&mut self) {
+        let address = self.pop_stack();
+
+        self.program_counter.set(address);
     }
 
     // --- Jump instructions ---
@@ -173,7 +188,6 @@ impl Cpu {
         if !flag {
             self.program_counter.relative_jump(address);
         }
-
     }
 
     // --- Compare instructions ---
@@ -194,6 +208,20 @@ impl Cpu {
     }
 
     // --- Increment instructions ---
+    fn inc_reg(&mut self, target: Target) {
+        // Increments data in the 8-bit register r
+
+        let reg = self.registers.get_register_value(&target);
+        let set_reg = self.registers.get_register_setter(&target);
+
+        let result = reg.wrapping_add(1);
+        set_reg(&mut self.registers, result);
+
+        self.registers.f.set_zero(result == 0);
+        self.registers.f.set_subtract(false);
+        self.registers.f.set_half_carry((reg & 0x0F) == 0);
+    }
+
     fn inc_pair(&mut self, target: Target) {
         // Increments data in the 16-bit target register by 1
 
@@ -237,6 +265,16 @@ impl Cpu {
         let address = self.registers.get_pair_value(&pair_target);
         let value = self.registers.get_register_value(&reg_target);
         self.memory_bus.write_byte(address, value);
+    }
+
+    fn ld_pair_nn(&mut self, target: Target) {
+        // Load to the 16-bit register rr, the
+        // immediate 16-bit data nn
+
+        let value = self.get_nn_little_endian();
+        let set_pair = self.registers.get_pair_setter(&target);
+
+        set_pair(&mut self.registers, value);
     }
 
     fn ld_reg_pair(&mut self, reg_target: Target, pair_target: Target) {
@@ -296,6 +334,18 @@ impl Cpu {
         self.registers.set_a(value);
     }
 
+    fn push_pair(&mut self, target: Target) {
+        // Push to the stack memory, data from the 16-bit register rr
+
+        let value = self.registers.get_pair_value(&target);
+        self.stack_pointer = self.stack_pointer.wrapping_sub(2);
+
+        self.memory_bus
+            .write_byte(self.stack_pointer, (value >> 8) as u8);
+        self.memory_bus
+            .write_byte(self.stack_pointer.wrapping_add(1), value as u8);
+    }
+
     // --- Call instructions ---
     fn call_nn(&mut self) {
         // Unconditional function call to the absolute address
@@ -315,7 +365,7 @@ impl Cpu {
 
         self.program_counter.set(new_pc);
     }
-    
+
     // --- PREFIX CB ---
     // --- Reset instructions ---
     fn res_b_reg(&mut self, bit: u8, target: Target) {
@@ -323,7 +373,7 @@ impl Cpu {
         let set_reg = self.registers.get_register_setter(&target);
 
         let result = reg & !(1 << bit);
-        
+
         set_reg(&mut self.registers, result);
     }
 
@@ -331,6 +381,16 @@ impl Cpu {
     fn get_nn_little_endian(&mut self) -> u16 {
         let low_byte = self.memory_bus.read_byte(self.program_counter.next()) as u16;
         let high_byte = self.memory_bus.read_byte(self.program_counter.next()) as u16;
+
+        (high_byte << 8) | low_byte
+    }
+
+    fn pop_stack(&mut self) -> u16 {
+        let low_byte = self.memory_bus.read_byte(self.stack_pointer) as u16;
+        self.stack_pointer = self.stack_pointer.wrapping_add(1);
+
+        let high_byte = self.memory_bus.read_byte(self.stack_pointer) as u16;
+        self.stack_pointer = self.stack_pointer.wrapping_add(1);
 
         (high_byte << 8) | low_byte
     }
