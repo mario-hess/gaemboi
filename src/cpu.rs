@@ -18,6 +18,7 @@ impl Cpu {
     pub fn new(rom_data: Vec<u8>) -> Self {
         // If the header checksum is 0x00, then the carry and
         // half-carry flags are clear; otherwise, they are both set
+
         let enable_flags = rom_data[HEADER_CHECKSUM_ADDRESS] != 0x00;
 
         Self {
@@ -62,10 +63,32 @@ impl Cpu {
             Mnemonic::LDnnA => self.ld_nn_a(),
             Mnemonic::LDHnA => self.ldh_n_a(),
             Mnemonic::LDHAn => self.ldh_a_n(),
-            Mnemonic::JRcce(flag) => self.jr_cc_e(flag),
+            Mnemonic::JRce(flag) => self.jr_c_e(flag),
+            Mnemonic::JRnce(flag) => self.jr_nc_e(flag),
             Mnemonic::JRe => self.jr_e(),
-            Mnemonic::DI => self.di(),
+            Mnemonic::DisableInterrupt => self.disable_interrupt(),
+            Mnemonic::Prefix => self.prefix(),
             _ => panic!("Unknown mnemonic."),
+        }
+    }
+
+    fn prefix(&mut self) {
+        print!("PC: {:#X} | ", self.program_counter.get());
+        let byte = self.memory_bus.read_byte(self.program_counter.next());
+        print!("Opcode: {:#X} | ", byte);
+        let instruction = Instruction::from_prefix(byte);
+        println!(
+            "Instruction: {:?} | new PC: {:#X}",
+            instruction.mnemonic, self.program_counter.value
+        );
+        println!("-------------------------------------------------------------");
+        self.execute_prefix(instruction);
+    }
+
+    fn execute_prefix(&mut self, instruction: Instruction) {
+        match instruction.mnemonic {
+             Mnemonic::ResBReg(value, target) => self.res_b_reg(value, target),
+             _ => panic!("Unknown PREFIX Mnemnoic."),
         }
     }
 
@@ -87,7 +110,7 @@ impl Cpu {
         self.program_counter.set(address);
     }
 
-    fn di(&mut self) {
+    fn disable_interrupt(&mut self) {
         // Disables interrupt handling by setting IME=0
         // and cancelling any scheduled effects of the EI
         // instruction if any.
@@ -114,7 +137,7 @@ impl Cpu {
         self.program_counter.relative_jump(address);
     }
 
-    fn jr_cc_e(&mut self, flag: Flag) {
+    fn jr_c_e(&mut self, flag: Flag) {
         // Conditional jump to the relative address specified
         // by the signed 8-bit immediate value, depending on the
         // flag condition
@@ -131,6 +154,26 @@ impl Cpu {
         if flag {
             self.program_counter.relative_jump(address);
         }
+    }
+
+    fn jr_nc_e(&mut self, flag: Flag) {
+        // Conditional jump to the relative address specified
+        // by the signed 8-bit immediate value, depending on the
+        // flag condition
+
+        let address = self.memory_bus.read_byte(self.program_counter.next()) as i8;
+
+        let flag = match flag {
+            Flag::Z => self.registers.f.get_zero(),
+            Flag::N => self.registers.f.get_subtract(),
+            Flag::H => self.registers.f.get_half_carry(),
+            Flag::C => self.registers.f.get_carry(),
+        };
+
+        if !flag {
+            self.program_counter.relative_jump(address);
+        }
+
     }
 
     // --- Compare instructions ---
@@ -271,6 +314,17 @@ impl Cpu {
             .write_byte(self.stack_pointer.wrapping_add(1), lsb);
 
         self.program_counter.set(new_pc);
+    }
+    
+    // --- PREFIX CB ---
+    // --- Reset instructions ---
+    fn res_b_reg(&mut self, bit: u8, target: Target) {
+        let reg = self.registers.get_register_value(&target);
+        let set_reg = self.registers.get_register_setter(&target);
+
+        let result = reg & !(1 << bit);
+        
+        set_reg(&mut self.registers, result);
     }
 
     // --- Util ---

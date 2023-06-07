@@ -15,9 +15,12 @@ pub enum Mnemonic {
     LDnnA,
     LDHnA,
     LDHAn,
-    JRcce(Flag),
+    JRce(Flag),
+    JRnce(Flag),
     JRe,
-    DI,
+    DisableInterrupt,
+    Prefix,
+    ResBReg(u8, Target),
 }
 
 #[derive(Debug)]
@@ -39,9 +42,8 @@ pub enum Flag {
     Z,
     N,
     H,
-    C
+    C,
 }
-
 
 pub struct Instruction {
     pub mnemonic: Mnemonic,
@@ -57,7 +59,8 @@ impl Instruction {
             m_cycles,
         }
     }
-   pub fn from_byte(value: u8) -> Self {
+
+    pub fn from_byte(value: u8) -> Self {
         match value {
             0x00 => Instruction::new(Mnemonic::Nop, 1, 1),
             0x02 => Instruction::new(Mnemonic::LDPairReg(Target::BC, Target::A), 1, 2),
@@ -66,10 +69,11 @@ impl Instruction {
             0x12 => Instruction::new(Mnemonic::LDPairReg(Target::DE, Target::A), 1, 2),
             0x13 => Instruction::new(Mnemonic::INCPair(Target::DE), 1, 2),
             0x18 => Instruction::new(Mnemonic::JRe, 2, 3),
+            0x20 => Instruction::new(Mnemonic::JRnce(Flag::Z), 2, 3),
             0x1A => Instruction::new(Mnemonic::LDRegPair(Target::A, Target::DE), 1, 2),
             0x1E => Instruction::new(Mnemonic::LDRegN(Target::E), 2, 2),
             0x23 => Instruction::new(Mnemonic::INCPair(Target::HL), 1, 2),
-            0x28 => Instruction::new(Mnemonic::JRcce(Flag::Z), 2, 2),
+            0x28 => Instruction::new(Mnemonic::JRce(Flag::Z), 2, 2),
             0x2E => Instruction::new(Mnemonic::LDRegN(Target::L), 2, 2),
             0x3E => Instruction::new(Mnemonic::LDRegN(Target::A), 2, 2),
             0x40 => Instruction::new(Mnemonic::LDRegReg(Target::B, Target::B), 1, 1),
@@ -86,7 +90,7 @@ impl Instruction {
             0x4B => Instruction::new(Mnemonic::LDRegReg(Target::C, Target::E), 1, 1),
             0x4C => Instruction::new(Mnemonic::LDRegReg(Target::C, Target::H), 1, 1),
             0x4D => Instruction::new(Mnemonic::LDRegReg(Target::C, Target::L), 1, 1),
-            0x4E => Instruction::new(Mnemonic::LDRegPair(Target::C, Target::HL), 1 ,2),
+            0x4E => Instruction::new(Mnemonic::LDRegPair(Target::C, Target::HL), 1, 2),
             0x4F => Instruction::new(Mnemonic::LDRegReg(Target::C, Target::A), 1, 1),
             0x50 => Instruction::new(Mnemonic::LDRegReg(Target::D, Target::B), 1, 1),
             0x51 => Instruction::new(Mnemonic::LDRegReg(Target::D, Target::C), 1, 1),
@@ -137,12 +141,13 @@ impl Instruction {
             0x7F => Instruction::new(Mnemonic::LDRegReg(Target::A, Target::A), 1, 1),
             0xA8 => Instruction::new(Mnemonic::XORReg(Target::B), 1, 1),
             0xA9 => Instruction::new(Mnemonic::XORReg(Target::C), 1, 1),
-            0xAA => Instruction::new(Mnemonic::XORReg(Target::D), 1 ,1),
+            0xAA => Instruction::new(Mnemonic::XORReg(Target::D), 1, 1),
             0xAB => Instruction::new(Mnemonic::XORReg(Target::E), 1, 1),
             0xAC => Instruction::new(Mnemonic::XORReg(Target::H), 1, 1),
             0xAD => Instruction::new(Mnemonic::XORReg(Target::L), 1, 1),
             0xAF => Instruction::new(Mnemonic::XORReg(Target::A), 1, 1),
             0xC3 => Instruction::new(Mnemonic::JPnn, 3, 4),
+            0xCB => Instruction::new(Mnemonic::Prefix, 1, 1),
             0xCD => Instruction::new(Mnemonic::CALLnn, 3, 6),
             0xCF => Instruction::new(Mnemonic::Rst(0x0008), 1, 4),
             0xDF => Instruction::new(Mnemonic::Rst(0x0018), 1, 4),
@@ -150,10 +155,17 @@ impl Instruction {
             0xEA => Instruction::new(Mnemonic::LDnnA, 3, 4),
             0xEF => Instruction::new(Mnemonic::Rst(0x0028), 1, 4),
             0xF0 => Instruction::new(Mnemonic::LDHAn, 2, 3),
-            0xF3 => Instruction::new(Mnemonic::DI, 1, 1),
+            0xF3 => Instruction::new(Mnemonic::DisableInterrupt, 1, 1),
             0xFE => Instruction::new(Mnemonic::CPn, 2, 2),
             0xFF => Instruction::new(Mnemonic::Rst(0x0038), 1, 4),
             _ => panic!("Instruction for byte {:#X} not implemented.", value),
         }
-   } 
+    }
+
+    pub fn from_prefix(value: u8) -> Self {
+        match value {
+            0x87 => Instruction::new(Mnemonic::ResBReg(0, Target::A), 2, 2),
+            _ => panic!("PREFIX Instruction for byte {:#X} not implemented.", value),
+        }
+    }
 }

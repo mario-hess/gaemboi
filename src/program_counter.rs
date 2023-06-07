@@ -16,7 +16,8 @@ impl ProgramCounter {
     }
 
     pub fn relative_jump(&mut self, value: i8) {
-        self.value = ((self.value as i32).wrapping_add(value as i32)) as u16;
+        let new_value = ((self.value as i32).wrapping_add(value as i32)) as u16;
+        self.value = new_value;
     }
 
     pub fn next(&mut self) -> u16 {
