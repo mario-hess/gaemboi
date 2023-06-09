@@ -1,4 +1,6 @@
-use crate::flags_register::FlagsRegister;
+mod flags_register;
+
+use crate::registers::flags_register::FlagsRegister;
 use crate::instruction::Target;
 
 pub struct Registers {

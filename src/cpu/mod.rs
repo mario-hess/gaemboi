@@ -1,3 +1,4 @@
+mod program_counter;
 mod arithmetic;
 mod jump;
 mod load;
@@ -5,7 +6,7 @@ mod control;
 
 use crate::instruction::{Flag, Instruction, Mnemonic, Target};
 use crate::memory_bus::MemoryBus;
-use crate::program_counter::ProgramCounter;
+use crate::cpu::program_counter::ProgramCounter;
 use crate::registers::Registers;
 
 const HEADER_CHECKSUM_ADDRESS: usize = 0x014D;

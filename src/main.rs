@@ -4,12 +4,10 @@ use std::io::Read;
 
 mod cartridge;
 mod cpu;
-mod flags_register;
 mod gpu;
 mod instruction;
 mod machine;
 mod memory_bus;
-mod program_counter;
 mod registers;
 
 use crate::machine::Machine;
