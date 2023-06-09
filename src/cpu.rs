@@ -41,6 +41,13 @@ impl Cpu {
         );
         self.execute_instruction(instruction);
         println!(
+            "AF: {:#X}, BC: {:#X}, DE: {:#X}, HL: {:#X}",
+            self.registers.get_af(),
+            self.registers.get_bc(),
+            self.registers.get_de(),
+            self.registers.get_hl()
+        );
+        println!(
             "Char at 0xFF01: [{}], Val at 0xFF02: [{:#X}]",
             char::from(self.memory_bus.io[1]),
             self.memory_bus.io[2]
@@ -55,11 +62,15 @@ impl Cpu {
             Mnemonic::JPnn => self.jp_nn(),
             Mnemonic::CPn => self.cp_n(),
             Mnemonic::CALLnn => self.call_nn(),
+            Mnemonic::CALLFnn(flag) => self.call_f_nn(flag),
+            Mnemonic::ANDn => self.and_n(),
             Mnemonic::AddReg(target) => self.add_reg(target),
             Mnemonic::INCReg(target) => self.inc_reg(target),
             Mnemonic::INCPair(target) => self.inc_pair(target),
             Mnemonic::DECPair(target) => self.dec_pair(target),
             Mnemonic::Subn => self.sub_n(),
+            Mnemonic::POPPair(target) => self.pop_pair(target),
+            Mnemonic::POPaf => self.pop_af(),
             Mnemonic::XORReg(target) => self.xor_reg(target),
             Mnemonic::LDRegReg(to, from) => self.ld_rr(to, from),
             Mnemonic::LDPairReg(pair_target, reg_target) => {
@@ -70,15 +81,20 @@ impl Cpu {
                 self.ld_reg_pair(reg_target, pair_target)
             }
             Mnemonic::LDRegN(target) => self.ld_reg_n(target),
+            Mnemonic::LDaHLp => self.ld_a_hl_p(),
             Mnemonic::LDnnA => self.ld_nn_a(),
             Mnemonic::LDHnA => self.ldh_n_a(),
             Mnemonic::LDHAn => self.ldh_a_n(),
             Mnemonic::LDSPnn => self.ld_sp_nn(),
+            Mnemonic::LDSPhl => self.ld_sp_hl(),
+            Mnemonic::LDaNN => self.ld_a_nn(),
             Mnemonic::JRce(flag) => self.jr_c_e(flag),
             Mnemonic::JRnce(flag) => self.jr_nc_e(flag),
             Mnemonic::JRe => self.jr_e(),
             Mnemonic::PushPair(target) => self.push_pair(target),
             Mnemonic::DisableInterrupt => self.disable_interrupt(),
+            Mnemonic::Retc(flag) => self.ret_c(flag),
+            Mnemonic::Retnc(flag) => self.ret_nc(flag),
             Mnemonic::Ret => self.ret(),
             Mnemonic::Prefix => self.prefix(),
             _ => panic!("Unknown mnemonic."),
@@ -109,16 +125,7 @@ impl Cpu {
         // Unconditional function call to the absolute
         // fixed address defined by the opcode
 
-        self.stack_pointer = self.stack_pointer.wrapping_sub(2);
-
-        let pc = self.program_counter.next();
-        let high_byte = (pc >> 8) as u8;
-        let low_byte = pc as u8;
-
-        self.memory_bus.write_byte(self.stack_pointer, low_byte);
-        self.memory_bus
-            .write_byte(self.stack_pointer.wrapping_add(1), high_byte);
-
+        self.push_stack(self.program_counter.get());
         self.program_counter.set(address);
     }
 
@@ -168,6 +175,44 @@ impl Cpu {
 
         let address = self.pop_stack();
         self.program_counter.set(address);
+    }
+
+    fn ret_c(&mut self, flag: Flag) {
+        // Conditional return from a function,
+        // depending on the condition c
+
+        let flag = self.get_flag_value(flag);
+
+        if flag {
+            let address = self.pop_stack();
+            self.program_counter.set(address);
+        }
+    }
+
+    fn ret_nc(&mut self, flag: Flag) {
+        // Conditional return from a function,
+        // depending on the condition nc
+
+        let flag = self.get_flag_value(flag);
+
+        if !flag {
+            let address = self.pop_stack();
+            self.program_counter.set(address);
+        }
+    }
+
+    // --- AND / OR instructions ---
+    fn and_n(&mut self) {
+        // Performs a bitwise AND operation between the
+        // 8-bit A register and immediate data n, and
+        // stores the result back into the A register
+
+        let n = self.memory_bus.read_byte(self.program_counter.next());
+        let a = self.registers.get_a();
+        let result = a & n;
+        self.registers.set_a(result);
+
+        self.registers.f.set_flags(result == 0, false, true, false);
     }
 
     // --- Jump instructions ---
@@ -328,6 +373,28 @@ impl Cpu {
         set_reg(&mut self.registers, byte);
     }
 
+    fn ld_a_hl_p(&mut self) {
+        // Load to the 8-bit A register, data from the absolute
+        // address specified by the 16-bit register HL. The value
+        // of HL is incremented after the memory read
+
+        let hl = self.registers.get_hl();
+        let value = self.memory_bus.read_byte(hl);
+
+        self.registers.set_a(value);
+        self.registers.set_hl(hl.wrapping_add(1));
+    }
+
+    fn ld_a_nn(&mut self) {
+        // Load to the 8-bit A register, data from the absolute
+        // address specified by the 16-bit operand nn
+
+        let address = self.get_nn_little_endian();
+        let value = self.memory_bus.read_byte(address);
+
+        self.registers.set_a(value);
+    }
+
     fn ld_nn_a(&mut self) {
         // Load data from the 8-bit A register to the absolute
         // address specified by the 16-bit immediate values
@@ -373,16 +440,36 @@ impl Cpu {
         self.stack_pointer = value;
     }
 
+    fn ld_sp_hl(&mut self) {
+        // Load to the 16-bit SP register, data from the 16-bit HL register
+
+        let hl = self.registers.get_hl();
+        self.stack_pointer = hl;
+    }
+
     fn push_pair(&mut self, target: Target) {
         // Push to the stack memory, data from the 16-bit register rr
 
         let value = self.registers.get_pair_value(&target);
-        self.stack_pointer = self.stack_pointer.wrapping_sub(2);
+        self.push_stack(value);
+    }
 
-        self.memory_bus
-            .write_byte(self.stack_pointer, (value >> 8) as u8);
-        self.memory_bus
-            .write_byte(self.stack_pointer.wrapping_add(1), value as u8);
+    fn pop_pair(&mut self, target: Target) {
+        // Pops to the 16-bit register rr, data from the stack memory
+
+        let set_pair = self.registers.get_pair_setter(&target);
+        let value = self.pop_stack();
+
+        set_pair(&mut self.registers, value);
+    }
+
+    fn pop_af(&mut self) {
+        // Pops to the 16-bit register rr, data from the stack memory.
+        // Completely replaces the F register value, so all
+        // flags are changed based on the 8-bit data that is read from memory
+
+        let value = self.pop_stack();
+        self.registers.set_af(value);
     }
 
     // --- Call instructions ---
@@ -390,19 +477,22 @@ impl Cpu {
         // Unconditional function call to the absolute address
         // specified by the 16-bit operand nn
 
-        let new_pc = self.get_nn_little_endian();
-        let old_pc = self.program_counter.get();
+        let address = self.get_nn_little_endian();
+        self.push_stack(self.program_counter.get());
+        self.program_counter.set(address);
+    }
 
-        let msb = (old_pc >> 8) as u8;
-        let lsb = old_pc as u8;
+    fn call_f_nn(&mut self, flag: Flag) {
+        // conditional call to a subroutine at the absolute
+        // 16-bit memory address a16 if the flag is set.
 
-        self.stack_pointer = self.stack_pointer.wrapping_sub(2);
+        let flag = self.get_flag_value(flag);
 
-        self.memory_bus.write_byte(self.stack_pointer, msb);
-        self.memory_bus
-            .write_byte(self.stack_pointer.wrapping_add(1), lsb);
-
-        self.program_counter.set(new_pc);
+        if flag {
+            let address = self.get_nn_little_endian();
+            self.push_stack(self.program_counter.get());
+            self.program_counter.set(address)
+        }
     }
 
     // --- PREFIX CB ---
@@ -434,6 +524,17 @@ impl Cpu {
         self.stack_pointer = self.stack_pointer.wrapping_add(1);
 
         (high_byte << 8) | low_byte
+    }
+
+    fn push_stack(&mut self, value: u16) {
+        let high_byte = (value >> 8) as u8;
+        let low_byte = value as u8;
+
+        self.stack_pointer = self.stack_pointer.wrapping_sub(1);
+        self.memory_bus.write_byte(self.stack_pointer, high_byte);
+
+        self.stack_pointer = self.stack_pointer.wrapping_sub(1);
+        self.memory_bus.write_byte(self.stack_pointer, low_byte);
     }
 
     fn get_flag_value(&self, flag: Flag) -> bool {
