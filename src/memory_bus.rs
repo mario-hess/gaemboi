@@ -65,7 +65,7 @@ impl MemoryBus {
     pub fn read_byte(&self, address: u16) -> u8 {
         match address {
             CARTRIDGE_ROM_START..=CARTRIDGE_ROM_END => self.cartridge.read(address),
-            VRAM_START..=VRAM_END => self.gpu.read_byte(address),
+            VRAM_START..=VRAM_END => self.gpu.read_byte(address - VRAM_START),
             CARTRIDGE_RAM_START..=CARTRIDGE_RAM_END => self.cartridge.read(address),
             WRAM_START..=WRAM_END => self.wram[address as usize - WRAM_START as usize],
             IO_START..=IO_END => self.io[address as usize - IO_START as usize],
@@ -81,7 +81,7 @@ impl MemoryBus {
     pub fn write_byte(&mut self, address: u16, value: u8) {
         match address {
             CARTRIDGE_ROM_START..=CARTRIDGE_ROM_END => self.cartridge.write(address, value),
-            VRAM_START..=VRAM_END => self.gpu.write_byte(address, value),
+            VRAM_START..=VRAM_END => self.gpu.write_byte(address - VRAM_START, value),
             CARTRIDGE_RAM_START..=CARTRIDGE_RAM_END => self.cartridge.write(address, value),
             WRAM_START..=WRAM_END => self.wram[address as usize - WRAM_START as usize] = value,
             IO_START..=IO_END => self.io[address as usize - IO_START as usize] = value,

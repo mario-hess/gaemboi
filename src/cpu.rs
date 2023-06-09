@@ -55,8 +55,11 @@ impl Cpu {
             Mnemonic::JPnn => self.jp_nn(),
             Mnemonic::CPn => self.cp_n(),
             Mnemonic::CALLnn => self.call_nn(),
+            Mnemonic::AddReg(target) => self.add_reg(target),
             Mnemonic::INCReg(target) => self.inc_reg(target),
             Mnemonic::INCPair(target) => self.inc_pair(target),
+            Mnemonic::DECPair(target) => self.dec_pair(target),
+            Mnemonic::Subn => self.sub_n(),
             Mnemonic::XORReg(target) => self.xor_reg(target),
             Mnemonic::LDRegReg(to, from) => self.ld_rr(to, from),
             Mnemonic::LDPairReg(pair_target, reg_target) => {
@@ -70,6 +73,7 @@ impl Cpu {
             Mnemonic::LDnnA => self.ld_nn_a(),
             Mnemonic::LDHnA => self.ldh_n_a(),
             Mnemonic::LDHAn => self.ldh_a_n(),
+            Mnemonic::LDSPnn => self.ld_sp_nn(),
             Mnemonic::JRce(flag) => self.jr_c_e(flag),
             Mnemonic::JRnce(flag) => self.jr_nc_e(flag),
             Mnemonic::JRe => self.jr_e(),
@@ -90,7 +94,6 @@ impl Cpu {
             "Instruction: {:?} | new PC: {:#X}",
             instruction.mnemonic, self.program_counter.value
         );
-        println!("-------------------------------------------------------------");
         self.execute_prefix(instruction);
     }
 
@@ -122,14 +125,48 @@ impl Cpu {
     fn disable_interrupt(&mut self) {
         // Disables interrupt handling by setting IME=0
         // and cancelling any scheduled effects of the EI
-        // instruction if any.
+        // instruction if any
 
         self.interrupt_enabled = false;
     }
 
-    fn ret(&mut self) {
-        let address = self.pop_stack();
+    // --- Sub / Add Instructions ---
+    fn add_reg(&mut self, target: Target) {
+        // Adds to the 8-bit A register, the 8-bit register r,
+        // and stores the result back into the A register
 
+        let r = self.registers.get_register_value(&target);
+        let a = self.registers.get_a();
+
+        let result = a.wrapping_add(r);
+        self.registers.set_a(result);
+
+        self.registers.f.set_zero(result == 0);
+        self.registers.f.set_subtract(true);
+        self.registers.f.set_half_carry((result & 0x0F) == 0);
+        self.registers.f.set_carry(a < r);
+    }
+
+    fn sub_n(&mut self) {
+        // Subtracts from the 8-bit A register, the
+        // immediate data n, and stores the result
+        // back into the A register.
+
+        let n = self.memory_bus.read_byte(self.program_counter.next());
+        let a = self.registers.get_a();
+        let result = a.wrapping_sub(n);
+        self.registers.set_a(result);
+
+        self.registers.f.set_zero(result == 0);
+        self.registers.f.set_subtract(true);
+        self.registers.f.set_half_carry((result & 0x0F) == 0);
+        self.registers.f.set_carry(a < n);
+    }
+
+    fn ret(&mut self) {
+        // Unconditional return from a function
+
+        let address = self.pop_stack();
         self.program_counter.set(address);
     }
 
@@ -139,7 +176,6 @@ impl Cpu {
         // specified by the 16-bit immediate values
 
         let address = self.get_nn_little_endian();
-
         self.program_counter.set(address);
     }
 
@@ -148,7 +184,6 @@ impl Cpu {
         // specified by the signed 8-bit immediate value
 
         let address = self.memory_bus.read_byte(self.program_counter.next()) as i8;
-
         self.program_counter.relative_jump(address);
     }
 
@@ -158,13 +193,7 @@ impl Cpu {
         // flag condition
 
         let address = self.memory_bus.read_byte(self.program_counter.next()) as i8;
-
-        let flag = match flag {
-            Flag::Z => self.registers.f.get_zero(),
-            Flag::N => self.registers.f.get_subtract(),
-            Flag::H => self.registers.f.get_half_carry(),
-            Flag::C => self.registers.f.get_carry(),
-        };
+        let flag = self.get_flag_value(flag);
 
         if flag {
             self.program_counter.relative_jump(address);
@@ -177,13 +206,7 @@ impl Cpu {
         // flag condition
 
         let address = self.memory_bus.read_byte(self.program_counter.next()) as i8;
-
-        let flag = match flag {
-            Flag::Z => self.registers.f.get_zero(),
-            Flag::N => self.registers.f.get_subtract(),
-            Flag::H => self.registers.f.get_half_carry(),
-            Flag::C => self.registers.f.get_carry(),
-        };
+        let flag = self.get_flag_value(flag);
 
         if !flag {
             self.program_counter.relative_jump(address);
@@ -219,7 +242,7 @@ impl Cpu {
 
         self.registers.f.set_zero(result == 0);
         self.registers.f.set_subtract(false);
-        self.registers.f.set_half_carry((reg & 0x0F) == 0);
+        self.registers.f.set_half_carry((result & 0x0F) == 0);
     }
 
     fn inc_pair(&mut self, target: Target) {
@@ -228,6 +251,16 @@ impl Cpu {
         let value = self.registers.get_pair_value(&target);
         let set_reg = self.registers.get_pair_setter(&target);
         set_reg(&mut self.registers, value.wrapping_add(1));
+    }
+
+    fn dec_pair(&mut self, target: Target) {
+        // Decrements data in the 16-bittarget register
+
+        let reg = self.registers.get_pair_value(&target);
+        let set_reg = self.registers.get_pair_setter(&target);
+
+        let result = reg.wrapping_sub(1);
+        set_reg(&mut self.registers, result);
     }
 
     // --- XOR instructions ---
@@ -264,6 +297,7 @@ impl Cpu {
 
         let address = self.registers.get_pair_value(&pair_target);
         let value = self.registers.get_register_value(&reg_target);
+
         self.memory_bus.write_byte(address, value);
     }
 
@@ -273,7 +307,6 @@ impl Cpu {
 
         let value = self.get_nn_little_endian();
         let set_pair = self.registers.get_pair_setter(&target);
-
         set_pair(&mut self.registers, value);
     }
 
@@ -310,13 +343,12 @@ impl Cpu {
         // data n, data from the 8-bit A register. The full 16-bit
         // absolute address is obtained by setting the most significant
         // byte to 0xFF and the least significant byte to the value of
-        // n, so the possible range is 0xFF00-0xFFFF.
+        // n, so the possible range is 0xFF00-0xFFFF
 
         let n = self.memory_bus.read_byte(self.program_counter.next()) as u16;
         let address = 0xFF00 | n;
 
         let value = self.registers.get_a();
-
         self.memory_bus.write_byte(address, value)
     }
 
@@ -325,13 +357,20 @@ impl Cpu {
         // by the 8-bit immediate data n. The full 16-bit absolute address
         // is obtained by setting the most significant byte to 0xFF and
         // the least significant byte to the value of n, so the possible
-        // range is 0xFF00-0xFFFF.
+        // range is 0xFF00-0xFFFF
 
         let n = self.memory_bus.read_byte(self.program_counter.next()) as u16;
         let address = 0xFF00 | n;
 
         let value = self.memory_bus.read_byte(address);
         self.registers.set_a(value);
+    }
+
+    fn ld_sp_nn(&mut self) {
+        // loads the immediate 16-bit value into the stack pointer register
+
+        let value = self.get_nn_little_endian();
+        self.stack_pointer = value;
     }
 
     fn push_pair(&mut self, target: Target) {
@@ -354,10 +393,10 @@ impl Cpu {
         let new_pc = self.get_nn_little_endian();
         let old_pc = self.program_counter.get();
 
-        self.stack_pointer = self.stack_pointer.wrapping_sub(2);
-
         let msb = (old_pc >> 8) as u8;
         let lsb = old_pc as u8;
+
+        self.stack_pointer = self.stack_pointer.wrapping_sub(2);
 
         self.memory_bus.write_byte(self.stack_pointer, msb);
         self.memory_bus
@@ -369,6 +408,8 @@ impl Cpu {
     // --- PREFIX CB ---
     // --- Reset instructions ---
     fn res_b_reg(&mut self, bit: u8, target: Target) {
+        // clear bit of the target register
+
         let reg = self.registers.get_register_value(&target);
         let set_reg = self.registers.get_register_setter(&target);
 
@@ -393,5 +434,14 @@ impl Cpu {
         self.stack_pointer = self.stack_pointer.wrapping_add(1);
 
         (high_byte << 8) | low_byte
+    }
+
+    fn get_flag_value(&self, flag: Flag) -> bool {
+        match flag {
+            Flag::Z => self.registers.f.get_zero(),
+            Flag::N => self.registers.f.get_subtract(),
+            Flag::H => self.registers.f.get_half_carry(),
+            Flag::C => self.registers.f.get_carry(),
+        }
     }
 }
