@@ -1,0 +1,149 @@
+use crate::cpu::Cpu;
+use crate::instruction::Target;
+
+pub fn ld_rr(cpu: &mut Cpu, to: Target, from: Target) {
+    // 8-bit load instructions transfer one byte of data
+    // between two 8-bit registers, or between one 8-bit
+    // register and location in memory
+
+    let set_reg = cpu.registers.get_register_setter(&to);
+    let value = cpu.registers.get_register_value(&from);
+
+    set_reg(&mut cpu.registers, value);
+}
+
+pub fn ld_pair_reg(cpu: &mut Cpu, pair_target: Target, reg_target: Target) {
+    // Load data from the 8-bit target register to the
+    // absolute address specified by the 16-bit register
+
+    let address = cpu.registers.get_pair_value(&pair_target);
+    let value = cpu.registers.get_register_value(&reg_target);
+
+    cpu.memory_bus.write_byte(address, value);
+}
+
+pub fn ld_pair_nn(cpu: &mut Cpu, target: Target) {
+    // Load to the 16-bit register rr, the
+    // immediate 16-bit data nn
+
+    let value = cpu.get_nn_little_endian();
+    let set_pair = cpu.registers.get_pair_setter(&target);
+    set_pair(&mut cpu.registers, value);
+}
+
+pub fn ld_reg_pair(cpu: &mut Cpu, reg_target: Target, pair_target: Target) {
+    // Load data from the absolute address specified
+    // by the 16-bit register to the 8-bit register
+
+    let address = cpu.registers.get_pair_value(&pair_target);
+    let set_reg = cpu.registers.get_register_setter(&reg_target);
+    let value = cpu.memory_bus.read_byte(address);
+    set_reg(&mut cpu.registers, value);
+}
+
+pub fn ld_reg_n(cpu: &mut Cpu, target: Target) {
+    // Load the immediate 8-bit value to the 8-bit target register
+
+    let byte = cpu.memory_bus.read_byte(cpu.program_counter.next());
+    let set_reg = cpu.registers.get_register_setter(&target);
+    set_reg(&mut cpu.registers, byte);
+}
+
+pub fn ld_a_hl_p(cpu: &mut Cpu) {
+    // Load to the 8-bit A register, data from the absolute
+    // address specified by the 16-bit register HL. The value
+    // of HL is incremented after the memory read
+
+    let hl = cpu.registers.get_hl();
+    let value = cpu.memory_bus.read_byte(hl);
+
+    cpu.registers.set_a(value);
+    cpu.registers.set_hl(hl.wrapping_add(1));
+}
+
+pub fn ld_a_nn(cpu: &mut Cpu) {
+    // Load to the 8-bit A register, data from the absolute
+    // address specified by the 16-bit operand nn
+
+    let address = cpu.get_nn_little_endian();
+    let value = cpu.memory_bus.read_byte(address);
+
+    cpu.registers.set_a(value);
+}
+
+pub fn ld_nn_a(cpu: &mut Cpu) {
+    // Load data from the 8-bit A register to the absolute
+    // address specified by the 16-bit immediate values
+
+    let address = cpu.get_nn_little_endian();
+    let a = cpu.registers.get_a();
+
+    cpu.memory_bus.write_byte(address, a);
+}
+
+pub fn ldh_n_a(cpu: &mut Cpu) {
+    // Load to the address specified by the 8-bit immediate
+    // data n, data from the 8-bit A register. The full 16-bit
+    // absolute address is obtained by setting the most significant
+    // byte to 0xFF and the least significant byte to the value of
+    // n, so the possible range is 0xFF00-0xFFFF
+
+    let n = cpu.memory_bus.read_byte(cpu.program_counter.next()) as u16;
+    let address = 0xFF00 | n;
+
+    let value = cpu.registers.get_a();
+    cpu.memory_bus.write_byte(address, value)
+}
+
+pub fn ldh_a_n(cpu: &mut Cpu) {
+    // Load to the 8-bit A register, data from the address specified
+    // by the 8-bit immediate data n. The full 16-bit absolute address
+    // is obtained by setting the most significant byte to 0xFF and
+    // the least significant byte to the value of n, so the possible
+    // range is 0xFF00-0xFFFF
+
+    let n = cpu.memory_bus.read_byte(cpu.program_counter.next()) as u16;
+    let address = 0xFF00 | n;
+
+    let value = cpu.memory_bus.read_byte(address);
+    cpu.registers.set_a(value);
+}
+
+pub fn ld_sp_nn(cpu: &mut Cpu) {
+    // loads the immediate 16-bit value into the stack pointer register
+
+    let value = cpu.get_nn_little_endian();
+    cpu.stack_pointer = value;
+}
+
+pub fn ld_sp_hl(cpu: &mut Cpu) {
+    // Load to the 16-bit SP register, data from the 16-bit HL register
+
+    let hl = cpu.registers.get_hl();
+    cpu.stack_pointer = hl;
+}
+
+pub fn push_pair(cpu: &mut Cpu, target: Target) {
+    // Push to the stack memory, data from the 16-bit register rr
+
+    let value = cpu.registers.get_pair_value(&target);
+    cpu.push_stack(value);
+}
+
+pub fn pop_pair(cpu: &mut Cpu, target: Target) {
+    // Pops to the 16-bit register rr, data from the stack memory
+
+    let set_pair = cpu.registers.get_pair_setter(&target);
+    let value = cpu.pop_stack();
+
+    set_pair(&mut cpu.registers, value);
+}
+
+pub fn pop_af(cpu: &mut Cpu) {
+    // Pops to the 16-bit register rr, data from the stack memory.
+    // Completely replaces the F register value, so all
+    // flags are changed based on the 8-bit data that is read from memory
+
+    let value = cpu.pop_stack();
+    cpu.registers.set_af(value);
+}
