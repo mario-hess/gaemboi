@@ -52,7 +52,7 @@ pub fn call_nn(cpu: &mut Cpu) {
     cpu.program_counter.set(address);
 }
 
-pub fn call_f_nn(cpu: &mut Cpu, flag: Flag) {
+pub fn call_c_nn(cpu: &mut Cpu, flag: Flag) {
     // conditional call to a subroutine at the absolute
     // 16-bit memory address a16 if the flag is set.
 
@@ -65,7 +65,7 @@ pub fn call_f_nn(cpu: &mut Cpu, flag: Flag) {
     }
 }
 
-pub fn call_nf_nn(cpu: &mut Cpu, flag: Flag) {
+pub fn call_nc_nn(cpu: &mut Cpu, flag: Flag) {
     // conditional call to a subroutine at the absolute
     // 16-bit memory address a16 if the flag is set.
 

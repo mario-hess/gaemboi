@@ -63,47 +63,47 @@ impl Cpu {
 
     pub fn execute_instruction(&mut self, instruction: Instruction) {
         match instruction.mnemonic {
-            Mnemonic::Nop => {}
-            Mnemonic::Rst(address) => jump::rst(self, address),
-            Mnemonic::JPnn => jump::jp_nn(self),
-            Mnemonic::CPn => arithmetic::cp_n(self),
-            Mnemonic::CALLnn => jump::call_nn(self),
-            Mnemonic::CALLFnn(flag) => jump::call_f_nn(self, flag),
-            Mnemonic::CALLNFnn(flag) => jump::call_nf_nn(self, flag),
-            Mnemonic::ANDn => arithmetic::and_n(self),
-            Mnemonic::AddReg(target) => arithmetic::add_reg(self, target),
-            Mnemonic::INCReg(target) => arithmetic::inc_reg(self, target),
-            Mnemonic::INCPair(target) => arithmetic::inc_pair(self, target),
-            Mnemonic::DECPair(target) => arithmetic::dec_pair(self, target),
-            Mnemonic::Subn => arithmetic::sub_n(self),
-            Mnemonic::POPPair(target) => load::pop_pair(self, target),
-            Mnemonic::POPaf => load::pop_af(self),
-            Mnemonic::ORReg(target) => arithmetic::or_reg(self, target),
-            Mnemonic::XORReg(target) => arithmetic::xor_reg(self, target),
-            Mnemonic::LDRegReg(to, from) => load::ld_rr(self, to, from),
-            Mnemonic::LDPairReg(pair_target, reg_target) => {
-                load::ld_pair_reg(self, pair_target, reg_target)
+            Mnemonic::NOP => {}
+            Mnemonic::RST(address) => jump::rst(self, address),
+            Mnemonic::JP_nn => jump::jp_nn(self),
+            Mnemonic::CP_n => arithmetic::cp_n(self),
+            Mnemonic::CALL_nn => jump::call_nn(self),
+            Mnemonic::CALL_c_nn(flag) => jump::call_c_nn(self, flag),
+            Mnemonic::CALL_nc_nn(flag) => jump::call_nc_nn(self, flag),
+            Mnemonic::AND_n => arithmetic::and_n(self),
+            Mnemonic::ADD_r(target) => arithmetic::add_r(self, target),
+            Mnemonic::INC_r(target) => arithmetic::inc_r(self, target),
+            Mnemonic::INC_rr(target) => arithmetic::inc_rr(self, target),
+            Mnemonic::DEC_rr(target) => arithmetic::dec_rr(self, target),
+            Mnemonic::SUB_n => arithmetic::sub_n(self),
+            Mnemonic::POP_rr(target) => load::pop_rr(self, target),
+            Mnemonic::POP_af => load::pop_af(self),
+            Mnemonic::OR_r(target) => arithmetic::or_r(self, target),
+            Mnemonic::XOR_r(target) => arithmetic::xor_r(self, target),
+            Mnemonic::LD_r_r(to, from) => load::ld_r_r(self, to, from),
+            Mnemonic::LD_rr_r(pair_target, reg_target) => {
+                load::ld_rr_r(self, pair_target, reg_target)
             }
-            Mnemonic::LDPairNN(target) => load::ld_pair_nn(self, target),
-            Mnemonic::LDRegPair(reg_target, pair_target) => {
-                load::ld_reg_pair(self, reg_target, pair_target)
+            Mnemonic::LD_rr_nn(target) => load::ld_rr_nn(self, target),
+            Mnemonic::LD_r_rr(reg_target, pair_target) => {
+                load::ld_r_rr(self, reg_target, pair_target)
             }
-            Mnemonic::LDRegN(target) => load::ld_reg_n(self, target),
-            Mnemonic::LDaHLp => load::ld_a_hl_p(self),
-            Mnemonic::LDnnA => load::ld_nn_a(self),
-            Mnemonic::LDHnA => load::ldh_n_a(self),
-            Mnemonic::LDHAn => load::ldh_a_n(self),
-            Mnemonic::LDSPnn => load::ld_sp_nn(self),
-            Mnemonic::LDSPhl => load::ld_sp_hl(self),
-            Mnemonic::LDaNN => load::ld_a_nn(self),
-            Mnemonic::JRce(flag) => jump::jr_c_e(self, flag),
-            Mnemonic::JRnce(flag) => jump::jr_nc_e(self, flag),
-            Mnemonic::JRe => jump::jr_e(self),
-            Mnemonic::PushPair(target) => load::push_pair(self, target),
+            Mnemonic::LD_r_n(target) => load::ld_r_n(self, target),
+            Mnemonic::LD_a_hl_plus => load::ld_a_hl_plus(self),
+            Mnemonic::LD_nn_a => load::ld_nn_a(self),
+            Mnemonic::LDH_n_a => load::ldh_n_a(self),
+            Mnemonic::LDH_a_n => load::ldh_a_n(self),
+            Mnemonic::LD_sp_nn => load::ld_sp_nn(self),
+            Mnemonic::LD_sp_hl => load::ld_sp_hl(self),
+            Mnemonic::LD_a_nn => load::ld_a_nn(self),
+            Mnemonic::JR_c_e(flag) => jump::jr_c_e(self, flag),
+            Mnemonic::JR_nc_e(flag) => jump::jr_nc_e(self, flag),
+            Mnemonic::JR_e => jump::jr_e(self),
+            Mnemonic::PUSH_rr(target) => load::push_rr(self, target),
             Mnemonic::DisableInterrupt => control::disable_interrupt(self),
-            Mnemonic::Retc(flag) => jump::ret_c(self, flag),
-            Mnemonic::Retnc(flag) => jump::ret_nc(self, flag),
-            Mnemonic::Ret => jump::ret(self),
+            Mnemonic::RET_c(flag) => jump::ret_c(self, flag),
+            Mnemonic::RET_nc(flag) => jump::ret_nc(self, flag),
+            Mnemonic::RET => jump::ret(self),
             Mnemonic::Prefix => self.prefix(),
             _ => panic!("Unknown mnemonic."),
         }
@@ -123,7 +123,7 @@ impl Cpu {
 
     fn execute_prefix(&mut self, instruction: Instruction) {
         match instruction.mnemonic {
-            Mnemonic::ResBReg(value, target) => self.res_b_reg(value, target),
+            Mnemonic::RES_b_r(value, target) => self.res_b_r(value, target),
             _ => panic!("Unknown PREFIX Mnemnoic."),
         }
     }
@@ -131,7 +131,7 @@ impl Cpu {
 
     // --- PREFIX CB ---
     // --- Reset instructions ---
-    fn res_b_reg(&mut self, bit: u8, target: Target) {
+    fn res_b_r(&mut self, bit: u8, target: Target) {
         // clear bit of the target register
 
         let reg = self.registers.get_register_value(&target);

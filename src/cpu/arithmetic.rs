@@ -1,7 +1,7 @@
 use crate::cpu::Cpu;
 use crate::instruction::Target;
 
-pub fn add_reg(cpu: &mut Cpu, target: Target) {
+pub fn add_r(cpu: &mut Cpu, target: Target) {
     // Adds to the 8-bit A register, the 8-bit register r,
     // and stores the result back into the A register
 
@@ -46,7 +46,7 @@ pub fn and_n(cpu: &mut Cpu) {
     cpu.registers.f.set_flags(result == 0, false, true, false);
 }
 
-pub fn inc_reg(cpu: &mut Cpu, target: Target) {
+pub fn inc_r(cpu: &mut Cpu, target: Target) {
     // Increments data in the 8-bit register r
 
     let reg = cpu.registers.get_register_value(&target);
@@ -60,7 +60,7 @@ pub fn inc_reg(cpu: &mut Cpu, target: Target) {
     cpu.registers.f.set_half_carry((result & 0x0F) == 0);
 }
 
-pub fn inc_pair(cpu: &mut Cpu, target: Target) {
+pub fn inc_rr(cpu: &mut Cpu, target: Target) {
     // Increments data in the 16-bit target register by 1
 
     let value = cpu.registers.get_pair_value(&target);
@@ -68,7 +68,7 @@ pub fn inc_pair(cpu: &mut Cpu, target: Target) {
     set_reg(&mut cpu.registers, value.wrapping_add(1));
 }
 
-pub fn dec_pair(cpu: &mut Cpu, target: Target) {
+pub fn dec_rr(cpu: &mut Cpu, target: Target) {
     // Decrements data in the 16-bittarget register
 
     let reg = cpu.registers.get_pair_value(&target);
@@ -79,7 +79,7 @@ pub fn dec_pair(cpu: &mut Cpu, target: Target) {
 }
 
 // --- OR / XOR instructions ---
-pub fn or_reg(cpu: &mut Cpu, target: Target) {
+pub fn or_r(cpu: &mut Cpu, target: Target) {
     // Performs a bitwise OR operation between the 8-bit
     // A register and the 8-bit register r, and stores
     // the result back into the A register
@@ -93,7 +93,7 @@ pub fn or_reg(cpu: &mut Cpu, target: Target) {
     cpu.registers.f.set_flags(result == 0, false, false, false);
 }
 
-pub fn xor_reg(cpu: &mut Cpu, target: Target) {
+pub fn xor_r(cpu: &mut Cpu, target: Target) {
     // Performs a bitwise XOR operation between the
     // 8-bit A register and the 8-bit target register,
     // and stores the result back into the A register

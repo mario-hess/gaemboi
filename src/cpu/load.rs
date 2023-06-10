@@ -1,7 +1,7 @@
 use crate::cpu::Cpu;
 use crate::instruction::Target;
 
-pub fn ld_rr(cpu: &mut Cpu, to: Target, from: Target) {
+pub fn ld_r_r(cpu: &mut Cpu, to: Target, from: Target) {
     // 8-bit load instructions transfer one byte of data
     // between two 8-bit registers, or between one 8-bit
     // register and location in memory
@@ -12,7 +12,7 @@ pub fn ld_rr(cpu: &mut Cpu, to: Target, from: Target) {
     set_reg(&mut cpu.registers, value);
 }
 
-pub fn ld_pair_reg(cpu: &mut Cpu, pair_target: Target, reg_target: Target) {
+pub fn ld_rr_r(cpu: &mut Cpu, pair_target: Target, reg_target: Target) {
     // Load data from the 8-bit target register to the
     // absolute address specified by the 16-bit register
 
@@ -22,7 +22,7 @@ pub fn ld_pair_reg(cpu: &mut Cpu, pair_target: Target, reg_target: Target) {
     cpu.memory_bus.write_byte(address, value);
 }
 
-pub fn ld_pair_nn(cpu: &mut Cpu, target: Target) {
+pub fn ld_rr_nn(cpu: &mut Cpu, target: Target) {
     // Load to the 16-bit register rr, the
     // immediate 16-bit data nn
 
@@ -31,7 +31,7 @@ pub fn ld_pair_nn(cpu: &mut Cpu, target: Target) {
     set_pair(&mut cpu.registers, value);
 }
 
-pub fn ld_reg_pair(cpu: &mut Cpu, reg_target: Target, pair_target: Target) {
+pub fn ld_r_rr(cpu: &mut Cpu, reg_target: Target, pair_target: Target) {
     // Load data from the absolute address specified
     // by the 16-bit register to the 8-bit register
 
@@ -41,7 +41,7 @@ pub fn ld_reg_pair(cpu: &mut Cpu, reg_target: Target, pair_target: Target) {
     set_reg(&mut cpu.registers, value);
 }
 
-pub fn ld_reg_n(cpu: &mut Cpu, target: Target) {
+pub fn ld_r_n(cpu: &mut Cpu, target: Target) {
     // Load the immediate 8-bit value to the 8-bit target register
 
     let byte = cpu.memory_bus.read_byte(cpu.program_counter.next());
@@ -49,7 +49,7 @@ pub fn ld_reg_n(cpu: &mut Cpu, target: Target) {
     set_reg(&mut cpu.registers, byte);
 }
 
-pub fn ld_a_hl_p(cpu: &mut Cpu) {
+pub fn ld_a_hl_plus(cpu: &mut Cpu) {
     // Load to the 8-bit A register, data from the absolute
     // address specified by the 16-bit register HL. The value
     // of HL is incremented after the memory read
@@ -123,14 +123,14 @@ pub fn ld_sp_hl(cpu: &mut Cpu) {
     cpu.stack_pointer = hl;
 }
 
-pub fn push_pair(cpu: &mut Cpu, target: Target) {
+pub fn push_rr(cpu: &mut Cpu, target: Target) {
     // Push to the stack memory, data from the 16-bit register rr
 
     let value = cpu.registers.get_pair_value(&target);
     cpu.push_stack(value);
 }
 
-pub fn pop_pair(cpu: &mut Cpu, target: Target) {
+pub fn pop_rr(cpu: &mut Cpu, target: Target) {
     // Pops to the 16-bit register rr, data from the stack memory
 
     let set_pair = cpu.registers.get_pair_setter(&target);
