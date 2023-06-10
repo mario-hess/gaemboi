@@ -17,6 +17,28 @@ pub fn add_r(cpu: &mut Cpu, target: Target) {
     cpu.registers.f.set_carry(a < r);
 }
 
+pub fn adc_r(cpu: &mut Cpu, target: Target) {
+    // Adds to the 8-bit A register, the carry flag
+    // and the 8-bit register r, and stores the result
+    // back into the A register
+
+    let r = cpu.registers.get_register_value(&target);
+    let a = cpu.registers.get_a();
+    let carry: u8 = cpu.registers.f.get_carry().into();
+
+    let result = a.wrapping_add(r).wrapping_add(carry);
+    cpu.registers.set_a(result);
+
+    cpu.registers.f.set_zero(result == 0);
+    cpu.registers.f.set_subtract(false);
+    cpu.registers
+        .f
+        .set_half_carry(((a & 0x0F) + (r & 0x0F)) + carry > 0x0F);
+    cpu.registers
+        .f
+        .set_carry((a as u16) + (r as u16) + (carry as u16) > 0xFF);
+}
+
 pub fn sub_n(cpu: &mut Cpu) {
     // Subtracts from the 8-bit A register, the
     // immediate data n, and stores the result

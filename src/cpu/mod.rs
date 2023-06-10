@@ -72,6 +72,7 @@ impl Cpu {
             Mnemonic::CALL_nc_nn(flag) => jump::call_nc_nn(self, flag),
             Mnemonic::AND_n => arithmetic::and_n(self),
             Mnemonic::ADD_r(target) => arithmetic::add_r(self, target),
+            Mnemonic::ADC_r(target) => arithmetic::adc_r(self, target),
             Mnemonic::INC_r(target) => arithmetic::inc_r(self, target),
             Mnemonic::INC_rr(target) => arithmetic::inc_rr(self, target),
             Mnemonic::DEC_rr(target) => arithmetic::dec_rr(self, target),
