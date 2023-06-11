@@ -2,6 +2,7 @@ mod program_counter;
 mod arithmetic;
 mod jump;
 mod load;
+mod rotate;
 mod control;
 
 use crate::instruction::{Flag, Instruction, Mnemonic, Target};
@@ -72,15 +73,18 @@ impl Cpu {
             Mnemonic::CALL_nc_nn(flag) => jump::call_nc_nn(self, flag),
             Mnemonic::AND_n => arithmetic::and_n(self),
             Mnemonic::ADD_r(target) => arithmetic::add_r(self, target),
+            Mnemonic::ADD_n => arithmetic::add_n(self),
             Mnemonic::ADC_r(target) => arithmetic::adc_r(self, target),
             Mnemonic::INC_r(target) => arithmetic::inc_r(self, target),
             Mnemonic::INC_rr(target) => arithmetic::inc_rr(self, target),
+            Mnemonic::DEC_r(target) => arithmetic::dec_r(self, target),
             Mnemonic::DEC_rr(target) => arithmetic::dec_rr(self, target),
             Mnemonic::SUB_n => arithmetic::sub_n(self),
             Mnemonic::POP_rr(target) => load::pop_rr(self, target),
             Mnemonic::POP_af => load::pop_af(self),
             Mnemonic::OR_r(target) => arithmetic::or_r(self, target),
             Mnemonic::XOR_r(target) => arithmetic::xor_r(self, target),
+            Mnemonic::XOR_hl => arithmetic::xor_hl(self),
             Mnemonic::LD_r_r(to, from) => load::ld_r_r(self, to, from),
             Mnemonic::LD_rr_r(pair_target, reg_target) => {
                 load::ld_rr_r(self, pair_target, reg_target)
@@ -90,6 +94,8 @@ impl Cpu {
                 load::ld_r_rr(self, reg_target, pair_target)
             }
             Mnemonic::LD_r_n(target) => load::ld_r_n(self, target),
+            Mnemonic::LD_hl_plus_a => load::ld_hl_plus_a(self),
+            Mnemonic::LD_hl_minus_a => load::ld_hl_minus_a(self),
             Mnemonic::LD_a_hl_plus => load::ld_a_hl_plus(self),
             Mnemonic::LD_nn_a => load::ld_nn_a(self),
             Mnemonic::LDH_n_a => load::ldh_n_a(self),
@@ -102,6 +108,7 @@ impl Cpu {
             Mnemonic::JR_e => jump::jr_e(self),
             Mnemonic::PUSH_rr(target) => load::push_rr(self, target),
             Mnemonic::DisableInterrupt => control::disable_interrupt(self),
+            Mnemonic::RLCA => rotate::rlca(self),
             Mnemonic::RET_c(flag) => jump::ret_c(self, flag),
             Mnemonic::RET_nc(flag) => jump::ret_nc(self, flag),
             Mnemonic::RET => jump::ret(self),

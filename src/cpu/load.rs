@@ -49,6 +49,30 @@ pub fn ld_r_n(cpu: &mut Cpu, target: Target) {
     set_reg(&mut cpu.registers, byte);
 }
 
+pub fn ld_hl_plus_a(cpu: &mut Cpu) {
+    // Load to the absolute address specified by the 16-bit
+    // register HL, data from the 8-bit A register. The
+    // value of HL is incremented after the memory write
+
+    let hl = cpu.registers.get_hl();
+    let a = cpu.registers.get_a();
+    cpu.memory_bus.write_byte(hl, a);
+
+    cpu.registers.set_hl(hl.wrapping_add(1));
+}
+
+pub fn ld_hl_minus_a(cpu: &mut Cpu) {
+    // Load to the absolute address specified by the 16-bit
+    // register HL, data from the 8-bit A register. The
+    // value of HL is decremented after the memory write
+
+    let hl = cpu.registers.get_hl();
+    let a = cpu.registers.get_a();
+    cpu.memory_bus.write_byte(hl, a);
+
+    cpu.registers.set_hl(hl.wrapping_sub(1));
+}
+
 pub fn ld_a_hl_plus(cpu: &mut Cpu) {
     // Load to the 8-bit A register, data from the absolute
     // address specified by the 16-bit register HL. The value

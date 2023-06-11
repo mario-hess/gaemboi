@@ -17,6 +17,22 @@ pub fn add_r(cpu: &mut Cpu, target: Target) {
     cpu.registers.f.set_carry(a < r);
 }
 
+pub fn add_n(cpu: &mut Cpu) {
+    // Adds to the 8-bit A register, the immediate data n,
+    // and stores the result back into the A register
+
+    let n = cpu.memory_bus.read_byte(cpu.program_counter.next());
+    let a = cpu.registers.get_a();
+
+    let result = a.wrapping_add(n);
+    cpu.registers.set_a(result);
+
+    cpu.registers.f.set_zero(result == 0);
+    cpu.registers.f.set_subtract(false);
+    cpu.registers.f.set_half_carry((result & 0x0F) == 0);
+    cpu.registers.f.set_carry(a < n);
+}
+
 pub fn adc_r(cpu: &mut Cpu, target: Target) {
     // Adds to the 8-bit A register, the carry flag
     // and the 8-bit register r, and stores the result
@@ -90,6 +106,20 @@ pub fn inc_rr(cpu: &mut Cpu, target: Target) {
     set_reg(&mut cpu.registers, value.wrapping_add(1));
 }
 
+pub fn dec_r(cpu: &mut Cpu, target: Target) {
+    // Decrements data in the 8-bit target register
+
+    let r = cpu.registers.get_register_value(&target);
+    let set_r = cpu.registers.get_register_setter(&target);
+
+    let result = r.wrapping_sub(1);
+    set_r(&mut cpu.registers, result);
+
+    cpu.registers.f.set_zero(result == 0);
+    cpu.registers.f.set_subtract(true);
+    cpu.registers.f.set_half_carry((result & 0x0F) == 0);
+}
+
 pub fn dec_rr(cpu: &mut Cpu, target: Target) {
     // Decrements data in the 16-bittarget register
 
@@ -128,6 +158,21 @@ pub fn xor_r(cpu: &mut Cpu, target: Target) {
 
     cpu.registers.set_a(result);
     cpu.registers.f.set_flags(flag, false, false, false);
+}
+
+pub fn xor_hl(cpu: &mut Cpu) {
+    // Performs a bitwise XOR operation between the
+    // 8-bit A register and data from the absolute
+    // address specified by the 16-bit register HL,
+    // and stores the result back into the A register
+
+    let a = cpu.registers.get_a();
+    let hl = cpu.registers.get_hl();
+    let data = cpu.memory_bus.read_byte(hl);
+
+    let result = a ^ data;
+    cpu.registers.set_a(result);
+    cpu.registers.f.set_flags(result == 0, false, false, false);
 }
 
 pub fn cp_n(cpu: &mut Cpu) {
