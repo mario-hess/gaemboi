@@ -1,4 +1,19 @@
-use crate::cpu::Cpu;
+use crate::{cpu::Cpu, instruction::Target};
+
+pub fn rra(cpu: &mut Cpu) {
+    // rotate A right through carry
+
+    let a = cpu.registers.get_a();
+    let carry: u8 = cpu.registers.f.get_carry().into();
+
+    let result = (a >> 1) | (carry << 7);
+    let new_carry = (a & 0x01) != 0;
+
+    cpu.registers
+        .f
+        .set_flags(false, false, false, new_carry);
+    cpu.registers.set_a(result);
+}
 
 pub fn rlca(cpu: &mut Cpu) {
     // rotate the contents of the 8-bit A register to the left by one bit.
@@ -12,8 +27,21 @@ pub fn rlca(cpu: &mut Cpu) {
 
     cpu.registers.set_a(rotated);
 
-    cpu.registers.f.set_zero(false);
-    cpu.registers.f.set_subtract(false);
-    cpu.registers.f.set_half_carry(false);
-    cpu.registers.f.set_carry(shifted_out);
+    cpu.registers.f.set_flags(false, false, false, shifted_out);
+}
+
+pub fn rr_r(cpu: &mut Cpu, target: Target) {
+    // rotate target right through carry
+
+    let r = cpu.registers.get_register_value(&target);
+    let set_r = cpu.registers.get_register_setter(&target);
+    let carry: u8 = cpu.registers.f.get_carry().into();
+
+    let result = (r >> 1) | (carry << 7);
+    let new_carry = (r & 0x01) != 0;
+
+    cpu.registers
+        .f
+        .set_flags(result == 0, false, false, new_carry);
+    set_r(&mut cpu.registers, result);
 }

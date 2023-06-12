@@ -84,7 +84,12 @@ impl MemoryBus {
             VRAM_START..=VRAM_END => self.gpu.write_byte(address - VRAM_START, value),
             CARTRIDGE_RAM_START..=CARTRIDGE_RAM_END => self.cartridge.write(address, value),
             WRAM_START..=WRAM_END => self.wram[address as usize - WRAM_START as usize] = value,
-            IO_START..=IO_END => self.io[address as usize - IO_START as usize] = value,
+            IO_START..=IO_END => {
+                if address as usize - IO_START as usize == 1 {
+                    print!("{}", char::from(value));
+                }
+                self.io[address as usize - IO_START as usize] = value
+            },
             HRAM_START..=HRAM_END => self.hram[address as usize - HRAM_START as usize] = value,
             INTERRUPT_ENABLE => self.interrupt_enable = value,
             _ => panic!("Unknown address: {:#X} Can't write byte.", address),

@@ -9,6 +9,14 @@ pub fn jp_nn(cpu: &mut Cpu) {
     cpu.program_counter.set(address);
 }
 
+pub fn jp_hl(cpu: &mut Cpu) {
+    // Unconditional jump to the absolute address
+    // specified by the 16-bit register HL
+
+    let hl = cpu.registers.get_hl();
+    cpu.program_counter.set(hl);
+}
+
 pub fn jr_e(cpu: &mut Cpu) {
     // Unconditional jump to the relative address
     // specified by the signed 8-bit immediate value

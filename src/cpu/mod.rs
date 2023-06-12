@@ -1,13 +1,15 @@
-mod program_counter;
 mod arithmetic;
+mod control;
 mod jump;
 mod load;
+mod program_counter;
+mod reset;
 mod rotate;
-mod control;
+mod shift;
 
+use crate::cpu::program_counter::ProgramCounter;
 use crate::instruction::{Flag, Instruction, Mnemonic, Target};
 use crate::memory_bus::MemoryBus;
-use crate::cpu::program_counter::ProgramCounter;
 use crate::registers::Registers;
 
 const HEADER_CHECKSUM_ADDRESS: usize = 0x014D;
@@ -38,28 +40,31 @@ impl Cpu {
     }
 
     pub fn step(&mut self) {
-        print!("PC: {:#X} | ", self.program_counter.get());
+        //print!("PC: {:#X} | ", self.program_counter.get());
         let byte = self.memory_bus.read_byte(self.program_counter.next());
-        print!("Opcode: {:#X} | ", byte);
+        //print!("Opcode: {:#X} | ", byte);
         let instruction = Instruction::from_byte(byte);
-        println!(
-            "Instruction: {:?} | new PC: {:#X}",
-            instruction.mnemonic, self.program_counter.value
-        );
+        //println!(
+        //    "Instruction: {:?} | new PC: {:#X}",
+        //    instruction.mnemonic, self.program_counter.value
+        //);
         self.execute_instruction(instruction);
-        println!(
-            "AF: {:#X}, BC: {:#X}, DE: {:#X}, HL: {:#X}",
-            self.registers.get_af(),
-            self.registers.get_bc(),
-            self.registers.get_de(),
-            self.registers.get_hl()
-        );
-        println!(
-            "Char at 0xFF01: [{}], Val at 0xFF02: [{:#X}]",
-            char::from(self.memory_bus.io[1]),
-            self.memory_bus.io[2]
-        );
-        println!("-------------------------------------------------------------");
+        //println!(
+        //    "AF: {:#X}, BC: {:#X}, DE: {:#X}, HL: {:#X}",
+        //    self.registers.get_af(),
+        //    self.registers.get_bc(),
+        //    self.registers.get_de(),
+        //    self.registers.get_hl()
+        //);
+        //println!(
+        //    "Char at 0xFF01: [{}], Val at 0xFF02: [{:#X}]",
+        //    char::from(self.memory_bus.io[1]),
+        //    self.memory_bus.io[2]
+        //);
+        //println!("-------------------------------------------------------------");
+        //if self.memory_bus.io[1] != 0xA {
+        //    print!("{:#X}, ", self.memory_bus.io[1]);
+        //}
     }
 
     pub fn execute_instruction(&mut self, instruction: Instruction) {
@@ -67,6 +72,7 @@ impl Cpu {
             Mnemonic::NOP => {}
             Mnemonic::RST(address) => jump::rst(self, address),
             Mnemonic::JP_nn => jump::jp_nn(self),
+            Mnemonic::JP_hl => jump::jp_hl(self),
             Mnemonic::CP_n => arithmetic::cp_n(self),
             Mnemonic::CALL_nn => jump::call_nn(self),
             Mnemonic::CALL_c_nn(flag) => jump::call_c_nn(self, flag),
@@ -74,16 +80,21 @@ impl Cpu {
             Mnemonic::AND_n => arithmetic::and_n(self),
             Mnemonic::ADD_r(target) => arithmetic::add_r(self, target),
             Mnemonic::ADD_n => arithmetic::add_n(self),
+            Mnemonic::ADD_hl_rr(target) => arithmetic::add_hl_rr(self, target),
             Mnemonic::ADC_r(target) => arithmetic::adc_r(self, target),
+            Mnemonic::ADC_n => arithmetic::adc_n(self),
             Mnemonic::INC_r(target) => arithmetic::inc_r(self, target),
             Mnemonic::INC_rr(target) => arithmetic::inc_rr(self, target),
             Mnemonic::DEC_r(target) => arithmetic::dec_r(self, target),
             Mnemonic::DEC_rr(target) => arithmetic::dec_rr(self, target),
+            Mnemonic::DEC_hl => arithmetic::dec_hl(self),
             Mnemonic::SUB_n => arithmetic::sub_n(self),
             Mnemonic::POP_rr(target) => load::pop_rr(self, target),
             Mnemonic::POP_af => load::pop_af(self),
             Mnemonic::OR_r(target) => arithmetic::or_r(self, target),
+            Mnemonic::OR_hl => arithmetic::or_hl(self),
             Mnemonic::XOR_r(target) => arithmetic::xor_r(self, target),
+            Mnemonic::XOR_n => arithmetic::xor_n(self),
             Mnemonic::XOR_hl => arithmetic::xor_hl(self),
             Mnemonic::LD_r_r(to, from) => load::ld_r_r(self, to, from),
             Mnemonic::LD_rr_r(pair_target, reg_target) => {
@@ -108,6 +119,7 @@ impl Cpu {
             Mnemonic::JR_e => jump::jr_e(self),
             Mnemonic::PUSH_rr(target) => load::push_rr(self, target),
             Mnemonic::DisableInterrupt => control::disable_interrupt(self),
+            Mnemonic::RRA => rotate::rra(self),
             Mnemonic::RLCA => rotate::rlca(self),
             Mnemonic::RET_c(flag) => jump::ret_c(self, flag),
             Mnemonic::RET_nc(flag) => jump::ret_nc(self, flag),
@@ -118,36 +130,24 @@ impl Cpu {
     }
 
     fn prefix(&mut self) {
-        print!("PC: {:#X} | ", self.program_counter.get());
+        //print!("PC: {:#X} | ", self.program_counter.get());
         let byte = self.memory_bus.read_byte(self.program_counter.next());
-        print!("Opcode: {:#X} | ", byte);
+        //print!("Opcode: {:#X} | ", byte);
         let instruction = Instruction::from_prefix(byte);
-        println!(
-            "Instruction: {:?} | new PC: {:#X}",
-            instruction.mnemonic, self.program_counter.value
-        );
+        //println!(
+        //   "Instruction: {:?} | new PC: {:#X}",
+        //   instruction.mnemonic, self.program_counter.value
+        //);
         self.execute_prefix(instruction);
     }
 
     fn execute_prefix(&mut self, instruction: Instruction) {
         match instruction.mnemonic {
-            Mnemonic::RES_b_r(value, target) => self.res_b_r(value, target),
+            Mnemonic::RR_r(target) => rotate::rr_r(self, target),
+            Mnemonic::RES_b_r(value, target) => reset::res_b_r(self, value, target),
+            Mnemonic::SRL_r(target) => shift::srl_r(self, target),
             _ => panic!("Unknown PREFIX Mnemnoic."),
         }
-    }
-
-
-    // --- PREFIX CB ---
-    // --- Reset instructions ---
-    fn res_b_r(&mut self, bit: u8, target: Target) {
-        // clear bit of the target register
-
-        let reg = self.registers.get_register_value(&target);
-        let set_reg = self.registers.get_register_setter(&target);
-
-        let result = reg & !(1 << bit);
-
-        set_reg(&mut self.registers, result);
     }
 
     // --- Util ---
