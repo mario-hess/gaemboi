@@ -35,7 +35,7 @@ pub fn add_n(cpu: &mut Cpu) {
 
 pub fn add_hl_rr(cpu: &mut Cpu, target: Target) {
     // Add the value in r16 to HL
-    
+
     let rr = cpu.registers.get_pair_value(&target);
     let hl = cpu.registers.get_hl();
 
@@ -43,8 +43,36 @@ pub fn add_hl_rr(cpu: &mut Cpu, target: Target) {
     cpu.registers.set_hl(result);
 
     cpu.registers.f.set_subtract(false);
-    cpu.registers.f.set_half_carry((hl & 0xFFF) + (rr & 0xFFF) > 0xFFF);
+    cpu.registers
+        .f
+        .set_half_carry((hl & 0xFFF) + (rr & 0xFFF) > 0xFFF);
     cpu.registers.f.set_carry(result < hl);
+}
+
+pub fn add_hl_sp(cpu: &mut Cpu) {
+    let hl = cpu.registers.get_hl();
+    let result = hl.wrapping_add(cpu.stack_pointer);
+
+    cpu.registers.set_hl(result);
+
+    cpu.registers.f.set_subtract(false);
+    cpu.registers
+        .f
+        .set_half_carry((hl & 0xFFF) + (cpu.stack_pointer & 0xFFF) > 0xFFF);
+    cpu.registers.f.set_carry(result < hl);
+}
+
+pub fn add_sp_n(cpu: &mut Cpu) {
+    let n = cpu.memory_bus.read_byte(cpu.program_counter.next()) as i8;
+    let sp = cpu.stack_pointer as i32;
+    let result = sp.wrapping_add(n as i32) as u16;
+
+    let carry = (sp ^ n as i32 ^ result as i32) & 0x100 != 0;
+    let half_carry = (sp ^ n as i32 ^ result as i32) & 0x10 != 0;
+
+    cpu.stack_pointer = result;
+
+    cpu.registers.f.set_flags(false, false, half_carry, carry);
 }
 
 pub fn adc_r(cpu: &mut Cpu, target: Target) {
@@ -142,6 +170,10 @@ pub fn inc_rr(cpu: &mut Cpu, target: Target) {
     set_reg(&mut cpu.registers, value.wrapping_add(1));
 }
 
+pub fn inc_sp(cpu: &mut Cpu) {
+    cpu.stack_pointer = cpu.stack_pointer.wrapping_add(1);
+}
+
 pub fn dec_r(cpu: &mut Cpu, target: Target) {
     // Decrements data in the 8-bit target register
 
@@ -164,6 +196,10 @@ pub fn dec_rr(cpu: &mut Cpu, target: Target) {
 
     let result = reg.wrapping_sub(1);
     set_reg(&mut cpu.registers, result);
+}
+
+pub fn dec_sp(cpu: &mut Cpu) {
+    cpu.stack_pointer = cpu.stack_pointer.wrapping_sub(1);
 }
 
 pub fn dec_hl(cpu: &mut Cpu) {

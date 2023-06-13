@@ -62,9 +62,6 @@ impl Cpu {
         //    self.memory_bus.io[2]
         //);
         //println!("-------------------------------------------------------------");
-        //if self.memory_bus.io[1] != 0xA {
-        //    print!("{:#X}, ", self.memory_bus.io[1]);
-        //}
     }
 
     pub fn execute_instruction(&mut self, instruction: Instruction) {
@@ -81,12 +78,16 @@ impl Cpu {
             Mnemonic::ADD_r(target) => arithmetic::add_r(self, target),
             Mnemonic::ADD_n => arithmetic::add_n(self),
             Mnemonic::ADD_hl_rr(target) => arithmetic::add_hl_rr(self, target),
+            Mnemonic::ADD_hl_sp => arithmetic::add_hl_sp(self),
+            Mnemonic::ADD_sp_n => arithmetic::add_sp_n(self),
             Mnemonic::ADC_r(target) => arithmetic::adc_r(self, target),
             Mnemonic::ADC_n => arithmetic::adc_n(self),
             Mnemonic::INC_r(target) => arithmetic::inc_r(self, target),
             Mnemonic::INC_rr(target) => arithmetic::inc_rr(self, target),
+            Mnemonic::INC_sp => arithmetic::inc_sp(self),
             Mnemonic::DEC_r(target) => arithmetic::dec_r(self, target),
             Mnemonic::DEC_rr(target) => arithmetic::dec_rr(self, target),
+            Mnemonic::DEC_sp => arithmetic::dec_sp(self),
             Mnemonic::DEC_hl => arithmetic::dec_hl(self),
             Mnemonic::SUB_n => arithmetic::sub_n(self),
             Mnemonic::POP_rr(target) => load::pop_rr(self, target),
@@ -107,12 +108,14 @@ impl Cpu {
             Mnemonic::LD_r_n(target) => load::ld_r_n(self, target),
             Mnemonic::LD_hl_plus_a => load::ld_hl_plus_a(self),
             Mnemonic::LD_hl_minus_a => load::ld_hl_minus_a(self),
+            Mnemonic::LD_hl_sp_plus_n => load::ld_hl_sp_plus_n(self),
             Mnemonic::LD_a_hl_plus => load::ld_a_hl_plus(self),
             Mnemonic::LD_nn_a => load::ld_nn_a(self),
             Mnemonic::LDH_n_a => load::ldh_n_a(self),
             Mnemonic::LDH_a_n => load::ldh_a_n(self),
             Mnemonic::LD_sp_nn => load::ld_sp_nn(self),
             Mnemonic::LD_sp_hl => load::ld_sp_hl(self),
+            Mnemonic::LD_nn_sp => load::ld_nn_sp(self),
             Mnemonic::LD_a_nn => load::ld_a_nn(self),
             Mnemonic::JR_c_e(flag) => jump::jr_c_e(self, flag),
             Mnemonic::JR_nc_e(flag) => jump::jr_nc_e(self, flag),
@@ -135,8 +138,8 @@ impl Cpu {
         //print!("Opcode: {:#X} | ", byte);
         let instruction = Instruction::from_prefix(byte);
         //println!(
-        //   "Instruction: {:?} | new PC: {:#X}",
-        //   instruction.mnemonic, self.program_counter.value
+         //  "Instruction: {:?} | new PC: {:#X}",
+         //  instruction.mnemonic, self.program_counter.value
         //);
         self.execute_prefix(instruction);
     }
@@ -146,6 +149,7 @@ impl Cpu {
             Mnemonic::RR_r(target) => rotate::rr_r(self, target),
             Mnemonic::RES_b_r(value, target) => reset::res_b_r(self, value, target),
             Mnemonic::SRL_r(target) => shift::srl_r(self, target),
+            Mnemonic::SWAP_r(target) => shift::swap_r(self, target),
             _ => panic!("Unknown PREFIX Mnemnoic."),
         }
     }

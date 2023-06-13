@@ -73,6 +73,22 @@ pub fn ld_hl_minus_a(cpu: &mut Cpu) {
     cpu.registers.set_hl(hl.wrapping_sub(1));
 }
 
+pub fn ld_hl_sp_plus_n(cpu: &mut Cpu) {
+    // Add the signed immediate value to SP and store the result in HL
+
+    let n = cpu.memory_bus.read_byte(cpu.program_counter.next()) as i8;
+    let sp = cpu.stack_pointer as i32;
+
+    let result = sp.wrapping_add(n as i32) as u16;
+
+    let carry = (sp ^ n as i32 ^ result as i32) & 0x100 != 0;
+    let half_carry = (sp ^ n as i32 ^ result as i32) & 0x10 != 0;
+
+    cpu.registers.set_hl(result);
+
+    cpu.registers.f.set_flags(false, false, half_carry, carry);
+}
+
 pub fn ld_a_hl_plus(cpu: &mut Cpu) {
     // Load to the 8-bit A register, data from the absolute
     // address specified by the 16-bit register HL. The value
@@ -145,6 +161,20 @@ pub fn ld_sp_hl(cpu: &mut Cpu) {
 
     let hl = cpu.registers.get_hl();
     cpu.stack_pointer = hl;
+}
+
+pub fn ld_nn_sp(cpu: &mut Cpu) {
+    // Load to the absolute address specified by the 16-bit operand
+    // nn, data from the 16-bit SP register
+
+    let nn = cpu.get_nn_little_endian();
+    let sp = cpu.stack_pointer;
+
+    let lsb = sp as u8;
+    let msb = (sp >> 8) as u8;
+
+    cpu.memory_bus.write_byte(nn, lsb);
+    cpu.memory_bus.write_byte(nn.wrapping_add(1), msb);
 }
 
 pub fn push_rr(cpu: &mut Cpu, target: Target) {
