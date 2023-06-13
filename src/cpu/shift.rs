@@ -5,7 +5,10 @@ pub fn srl_r(cpu: &mut Cpu, target: Target) {
     // shifts all the bits of the register to the right by one position
 
     let r = cpu.registers.get_register_value(&target);
+    let set_r = cpu.registers.get_register_setter(&target);
     let result = r >> 1;
+
+    set_r(&mut cpu.registers, result);
 
     let carry = (r & 0b0000_0001) != 0;
 

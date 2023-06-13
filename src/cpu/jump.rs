@@ -9,6 +9,20 @@ pub fn jp_nn(cpu: &mut Cpu) {
     cpu.program_counter.set(address);
 }
 
+pub fn jp_nc_nn(cpu: &mut Cpu, flag: Flag) {
+    // Conditional jump to the absolute address
+    // specified by the 16-bit operand nn,
+    // depending on the condition cc
+
+    let nn = cpu.get_nn_little_endian();
+    let flag = cpu.get_flag_value(flag);
+
+    if !flag {
+        cpu.program_counter.set(nn);
+    }
+    
+}
+
 pub fn jp_hl(cpu: &mut Cpu) {
     // Unconditional jump to the absolute address
     // specified by the 16-bit register HL
@@ -65,9 +79,9 @@ pub fn call_c_nn(cpu: &mut Cpu, flag: Flag) {
     // 16-bit memory address a16 if the flag is set.
 
     let flag = cpu.get_flag_value(flag);
+    let address = cpu.get_nn_little_endian();
 
     if flag {
-        let address = cpu.get_nn_little_endian();
         cpu.push_stack(cpu.program_counter.get());
         cpu.program_counter.set(address)
     }
@@ -78,9 +92,9 @@ pub fn call_nc_nn(cpu: &mut Cpu, flag: Flag) {
     // 16-bit memory address a16 if the flag is set.
 
     let flag = cpu.get_flag_value(flag);
+    let address = cpu.get_nn_little_endian();
 
     if !flag {
-        let address = cpu.get_nn_little_endian();
         cpu.push_stack(cpu.program_counter.get());
         cpu.program_counter.set(address)
     }

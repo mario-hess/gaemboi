@@ -63,6 +63,9 @@ impl MemoryBus {
     }
 
     pub fn read_byte(&self, address: u16) -> u8 {
+        if address == 0xFF44 {
+            return 0x90
+        }
         match address {
             CARTRIDGE_ROM_START..=CARTRIDGE_ROM_END => self.cartridge.read(address),
             VRAM_START..=VRAM_END => self.gpu.read_byte(address - VRAM_START),

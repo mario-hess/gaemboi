@@ -7,8 +7,12 @@ mod reset;
 mod rotate;
 mod shift;
 
+use std::fs::File;
+use std::io::LineWriter;
+use std::io::Write;
+
 use crate::cpu::program_counter::ProgramCounter;
-use crate::instruction::{Flag, Instruction, Mnemonic, Target};
+use crate::instruction::{Flag, Instruction, Mnemonic};
 use crate::memory_bus::MemoryBus;
 use crate::registers::Registers;
 
@@ -40,6 +44,8 @@ impl Cpu {
     }
 
     pub fn step(&mut self) {
+        //self.log(file);
+
         //print!("PC: {:#X} | ", self.program_counter.get());
         let byte = self.memory_bus.read_byte(self.program_counter.next());
         //print!("Opcode: {:#X} | ", byte);
@@ -51,7 +57,7 @@ impl Cpu {
         self.execute_instruction(instruction);
         //println!(
         //    "AF: {:#X}, BC: {:#X}, DE: {:#X}, HL: {:#X}",
-        //    self.registers.get_af(),
+        //   self.registers.get_af(),
         //    self.registers.get_bc(),
         //    self.registers.get_de(),
         //    self.registers.get_hl()
@@ -67,10 +73,14 @@ impl Cpu {
     pub fn execute_instruction(&mut self, instruction: Instruction) {
         match instruction.mnemonic {
             Mnemonic::NOP => {}
+            Mnemonic::DAA => control::daa(self),
+            Mnemonic::CPL => control::cpl(self),
             Mnemonic::RST(address) => jump::rst(self, address),
             Mnemonic::JP_nn => jump::jp_nn(self),
+            Mnemonic::JP_nc_nn(flag) => jump::jp_nc_nn(self, flag),
             Mnemonic::JP_hl => jump::jp_hl(self),
             Mnemonic::CP_n => arithmetic::cp_n(self),
+            Mnemonic::CP_r(target) => arithmetic::cp_r(self, target),
             Mnemonic::CALL_nn => jump::call_nn(self),
             Mnemonic::CALL_c_nn(flag) => jump::call_c_nn(self, flag),
             Mnemonic::CALL_nc_nn(flag) => jump::call_nc_nn(self, flag),
@@ -110,6 +120,7 @@ impl Cpu {
             Mnemonic::LD_hl_minus_a => load::ld_hl_minus_a(self),
             Mnemonic::LD_hl_sp_plus_n => load::ld_hl_sp_plus_n(self),
             Mnemonic::LD_a_hl_plus => load::ld_a_hl_plus(self),
+            Mnemonic::LD_a_hl_minus => load::ld_a_hl_minus(self),
             Mnemonic::LD_nn_a => load::ld_nn_a(self),
             Mnemonic::LDH_n_a => load::ldh_n_a(self),
             Mnemonic::LDH_a_n => load::ldh_a_n(self),
@@ -138,8 +149,8 @@ impl Cpu {
         //print!("Opcode: {:#X} | ", byte);
         let instruction = Instruction::from_prefix(byte);
         //println!(
-         //  "Instruction: {:?} | new PC: {:#X}",
-         //  instruction.mnemonic, self.program_counter.value
+        //  "Instruction: {:?} | new PC: {:#X}",
+        //  instruction.mnemonic, self.program_counter.value
         //);
         self.execute_prefix(instruction);
     }
@@ -190,5 +201,26 @@ impl Cpu {
             Flag::H => self.registers.f.get_half_carry(),
             Flag::C => self.registers.f.get_carry(),
         }
+    }
+
+    fn log(&self, file: &mut LineWriter<File>) {
+        // A: 01 F: B0 B: 00 C: 13 D: 00 E: D8 H: 01 L: 4D SP: FFFE PC: 00:0100 (00 C3 13 02)
+        let a = self.registers.get_a();
+        let f = self.registers.get_f();
+        let b = self.registers.get_b();
+        let c = self.registers.get_c();
+        let d = self.registers.get_d();
+        let e = self.registers.get_e();
+        let h = self.registers.get_h();
+        let l = self.registers.get_l();
+        let sp = self.stack_pointer;
+        let pc = self.program_counter.get();
+        let mem_pc = self.memory_bus.read_byte(self.program_counter.get());
+        let mem_pc2 = self.memory_bus.read_byte(self.program_counter.get() + 1);
+        let mem_pc3 = self.memory_bus.read_byte(self.program_counter.get() + 2);
+        let mem_pc4 = self.memory_bus.read_byte(self.program_counter.get() + 3);
+
+        let output = format!("A: {:02X} F: {:02X} B: {:02X} C: {:02X} D: {:02X} E: {:02X} H: {:02X} L: {:02X} SP: {:04X} PC: 00:{:04X} ({:02X} {:02X} {:02X} {:02X})\n", a, f, b, c, d, e, h, l, sp, pc, mem_pc, mem_pc2, mem_pc3, mem_pc4);
+        file.write_all(output.as_bytes()).unwrap();
     }
 }

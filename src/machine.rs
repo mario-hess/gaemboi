@@ -1,3 +1,8 @@
+use std::fs::File;
+use std::io::LineWriter;
+use std::io::{Write, Error};
+use std::{thread, time};
+
 use crate::cpu::Cpu;
 
 pub struct Machine {
@@ -12,8 +17,15 @@ impl Machine {
     }
 
     pub fn run(&mut self) {
+        //let path = "log/lines.txt";
+        //let file = File::create(path).expect("Could not create File.");
+        //let mut file = LineWriter::new(file);
+
+        //let milli = time::Duration::from_millis(1);
+
         loop {
             self.cpu.step();
+            //thread::sleep(milli);
         }
     }
 }

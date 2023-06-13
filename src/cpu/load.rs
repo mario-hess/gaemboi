@@ -101,6 +101,19 @@ pub fn ld_a_hl_plus(cpu: &mut Cpu) {
     cpu.registers.set_hl(hl.wrapping_add(1));
 }
 
+pub fn ld_a_hl_minus(cpu: &mut Cpu) {
+    // Load to the 8-bit A register, data from the absolute
+    // address specified by the 16-bit register HL. The value
+    // of HL is decremented after the memory read
+
+    let hl = cpu.registers.get_hl();
+    let value = cpu.memory_bus.read_byte(hl);
+
+    cpu.registers.set_a(value);
+    cpu.registers.set_hl(hl.wrapping_sub(1));
+
+}
+
 pub fn ld_a_nn(cpu: &mut Cpu) {
     // Load to the 8-bit A register, data from the absolute
     // address specified by the 16-bit operand nn

@@ -19,7 +19,7 @@ This is a Nintendo Game Boy emulator written in Rust. It aims to accurately emul
 
 ### CPU
 
-- [ ] 01-special.gb
+- [x] 01-special.gb
 - [ ] 02-interrupts.gb
 - [x] 03-op sp,hl.gb
 - [ ] 04-op r,imm.gb

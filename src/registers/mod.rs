@@ -103,6 +103,10 @@ impl Registers {
         self.e = value;
     }
 
+    pub fn get_f(&self) -> u8 {
+        self.f.into()
+    }
+
     pub fn get_h(&self) -> u8 {
         self.h
     }

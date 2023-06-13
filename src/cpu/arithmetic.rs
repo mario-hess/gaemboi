@@ -13,8 +13,10 @@ pub fn add_r(cpu: &mut Cpu, target: Target) {
 
     cpu.registers.f.set_zero(result == 0);
     cpu.registers.f.set_subtract(false);
-    cpu.registers.f.set_half_carry((result & 0x0F) == 0);
-    cpu.registers.f.set_carry(a < r);
+    cpu.registers
+        .f
+        .set_half_carry(((a & 0x0F) + (r & 0x0F)) > 0x0F);
+    cpu.registers.f.set_carry(a as u16 + r as u16 > 0xFF);
 }
 
 pub fn add_n(cpu: &mut Cpu) {
@@ -29,8 +31,10 @@ pub fn add_n(cpu: &mut Cpu) {
 
     cpu.registers.f.set_zero(result == 0);
     cpu.registers.f.set_subtract(false);
-    cpu.registers.f.set_half_carry((result & 0x0F) == 0);
-    cpu.registers.f.set_carry(a < n);
+    cpu.registers
+        .f
+        .set_half_carry(((a & 0x0F) + (n & 0x0F)) > 0x0F);
+    cpu.registers.f.set_carry(a as u16 + n as u16 > 0xFF);
 }
 
 pub fn add_hl_rr(cpu: &mut Cpu, target: Target) {
@@ -159,7 +163,9 @@ pub fn inc_r(cpu: &mut Cpu, target: Target) {
 
     cpu.registers.f.set_zero(result == 0);
     cpu.registers.f.set_subtract(false);
-    cpu.registers.f.set_half_carry((result & 0x0F) == 0);
+    cpu.registers
+        .f
+        .set_half_carry((reg & 0x0F).wrapping_add(1) & 0x10 != 0);
 }
 
 pub fn inc_rr(cpu: &mut Cpu, target: Target) {
@@ -185,7 +191,9 @@ pub fn dec_r(cpu: &mut Cpu, target: Target) {
 
     cpu.registers.f.set_zero(result == 0);
     cpu.registers.f.set_subtract(true);
-    cpu.registers.f.set_half_carry((result & 0x0F) == 0);
+    cpu.registers
+        .f
+        .set_half_carry((r & 0x0F).wrapping_sub(1) & 0x10 != 0);
 }
 
 pub fn dec_rr(cpu: &mut Cpu, target: Target) {
@@ -305,4 +313,23 @@ pub fn cp_n(cpu: &mut Cpu) {
     let carry = a < byte;
 
     cpu.registers.f.set_flags(zero, true, half_carry, carry);
+}
+
+pub fn cp_r(cpu: &mut Cpu, target: Target) {
+    // Subtracts from the 8-bit A register, the 8-bit
+    // register r, and updates flags based on the result.
+    // This instruction is basically identical to SUB r,
+    // but does not update the A register
+
+    let a = cpu.registers.get_a();
+    let r = cpu.registers.get_register_value(&target);
+
+    let result = a.wrapping_sub(r);
+
+    let zero = result == 0;
+    let subtract = true;
+    let half_carry = (a & 0x0F) < (r & 0x0F);
+    let carry = a < r;
+
+    cpu.registers.f.set_flags(zero, subtract, half_carry, carry);
 }
