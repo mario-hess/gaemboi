@@ -8,11 +8,10 @@ mod rotate;
 mod shift;
 
 use std::fs::File;
-use std::io::LineWriter;
-use std::io::Write;
+use std::io::{LineWriter, Write};
 
 use crate::cpu::program_counter::ProgramCounter;
-use crate::instruction::{Flag, Instruction, Mnemonic};
+use crate::instruction::{Instruction, Mnemonic};
 use crate::memory_bus::MemoryBus;
 use crate::registers::Registers;
 
@@ -43,7 +42,7 @@ impl Cpu {
         }
     }
 
-    pub fn step(&mut self) {
+    pub fn step(&mut self, file: &mut LineWriter<File>) {
         //self.log(file);
 
         //print!("PC: {:#X} | ", self.program_counter.get());
@@ -55,19 +54,6 @@ impl Cpu {
         //    instruction.mnemonic, self.program_counter.value
         //);
         self.execute_instruction(instruction);
-        //println!(
-        //    "AF: {:#X}, BC: {:#X}, DE: {:#X}, HL: {:#X}",
-        //   self.registers.get_af(),
-        //    self.registers.get_bc(),
-        //    self.registers.get_de(),
-        //    self.registers.get_hl()
-        //);
-        //println!(
-        //    "Char at 0xFF01: [{}], Val at 0xFF02: [{:#X}]",
-        //    char::from(self.memory_bus.io[1]),
-        //    self.memory_bus.io[2]
-        //);
-        //println!("-------------------------------------------------------------");
     }
 
     pub fn execute_instruction(&mut self, instruction: Instruction) {
@@ -77,6 +63,7 @@ impl Cpu {
             Mnemonic::CPL => control::cpl(self),
             Mnemonic::RST(address) => jump::rst(self, address),
             Mnemonic::JP_nn => jump::jp_nn(self),
+            Mnemonic::JP_c_nn(flag) => jump::jp_c_nn(self, flag),
             Mnemonic::JP_nc_nn(flag) => jump::jp_nc_nn(self, flag),
             Mnemonic::JP_hl => jump::jp_hl(self),
             Mnemonic::CP_n => arithmetic::cp_n(self),
@@ -103,6 +90,7 @@ impl Cpu {
             Mnemonic::POP_rr(target) => load::pop_rr(self, target),
             Mnemonic::POP_af => load::pop_af(self),
             Mnemonic::OR_r(target) => arithmetic::or_r(self, target),
+            Mnemonic::OR_n => arithmetic::or_n(self),
             Mnemonic::OR_hl => arithmetic::or_hl(self),
             Mnemonic::XOR_r(target) => arithmetic::xor_r(self, target),
             Mnemonic::XOR_n => arithmetic::xor_n(self),
@@ -116,6 +104,7 @@ impl Cpu {
                 load::ld_r_rr(self, reg_target, pair_target)
             }
             Mnemonic::LD_r_n(target) => load::ld_r_n(self, target),
+            Mnemonic::LD_hl_n => load::ld_hl_n(self),
             Mnemonic::LD_hl_plus_a => load::ld_hl_plus_a(self),
             Mnemonic::LD_hl_minus_a => load::ld_hl_minus_a(self),
             Mnemonic::LD_hl_sp_plus_n => load::ld_hl_sp_plus_n(self),
@@ -138,6 +127,7 @@ impl Cpu {
             Mnemonic::RET_c(flag) => jump::ret_c(self, flag),
             Mnemonic::RET_nc(flag) => jump::ret_nc(self, flag),
             Mnemonic::RET => jump::ret(self),
+            Mnemonic::RETI => jump::reti(self),
             Mnemonic::Prefix => self.prefix(),
             _ => panic!("Unknown mnemonic."),
         }
@@ -192,15 +182,6 @@ impl Cpu {
 
         self.stack_pointer = self.stack_pointer.wrapping_sub(1);
         self.memory_bus.write_byte(self.stack_pointer, low_byte);
-    }
-
-    fn get_flag_value(&self, flag: Flag) -> bool {
-        match flag {
-            Flag::Z => self.registers.f.get_zero(),
-            Flag::N => self.registers.f.get_subtract(),
-            Flag::H => self.registers.f.get_half_carry(),
-            Flag::C => self.registers.f.get_carry(),
-        }
     }
 
     fn log(&self, file: &mut LineWriter<File>) {

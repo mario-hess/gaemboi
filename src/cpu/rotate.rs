@@ -9,9 +9,7 @@ pub fn rra(cpu: &mut Cpu) {
     let result = (a >> 1) | (carry << 7);
     let new_carry = (a & 0x01) != 0;
 
-    cpu.registers
-        .f
-        .set_flags(false, false, false, new_carry);
+    cpu.registers.f.set_flags(false, false, false, new_carry);
     cpu.registers.set_a(result);
 }
 

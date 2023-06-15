@@ -1,3 +1,5 @@
+use crate::instruction::Flag;
+
 const ZERO_FLAG_BYTE_POSITION: u8 = 7;
 const SUBTRACT_FLAG_BYTE_POSITION: u8 = 6;
 const HALF_CARRY_FLAG_BYTE_POSITION: u8 = 5;
@@ -58,6 +60,15 @@ impl FlagsRegister {
         self.subtract = subtract;
         self.half_carry = half_carry;
         self.carry = carry;
+    }
+
+    pub fn get_flag_value(&self, flag: Flag) -> bool {
+        match flag {
+            Flag::Z => self.get_zero(),
+            Flag::N => self.get_subtract(),
+            Flag::H => self.get_half_carry(),
+            Flag::C => self.get_carry(),
+        }
     }
 }
 

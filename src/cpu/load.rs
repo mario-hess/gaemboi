@@ -49,6 +49,16 @@ pub fn ld_r_n(cpu: &mut Cpu, target: Target) {
     set_reg(&mut cpu.registers, byte);
 }
 
+pub fn ld_hl_n(cpu: &mut Cpu) {
+    // Load to the absolute address specified by the 16-bit register
+    // HL, the immediate data n
+
+    let hl = cpu.registers.get_hl();
+    let n = cpu.memory_bus.read_byte(cpu.program_counter.next());
+
+    cpu.memory_bus.write_byte(hl, n);
+}
+
 pub fn ld_hl_plus_a(cpu: &mut Cpu) {
     // Load to the absolute address specified by the 16-bit
     // register HL, data from the 8-bit A register. The
@@ -111,7 +121,6 @@ pub fn ld_a_hl_minus(cpu: &mut Cpu) {
 
     cpu.registers.set_a(value);
     cpu.registers.set_hl(hl.wrapping_sub(1));
-
 }
 
 pub fn ld_a_nn(cpu: &mut Cpu) {

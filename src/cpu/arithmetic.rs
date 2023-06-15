@@ -239,6 +239,20 @@ pub fn or_r(cpu: &mut Cpu, target: Target) {
     cpu.registers.f.set_flags(result == 0, false, false, false);
 }
 
+pub fn or_n(cpu: &mut Cpu) {
+    // Performs a bitwise OR operation between the 8-bit
+    // A register and immediate data n, and stores the
+    // result back into the A register
+
+    let a = cpu.registers.get_a();
+    let n = cpu.memory_bus.read_byte(cpu.program_counter.next());
+
+    let result = a | n;
+
+    cpu.registers.set_a(result);
+    cpu.registers.f.set_flags(result == 0, false, false, false);
+}
+
 pub fn or_hl(cpu: &mut Cpu) {
     // Performs a bitwise OR operation between the 8-bit
     // A register and data from the absolute address
