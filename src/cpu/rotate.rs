@@ -1,16 +1,30 @@
 use crate::{cpu::Cpu, instruction::Target};
 
+pub fn rrca(cpu: &mut Cpu) {
+    // rotate the contents of the 8-bit A register to the right by one bit.
+    // The bit that is rotated out from the right side is moved to the
+    // leftmost position, and the carry flag (C) is set to the value
+    // of the bit that was rotated out.
+
+    let a = cpu.registers.get_a();
+    let shifted_out = (a & 0x01) != 0;
+    let result = (a >> 1) | (a << 7);
+
+    cpu.registers.set_a(result);
+    cpu.registers.f.set_flags(false, false, false, shifted_out);
+}
+
 pub fn rra(cpu: &mut Cpu) {
     // rotate A right through carry
 
     let a = cpu.registers.get_a();
     let carry: u8 = cpu.registers.f.get_carry().into();
 
+    let shifted_out = (a & 0x01) != 0;
     let result = (a >> 1) | (carry << 7);
-    let new_carry = (a & 0x01) != 0;
 
-    cpu.registers.f.set_flags(false, false, false, new_carry);
     cpu.registers.set_a(result);
+    cpu.registers.f.set_flags(false, false, false, shifted_out);
 }
 
 pub fn rlca(cpu: &mut Cpu) {
@@ -21,10 +35,22 @@ pub fn rlca(cpu: &mut Cpu) {
 
     let a = cpu.registers.get_a();
     let shifted_out = (a & 0b1000_0000) != 0;
-    let rotated = (a << 1) | (a >> 7);
+    let result = (a << 1) | (a >> 7);
 
-    cpu.registers.set_a(rotated);
+    cpu.registers.set_a(result);
+    cpu.registers.f.set_flags(false, false, false, shifted_out);
+}
 
+pub fn rla(cpu: &mut Cpu) {
+    // Rotate register A left through carry
+    
+    let a = cpu.registers.get_a();
+    let carry: u8 = cpu.registers.f.get_carry().into();
+
+    let shifted_out = (a & 0b1000_0000) != 0;
+    let result = (a << 1) | (carry >> 7);
+    
+    cpu.registers.set_a(result);
     cpu.registers.f.set_flags(false, false, false, shifted_out);
 }
 

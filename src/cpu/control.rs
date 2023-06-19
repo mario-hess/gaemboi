@@ -45,6 +45,24 @@ pub fn cpl(cpu: &mut Cpu) {
     cpu.registers.f.set_half_carry(true);
 }
 
+pub fn scf(cpu: &mut Cpu) {
+    // Sets the carry flag, and clears the N and H flags
+
+    cpu.registers.f.set_subtract(false);
+    cpu.registers.f.set_half_carry(false);
+    cpu.registers.f.set_carry(true);
+}
+
+pub fn ccf(cpu: &mut Cpu) {
+    // Flips the carry flag, and clears the N and H flags
+
+    let carry = !cpu.registers.f.get_carry();
+
+    cpu.registers.f.set_subtract(false);
+    cpu.registers.f.set_half_carry(false);
+    cpu.registers.f.set_carry(carry);
+}
+
 pub fn disable_interrupt(cpu: &mut Cpu) {
     // Disables interrupt handling by setting IME=0
     // and cancelling any scheduled effects of the EI
