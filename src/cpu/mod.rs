@@ -156,9 +156,14 @@ impl Cpu {
 
     fn execute_prefix(&mut self, instruction: Instruction) {
         match instruction.mnemonic {
+            Mnemonic::RLC_r(target) => rotate::rlc_r(self, target),
+            Mnemonic::RRC_r(target) => rotate::rrc_r(self, target),
+            Mnemonic::RL_r(target) => rotate::rl_r(self, target),
             Mnemonic::RR_r(target) => rotate::rr_r(self, target),
             Mnemonic::RES_b_r(value, target) => reset::res_b_r(self, value, target),
             Mnemonic::SRL_r(target) => shift::srl_r(self, target),
+            Mnemonic::SLA_r(target) => shift::sla_r(self, target),
+            Mnemonic::SRA_r(target) => shift::sra_r(self, target),
             Mnemonic::SWAP_r(target) => shift::swap_r(self, target),
             _ => panic!("Unknown PREFIX Mnemnoic."),
         }

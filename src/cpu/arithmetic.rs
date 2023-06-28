@@ -189,8 +189,8 @@ pub fn sbc_r(cpu: &mut Cpu, target: Target) {
 
     cpu.registers.f.set_zero(result == 0);
     cpu.registers.f.set_subtract(true);
-    cpu.registers.f.set_half_carry((a & 0x0F) < (r & 0x0F));
-    cpu.registers.f.set_carry(a < r);
+    cpu.registers.f.set_half_carry((a ^ r ^ result) & 0x10 != 0);
+    cpu.registers.f.set_carry((a as u16) < ((r as u16) + (carry as u16)));
 }
 
 pub fn and_r(cpu: &mut Cpu, target: Target) {
