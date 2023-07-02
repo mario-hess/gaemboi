@@ -50,8 +50,8 @@ pub fn add_a_hl(cpu: &mut Cpu) {
     cpu.registers.set_a(result);
 
     let zero = result == 0;
-    let half_carry = (a & 0x0F) < (data & 0x0F);
-    let carry = a < data;
+    let half_carry = ((a & 0x0F) + (data & 0x0F)) > 0x0F;
+    let carry = a as u16 + data as u16 > 0xFF;
     
     cpu.registers.f.set_flags(zero, false, half_carry, carry);
 }
@@ -136,10 +136,34 @@ pub fn adc_n(cpu: &mut Cpu) {
     cpu.registers.f.set_subtract(false);
     cpu.registers
         .f
-        .set_half_carry(((a & 0x0F) + (n & 0x0F)) + carry > 0x0F);
+        .set_half_carry((a & 0x0F) + (n & 0x0F) + (carry & 0x0F) > 0x0F);
     cpu.registers
         .f
         .set_carry((a as u16) + (n as u16) + (carry as u16) > 0xFF);
+}
+
+pub fn adc_hl(cpu: &mut Cpu) {
+    // Adds to the 8-bit A register, the carry flag and data
+    // from the absolute address specified by the 16-bit
+    // register HL, and stores the result back into the A register
+
+    let a = cpu.registers.get_a();
+    let carry: u8 = cpu.registers.f.get_carry().into();
+
+    let hl = cpu.registers.get_hl(); 
+    let value = cpu.memory_bus.read_byte(hl);
+
+    let result = a.wrapping_add(carry).wrapping_add(value);
+    cpu.registers.set_a(result);
+
+    cpu.registers.f.set_zero(result == 0);
+    cpu.registers.f.set_subtract(false);
+    cpu.registers
+        .f
+        .set_half_carry((a & 0x0F) + (value & 0x0F) + (carry & 0x0F) > 0x0F);
+    cpu.registers
+        .f
+        .set_carry((a as u16) + (value as u16) + (carry as u16) > 0xFF);
 }
 
 pub fn sub_r(cpu: &mut Cpu, target: Target) {
@@ -175,6 +199,25 @@ pub fn sub_n(cpu: &mut Cpu) {
     cpu.registers.f.set_carry(a < n);
 }
 
+pub fn sub_hl(cpu: &mut Cpu) {
+    // Subtracts from the 8-bit A register, data from
+    // the absolute address specified by the 16-bit
+    // register HL, and stores the result back into
+    // the A register
+
+    let a = cpu.registers.get_a();
+    let hl = cpu.registers.get_hl();
+    let value = cpu.memory_bus.read_byte(hl);
+
+    let result = a.wrapping_sub(value);
+    cpu.registers.set_a(result);
+
+    cpu.registers.f.set_zero(result == 0);
+    cpu.registers.f.set_subtract(true);
+    cpu.registers.f.set_half_carry((a & 0x0F) < (value & 0x0F));
+    cpu.registers.f.set_carry(a < value);
+}
+
 pub fn sbc_r(cpu: &mut Cpu, target: Target) {
     // Subtracts from the 8-bit A register, the
     // carry flag and the 8-bit register r, and
@@ -191,6 +234,26 @@ pub fn sbc_r(cpu: &mut Cpu, target: Target) {
     cpu.registers.f.set_subtract(true);
     cpu.registers.f.set_half_carry((a ^ r ^ result) & 0x10 != 0);
     cpu.registers.f.set_carry((a as u16) < ((r as u16) + (carry as u16)));
+}
+
+pub fn sbc_hl(cpu: &mut Cpu) {
+    // Subtracts from the 8-bit A register, the
+    // carry flag and data from the absolute
+    // address specified by the 16-bit register HL, 
+    // and stores the result back into the A register
+
+    let a = cpu.registers.get_a();
+    let carry: u8 = cpu.registers.f.get_carry().into();
+    let hl = cpu.registers.get_hl();
+    let data = cpu.memory_bus.read_byte(hl);
+
+    let result = a.wrapping_sub(carry).wrapping_sub(data);
+    cpu.registers.set_a(result);
+
+    cpu.registers.f.set_zero(result == 0);
+    cpu.registers.f.set_subtract(true);
+    cpu.registers.f.set_half_carry((a ^ data ^ result) & 0x10 != 0);
+    cpu.registers.f.set_carry((a as u16) < ((data as u16) + (carry as u16)));
 }
 
 pub fn and_r(cpu: &mut Cpu, target: Target) {
@@ -220,6 +283,22 @@ pub fn and_n(cpu: &mut Cpu) {
     cpu.registers.f.set_flags(result == 0, false, true, false);
 }
 
+pub fn and_hl(cpu: &mut Cpu) {
+    // Performs a bitwise AND operation between the
+    // 8-bit A register and data from the absolute
+    // address specified by the 16-bit register HL,
+    // and stores the result back into the A register
+
+    let a = cpu.registers.get_a();
+    let hl = cpu.registers.get_hl();
+    let data = cpu.memory_bus.read_byte(hl);
+
+    let result = a & data;
+    cpu.registers.set_a(result);
+
+    cpu.registers.f.set_flags(result == 0, false, true, false);
+}
+
 pub fn inc_r(cpu: &mut Cpu, target: Target) {
     // Increments data in the 8-bit register r
 
@@ -233,7 +312,7 @@ pub fn inc_r(cpu: &mut Cpu, target: Target) {
     cpu.registers.f.set_subtract(false);
     cpu.registers
         .f
-        .set_half_carry((reg & 0x0F).wrapping_add(1) & 0x10 != 0);
+        .set_half_carry((reg & 0x0F).wrapping_add(1) > 0x0F);
 }
 
 pub fn inc_rr(cpu: &mut Cpu, target: Target) {
@@ -242,6 +321,21 @@ pub fn inc_rr(cpu: &mut Cpu, target: Target) {
     let value = cpu.registers.get_pair_value(&target);
     let set_reg = cpu.registers.get_pair_setter(&target);
     set_reg(&mut cpu.registers, value.wrapping_add(1));
+}
+
+pub fn inc_hl(cpu: &mut Cpu) {
+    // Increments data at the absolute address specified
+    // by the 16-bit register HL
+
+    let hl = cpu.registers.get_hl();
+    let data = cpu.memory_bus.read_byte(hl);
+    
+    let result = data.wrapping_add(1);
+    cpu.memory_bus.write_byte(hl, result);
+
+    cpu.registers.f.set_zero(result == 0);
+    cpu.registers.f.set_subtract(false);
+    cpu.registers.f.set_half_carry((data & 0x0F).wrapping_add(1) > 0x0F);
 }
 
 pub fn inc_sp(cpu: &mut Cpu) {
