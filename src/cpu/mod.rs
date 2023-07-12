@@ -98,6 +98,7 @@ impl Cpu {
             Mnemonic::SUB_r(target) => arithmetic::sub_r(self, target),
             Mnemonic::SUB_hl => arithmetic::sub_hl(self),
             Mnemonic::SBC_r(target) => arithmetic::sbc_r(self, target),
+            Mnemonic::SBC_n => arithmetic::sbc_n(self), 
             Mnemonic::SBC_hl => arithmetic::sbc_hl(self),
             Mnemonic::POP_rr(target) => load::pop_rr(self, target),
             Mnemonic::POP_af => load::pop_af(self),

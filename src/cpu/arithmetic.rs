@@ -236,6 +236,26 @@ pub fn sbc_r(cpu: &mut Cpu, target: Target) {
     cpu.registers.f.set_carry((a as u16) < ((r as u16) + (carry as u16)));
 }
 
+pub fn sbc_n(cpu: &mut Cpu) {
+    // Subtracts from the 8-bit A register, the
+    // carry flag and the immediate data n, and
+    // stores the result back into the A register
+    
+    let a = cpu.registers.get_a();
+    let n = cpu.memory_bus.read_byte(cpu.program_counter.next());
+
+
+    let carry: u8 = cpu.registers.f.get_carry().into();
+
+    let result = a.wrapping_sub(carry).wrapping_sub(n);
+    cpu.registers.set_a(result);
+
+    cpu.registers.f.set_zero(result == 0);
+    cpu.registers.f.set_subtract(true);
+    cpu.registers.f.set_half_carry((a ^ n ^ result) & 0x10 != 0);
+    cpu.registers.f.set_carry((a as u16) < ((n as u16) + (carry as u16)));
+}
+
 pub fn sbc_hl(cpu: &mut Cpu) {
     // Subtracts from the 8-bit A register, the
     // carry flag and data from the absolute
