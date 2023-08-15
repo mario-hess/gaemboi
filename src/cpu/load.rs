@@ -171,6 +171,20 @@ pub fn ldh_a_n(cpu: &mut Cpu) {
     cpu.registers.set_a(value);
 }
 
+pub fn ldh_a_c(cpu: &mut Cpu) {
+    // Load to the 8-bit A register, data from the address specified
+    // by the 8-bit C register. The full 16-bit absolute address is
+    // obtained by setting the most significant byte to 0xFF and the
+    // least significant byte to the value of C, so the possible range
+    // is 0xFF00-0xFFFF
+
+    let c: u8 = cpu.registers.f.get_carry().into();
+    let address: u16 = 0xFF00 | c as u16;
+
+    let value = cpu.memory_bus.read_byte(address);
+    cpu.registers.set_a(value);
+}
+
 pub fn ld_sp_nn(cpu: &mut Cpu) {
     // loads the immediate 16-bit value into the stack pointer register
 

@@ -126,6 +126,7 @@ impl Cpu {
             Mnemonic::LD_nn_a => load::ld_nn_a(self),
             Mnemonic::LDH_n_a => load::ldh_n_a(self),
             Mnemonic::LDH_a_n => load::ldh_a_n(self),
+            Mnemonic::LDH_a_c => load::ldh_a_c(self),
             Mnemonic::LD_sp_nn => load::ld_sp_nn(self),
             Mnemonic::LD_sp_hl => load::ld_sp_hl(self),
             Mnemonic::LD_nn_sp => load::ld_nn_sp(self),
