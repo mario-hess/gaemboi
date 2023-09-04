@@ -57,13 +57,12 @@ pub fn rla(cpu: &mut Cpu) {
 pub fn rlc_r(cpu: &mut Cpu, target: Target) {
     // Rotate register r8 left.
 
-    let r = cpu.registers.get_register_value(&target);
-    let set_r = cpu.registers.get_register_setter(&target);
+    let r = cpu.registers.get_register(&target);
 
     let shifted_out = (r & 0b1000_0000) != 0;
     let result = (r << 1) | (r >> 7);
 
-    set_r(&mut cpu.registers, result);
+    cpu.registers.set_register(target, result);
     cpu.registers
         .f
         .set_flags(result == 0, false, false, shifted_out);
@@ -72,13 +71,12 @@ pub fn rlc_r(cpu: &mut Cpu, target: Target) {
 pub fn rrc_r(cpu: &mut Cpu, target: Target) {
     // Rotate register r8 right.
 
-    let r = cpu.registers.get_register_value(&target);
-    let set_r = cpu.registers.get_register_setter(&target);
+    let r = cpu.registers.get_register(&target);
 
     let shifted_out = (r & 0x01) != 0;
     let result = (r >> 1) | (r << 7);
 
-    set_r(&mut cpu.registers, result);
+    cpu.registers.set_register(target, result);
     cpu.registers
         .f
         .set_flags(result == 0, false, false, shifted_out);
@@ -87,14 +85,13 @@ pub fn rrc_r(cpu: &mut Cpu, target: Target) {
 pub fn rl_r(cpu: &mut Cpu, target: Target) {
     // Rotate bits in register r8 left through carry
 
-    let r = cpu.registers.get_register_value(&target);
-    let set_r = cpu.registers.get_register_setter(&target);
+    let r = cpu.registers.get_register(&target);
     let carry: u8 = cpu.registers.f.get_carry().into();
 
     let shifted_out = (r & 0b1000_0000) != 0;
     let result = (r << 1) | carry;
 
-    set_r(&mut cpu.registers, result);
+    cpu.registers.set_register(target, result);
     cpu.registers
         .f
         .set_flags(result == 0, false, false, shifted_out);
@@ -103,14 +100,13 @@ pub fn rl_r(cpu: &mut Cpu, target: Target) {
 pub fn rr_r(cpu: &mut Cpu, target: Target) {
     // rotate target right through carry
 
-    let r = cpu.registers.get_register_value(&target);
-    let set_r = cpu.registers.get_register_setter(&target);
+    let r = cpu.registers.get_register(&target);
     let carry: u8 = cpu.registers.f.get_carry().into();
 
     let shifted_out = (r & 0x01) != 0;
     let result = (r >> 1) | (carry << 7);
 
-    set_r(&mut cpu.registers, result);
+    cpu.registers.set_register(target, result);
     cpu.registers
         .f
         .set_flags(result == 0, false, false, shifted_out);

@@ -1,7 +1,7 @@
 mod flags_register;
 
-use crate::registers::flags_register::FlagsRegister;
 use crate::instruction::Target;
+use crate::registers::flags_register::FlagsRegister;
 
 pub struct Registers {
     a: u8,
@@ -123,8 +123,8 @@ impl Registers {
         self.l = value;
     }
 
-    pub fn get_register_value(&self, reg_target: &Target) -> u8 {
-        match reg_target {
+    pub fn get_register(&self, target: &Target) -> u8 {
+        match target {
             Target::A => self.get_a(),
             Target::B => self.get_b(),
             Target::C => self.get_c(),
@@ -136,8 +136,8 @@ impl Registers {
         }
     }
 
-    pub fn get_pair_value(&self, pair_target: &Target) -> u16 {
-        match pair_target {
+    pub fn get_pair(&self, target: &Target) -> u16 {
+        match target {
             Target::AF => self.get_af(),
             Target::BC => self.get_bc(),
             Target::DE => self.get_de(),
@@ -146,25 +146,25 @@ impl Registers {
         }
     }
 
-    pub fn get_register_setter(&self, reg_target: &Target) -> fn(&mut Registers, u8) {
-        match reg_target {
-            Target::A => Registers::set_a,
-            Target::B => Registers::set_b,
-            Target::C => Registers::set_c,
-            Target::D => Registers::set_d,
-            Target::E => Registers::set_e,
-            Target::H => Registers::set_h,
-            Target::L => Registers::set_l,
+    pub fn set_register(&mut self, target: Target, value: u8) {
+        match target {
+            Target::A => self.set_a(value),
+            Target::B => self.set_b(value),
+            Target::C => self.set_c(value),
+            Target::D => self.set_d(value),
+            Target::E => self.set_e(value),
+            Target::H => self.set_h(value),
+            Target::L => self.set_l(value),
             _ => unreachable!(),
         }
     }
 
-    pub fn get_pair_setter(&self, pair_target: &Target) -> fn(&mut Registers, u16) {
-        match pair_target {
-            Target::AF => Registers::set_af,
-            Target::BC => Registers::set_bc,
-            Target::DE => Registers::set_de,
-            Target::HL => Registers::set_hl,
+    pub fn set_pair(&mut self, target: Target, value: u16) {
+        match target {
+            Target::AF => self.set_af(value),
+            Target::BC => self.set_bc(value),
+            Target::DE => self.set_de(value),
+            Target::HL => self.set_hl(value),
             _ => unreachable!(),
         }
     }

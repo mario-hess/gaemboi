@@ -131,6 +131,7 @@ impl Cpu {
             Mnemonic::LD_sp_hl => load::ld_sp_hl(self),
             Mnemonic::LD_nn_sp => load::ld_nn_sp(self),
             Mnemonic::LD_a_nn => load::ld_a_nn(self),
+            Mnemonic::LD_c_a => load::ld_c_a(self),
             Mnemonic::JR_c_e(flag) => jump::jr_c_e(self, flag),
             Mnemonic::JR_nc_e(flag) => jump::jr_nc_e(self, flag),
             Mnemonic::JR_e => jump::jr_e(self),

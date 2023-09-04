@@ -5,7 +5,7 @@ pub fn add_r(cpu: &mut Cpu, target: Target) {
     // Adds to the 8-bit A register, the 8-bit register r,
     // and stores the result back into the A register
 
-    let r = cpu.registers.get_register_value(&target);
+    let r = cpu.registers.get_register(&target);
     let a = cpu.registers.get_a();
 
     let result = a.wrapping_add(r);
@@ -52,14 +52,14 @@ pub fn add_a_hl(cpu: &mut Cpu) {
     let zero = result == 0;
     let half_carry = ((a & 0x0F) + (data & 0x0F)) > 0x0F;
     let carry = a as u16 + data as u16 > 0xFF;
-    
+
     cpu.registers.f.set_flags(zero, false, half_carry, carry);
 }
 
 pub fn add_hl_rr(cpu: &mut Cpu, target: Target) {
     // Add the value in r16 to HL
 
-    let rr = cpu.registers.get_pair_value(&target);
+    let rr = cpu.registers.get_pair(&target);
     let hl = cpu.registers.get_hl();
 
     let result = hl.wrapping_add(rr);
@@ -103,7 +103,7 @@ pub fn adc_r(cpu: &mut Cpu, target: Target) {
     // and the 8-bit register r, and stores the result
     // back into the A register
 
-    let r = cpu.registers.get_register_value(&target);
+    let r = cpu.registers.get_register(&target);
     let a = cpu.registers.get_a();
     let carry: u8 = cpu.registers.f.get_carry().into();
 
@@ -150,7 +150,7 @@ pub fn adc_hl(cpu: &mut Cpu) {
     let a = cpu.registers.get_a();
     let carry: u8 = cpu.registers.f.get_carry().into();
 
-    let hl = cpu.registers.get_hl(); 
+    let hl = cpu.registers.get_hl();
     let value = cpu.memory_bus.read_byte(hl);
 
     let result = a.wrapping_add(carry).wrapping_add(value);
@@ -172,7 +172,7 @@ pub fn sub_r(cpu: &mut Cpu, target: Target) {
     // back into the A register
 
     let a = cpu.registers.get_a();
-    let r = cpu.registers.get_register_value(&target);
+    let r = cpu.registers.get_register(&target);
 
     let result = a.wrapping_sub(r);
     cpu.registers.set_a(result);
@@ -224,7 +224,7 @@ pub fn sbc_r(cpu: &mut Cpu, target: Target) {
     // stores the result back into the A register
 
     let a = cpu.registers.get_a();
-    let r = cpu.registers.get_register_value(&target);
+    let r = cpu.registers.get_register(&target);
     let carry: u8 = cpu.registers.f.get_carry().into();
 
     let result = a.wrapping_sub(carry).wrapping_sub(r);
@@ -233,17 +233,18 @@ pub fn sbc_r(cpu: &mut Cpu, target: Target) {
     cpu.registers.f.set_zero(result == 0);
     cpu.registers.f.set_subtract(true);
     cpu.registers.f.set_half_carry((a ^ r ^ result) & 0x10 != 0);
-    cpu.registers.f.set_carry((a as u16) < ((r as u16) + (carry as u16)));
+    cpu.registers
+        .f
+        .set_carry((a as u16) < ((r as u16) + (carry as u16)));
 }
 
 pub fn sbc_n(cpu: &mut Cpu) {
     // Subtracts from the 8-bit A register, the
     // carry flag and the immediate data n, and
     // stores the result back into the A register
-    
+
     let a = cpu.registers.get_a();
     let n = cpu.memory_bus.read_byte(cpu.program_counter.next());
-
 
     let carry: u8 = cpu.registers.f.get_carry().into();
 
@@ -253,13 +254,15 @@ pub fn sbc_n(cpu: &mut Cpu) {
     cpu.registers.f.set_zero(result == 0);
     cpu.registers.f.set_subtract(true);
     cpu.registers.f.set_half_carry((a ^ n ^ result) & 0x10 != 0);
-    cpu.registers.f.set_carry((a as u16) < ((n as u16) + (carry as u16)));
+    cpu.registers
+        .f
+        .set_carry((a as u16) < ((n as u16) + (carry as u16)));
 }
 
 pub fn sbc_hl(cpu: &mut Cpu) {
     // Subtracts from the 8-bit A register, the
     // carry flag and data from the absolute
-    // address specified by the 16-bit register HL, 
+    // address specified by the 16-bit register HL,
     // and stores the result back into the A register
 
     let a = cpu.registers.get_a();
@@ -272,8 +275,12 @@ pub fn sbc_hl(cpu: &mut Cpu) {
 
     cpu.registers.f.set_zero(result == 0);
     cpu.registers.f.set_subtract(true);
-    cpu.registers.f.set_half_carry((a ^ data ^ result) & 0x10 != 0);
-    cpu.registers.f.set_carry((a as u16) < ((data as u16) + (carry as u16)));
+    cpu.registers
+        .f
+        .set_half_carry((a ^ data ^ result) & 0x10 != 0);
+    cpu.registers
+        .f
+        .set_carry((a as u16) < ((data as u16) + (carry as u16)));
 }
 
 pub fn and_r(cpu: &mut Cpu, target: Target) {
@@ -282,7 +289,7 @@ pub fn and_r(cpu: &mut Cpu, target: Target) {
     // and stores the result back into the A register
 
     let a = cpu.registers.get_a();
-    let r = cpu.registers.get_register_value(&target);
+    let r = cpu.registers.get_register(&target);
 
     let result = a & r;
     cpu.registers.set_a(result);
@@ -322,11 +329,10 @@ pub fn and_hl(cpu: &mut Cpu) {
 pub fn inc_r(cpu: &mut Cpu, target: Target) {
     // Increments data in the 8-bit register r
 
-    let reg = cpu.registers.get_register_value(&target);
-    let set_reg = cpu.registers.get_register_setter(&target);
+    let reg = cpu.registers.get_register(&target);
 
     let result = reg.wrapping_add(1);
-    set_reg(&mut cpu.registers, result);
+    cpu.registers.set_register(target, result);
 
     cpu.registers.f.set_zero(result == 0);
     cpu.registers.f.set_subtract(false);
@@ -338,9 +344,8 @@ pub fn inc_r(cpu: &mut Cpu, target: Target) {
 pub fn inc_rr(cpu: &mut Cpu, target: Target) {
     // Increments data in the 16-bit target register by 1
 
-    let value = cpu.registers.get_pair_value(&target);
-    let set_reg = cpu.registers.get_pair_setter(&target);
-    set_reg(&mut cpu.registers, value.wrapping_add(1));
+    let value = cpu.registers.get_pair(&target);
+    cpu.registers.set_pair(target, value.wrapping_add(1));
 }
 
 pub fn inc_hl(cpu: &mut Cpu) {
@@ -349,13 +354,15 @@ pub fn inc_hl(cpu: &mut Cpu) {
 
     let hl = cpu.registers.get_hl();
     let data = cpu.memory_bus.read_byte(hl);
-    
+
     let result = data.wrapping_add(1);
     cpu.memory_bus.write_byte(hl, result);
 
     cpu.registers.f.set_zero(result == 0);
     cpu.registers.f.set_subtract(false);
-    cpu.registers.f.set_half_carry((data & 0x0F).wrapping_add(1) > 0x0F);
+    cpu.registers
+        .f
+        .set_half_carry((data & 0x0F).wrapping_add(1) > 0x0F);
 }
 
 pub fn inc_sp(cpu: &mut Cpu) {
@@ -365,11 +372,10 @@ pub fn inc_sp(cpu: &mut Cpu) {
 pub fn dec_r(cpu: &mut Cpu, target: Target) {
     // Decrements data in the 8-bit target register
 
-    let r = cpu.registers.get_register_value(&target);
-    let set_r = cpu.registers.get_register_setter(&target);
+    let r = cpu.registers.get_register(&target);
 
     let result = r.wrapping_sub(1);
-    set_r(&mut cpu.registers, result);
+    cpu.registers.set_register(target, result);
 
     cpu.registers.f.set_zero(result == 0);
     cpu.registers.f.set_subtract(true);
@@ -381,11 +387,10 @@ pub fn dec_r(cpu: &mut Cpu, target: Target) {
 pub fn dec_rr(cpu: &mut Cpu, target: Target) {
     // Decrements data in the 16-bittarget register
 
-    let reg = cpu.registers.get_pair_value(&target);
-    let set_reg = cpu.registers.get_pair_setter(&target);
+    let reg = cpu.registers.get_pair(&target);
 
     let result = reg.wrapping_sub(1);
-    set_reg(&mut cpu.registers, result);
+    cpu.registers.set_pair(target, result);
 }
 
 pub fn dec_sp(cpu: &mut Cpu) {
@@ -412,7 +417,7 @@ pub fn or_r(cpu: &mut Cpu, target: Target) {
     // A register and the 8-bit register r, and stores
     // the result back into the A register
 
-    let r = cpu.registers.get_register_value(&target);
+    let r = cpu.registers.get_register(&target);
     let a = cpu.registers.get_a();
 
     let result = a | r;
@@ -457,7 +462,7 @@ pub fn xor_r(cpu: &mut Cpu, target: Target) {
     // and stores the result back into the A register
 
     let a = cpu.registers.get_a();
-    let value = cpu.registers.get_register_value(&target);
+    let value = cpu.registers.get_register(&target);
 
     let result = a ^ value;
     let flag = result == 0;
@@ -518,7 +523,7 @@ pub fn cp_r(cpu: &mut Cpu, target: Target) {
     // but does not update the A register
 
     let a = cpu.registers.get_a();
-    let r = cpu.registers.get_register_value(&target);
+    let r = cpu.registers.get_register(&target);
 
     let result = a.wrapping_sub(r);
 
@@ -540,12 +545,12 @@ pub fn cp_hl(cpu: &mut Cpu) {
     let a = cpu.registers.get_a();
     let hl = cpu.registers.get_hl();
     let data = cpu.memory_bus.read_byte(hl);
-    
+
     let result = a.wrapping_sub(data);
 
     let zero = result == 0;
     let half_carry = (a & 0x0F) < (data & 0x0F);
     let carry = a < data;
-    
+
     cpu.registers.f.set_flags(zero, true, half_carry, carry);
 }
