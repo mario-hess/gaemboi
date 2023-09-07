@@ -3,9 +3,9 @@ mod control;
 mod jump;
 mod load;
 mod program_counter;
-mod reset;
 mod rotate;
 mod shift;
+mod bit_ops;
 
 use std::fs::File;
 use std::io::{LineWriter, Write};
@@ -168,11 +168,13 @@ impl Cpu {
             Mnemonic::RRC_r(target) => rotate::rrc_r(self, target),
             Mnemonic::RL_r(target) => rotate::rl_r(self, target),
             Mnemonic::RR_r(target) => rotate::rr_r(self, target),
-            Mnemonic::RES_b_r(value, target) => reset::res_b_r(self, value, target),
             Mnemonic::SRL_r(target) => shift::srl_r(self, target),
             Mnemonic::SLA_r(target) => shift::sla_r(self, target),
             Mnemonic::SRA_r(target) => shift::sra_r(self, target),
             Mnemonic::SWAP_r(target) => shift::swap_r(self, target),
+            Mnemonic::BIT_r(position, target) => bit_ops::bit_r(self, position, target),
+            Mnemonic::RES_r(position, target) => bit_ops::res_r(self, position, target),
+            Mnemonic::SET_r(position, target) => bit_ops::set_r(self, position, target),
             _ => panic!("Unknown PREFIX Mnemnoic."),
         }
     }

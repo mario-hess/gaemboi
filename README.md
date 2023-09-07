@@ -28,7 +28,7 @@ This is a Nintendo Game Boy emulator written in Rust. It aims to accurately emul
 - [x] 07-jr,jp,call,ret,rst.gb
 - [x] 08-misc instrs.gb
 - [x] 09-op r,r.gb
-- [ ] 10-bit ops.gb
+- [x] 10-bit ops.gb
 - [ ] 11-op a,(hl).gb
 
 ## Getting Started
