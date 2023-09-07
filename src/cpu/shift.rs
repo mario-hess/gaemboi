@@ -15,6 +15,19 @@ pub fn srl_r(cpu: &mut Cpu, target: Target) {
         .set_flags(result == 0, false, false, shifted_out);
 }
 
+pub fn srl_hl(cpu: &mut Cpu) {
+    let address = cpu.registers.get_hl();
+    let byte = cpu.memory_bus.read_byte(address);
+
+    let shifted_out = (byte & 0b0000_0001) != 0;
+    let result = byte >> 1;
+
+    cpu.memory_bus.write_byte(address, result);
+    cpu.registers
+        .f
+        .set_flags(result == 0, false, false, shifted_out);
+}
+
 pub fn sla_r(cpu: &mut Cpu, target: Target) {
     // Shift Left Arithmetically register r8
 
@@ -24,6 +37,19 @@ pub fn sla_r(cpu: &mut Cpu, target: Target) {
     let result = r << 1;
 
     cpu.registers.set_register(target, result);
+    cpu.registers
+        .f
+        .set_flags(result == 0, false, false, shifted_out);
+}
+
+pub fn sla_hl(cpu: &mut Cpu) {
+    let address = cpu.registers.get_hl();
+    let byte = cpu.memory_bus.read_byte(address);
+
+    let shifted_out = (byte & 0b1000_0000) != 0;
+    let result = byte << 1;
+
+    cpu.memory_bus.write_byte(address, result);
     cpu.registers
         .f
         .set_flags(result == 0, false, false, shifted_out);
@@ -43,6 +69,19 @@ pub fn sra_r(cpu: &mut Cpu, target: Target) {
         .set_flags(result == 0, false, false, shifted_out);
 }
 
+pub fn sra_hl(cpu: &mut Cpu) {
+    let address = cpu.registers.get_hl();
+    let byte = cpu.memory_bus.read_byte(address);
+
+    let shifted_out = (byte & 0x01) != 0;
+    let result = (byte >> 1) | (byte & 0b1000_0000);
+
+    cpu.memory_bus.write_byte(address, result);
+    cpu.registers
+        .f
+        .set_flags(result == 0, false, false, shifted_out);
+}
+
 pub fn swap_r(cpu: &mut Cpu, target: Target) {
     // Swap the upper 4 bits in register r8 and the lower 4 ones
 
@@ -51,5 +90,15 @@ pub fn swap_r(cpu: &mut Cpu, target: Target) {
     let result = (r >> 4) | (r << 4);
 
     cpu.registers.set_register(target, result);
+    cpu.registers.f.set_flags(result == 0, false, false, false);
+}
+
+pub fn swap_hl(cpu: &mut Cpu) {
+    let address = cpu.registers.get_hl();
+    let byte = cpu.memory_bus.read_byte(address);
+
+    let result = (byte >> 4) | (byte << 4);
+
+    cpu.memory_bus.write_byte(address, result);
     cpu.registers.f.set_flags(result == 0, false, false, false);
 }

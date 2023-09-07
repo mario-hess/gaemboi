@@ -165,16 +165,27 @@ impl Cpu {
     fn execute_prefix(&mut self, instruction: Instruction) {
         match instruction.mnemonic {
             Mnemonic::RLC_r(target) => rotate::rlc_r(self, target),
+            Mnemonic::RLC_hl => rotate::rlc_hl(self),
             Mnemonic::RRC_r(target) => rotate::rrc_r(self, target),
+            Mnemonic::RRC_hl => rotate::rrc_hl(self),
             Mnemonic::RL_r(target) => rotate::rl_r(self, target),
+            Mnemonic::RL_hl => rotate::rl_hl(self),
             Mnemonic::RR_r(target) => rotate::rr_r(self, target),
+            Mnemonic::RR_hl => rotate::rr_hl(self),
             Mnemonic::SRL_r(target) => shift::srl_r(self, target),
+            Mnemonic::SRL_hl => shift::srl_hl(self),
             Mnemonic::SLA_r(target) => shift::sla_r(self, target),
+            Mnemonic::SLA_hl => shift::sla_hl(self),
             Mnemonic::SRA_r(target) => shift::sra_r(self, target),
+            Mnemonic::SRA_hl => shift::sra_hl(self),
             Mnemonic::SWAP_r(target) => shift::swap_r(self, target),
+            Mnemonic::SWAP_hl => shift::swap_hl(self),
             Mnemonic::BIT_r(position, target) => bit_ops::bit_r(self, position, target),
+            Mnemonic::BIT_hl(position) => bit_ops::bit_hl(self, position),
             Mnemonic::RES_r(position, target) => bit_ops::res_r(self, position, target),
+            Mnemonic::RES_hl(position) => bit_ops::res_hl(self, position),
             Mnemonic::SET_r(position, target) => bit_ops::set_r(self, position, target),
+            Mnemonic::SET_hl(position) => bit_ops::set_hl(self, position),
             _ => panic!("Unknown PREFIX Mnemnoic."),
         }
     }

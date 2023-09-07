@@ -68,6 +68,19 @@ pub fn rlc_r(cpu: &mut Cpu, target: Target) {
         .set_flags(result == 0, false, false, shifted_out);
 }
 
+pub fn rlc_hl(cpu: &mut Cpu) {
+    let address = cpu.registers.get_hl();
+    let byte = cpu.memory_bus.read_byte(address);
+
+    let shifted_out = (byte & 0b1000_0000) != 0;
+    let result = (byte << 1) | (byte >> 7);
+
+    cpu.memory_bus.write_byte(address, result);
+    cpu.registers
+        .f
+        .set_flags(result == 0, false, false, shifted_out);
+}
+
 pub fn rrc_r(cpu: &mut Cpu, target: Target) {
     // Rotate register r8 right.
 
@@ -77,6 +90,19 @@ pub fn rrc_r(cpu: &mut Cpu, target: Target) {
     let result = (r >> 1) | (r << 7);
 
     cpu.registers.set_register(target, result);
+    cpu.registers
+        .f
+        .set_flags(result == 0, false, false, shifted_out);
+}
+
+pub fn rrc_hl(cpu: &mut Cpu) {
+    let address = cpu.registers.get_hl();
+    let byte = cpu.memory_bus.read_byte(address);
+
+    let shifted_out = (byte & 0x01) != 0;
+    let result = (byte >> 1) | (byte << 7);
+
+    cpu.memory_bus.write_byte(address, result);
     cpu.registers
         .f
         .set_flags(result == 0, false, false, shifted_out);
@@ -97,6 +123,20 @@ pub fn rl_r(cpu: &mut Cpu, target: Target) {
         .set_flags(result == 0, false, false, shifted_out);
 }
 
+pub fn rl_hl(cpu: &mut Cpu) {
+    let address = cpu.registers.get_hl();
+    let byte = cpu.memory_bus.read_byte(address);
+    let carry: u8 = cpu.registers.f.get_carry().into();
+
+    let shifted_out = (byte & 0b1000_0000) != 0;
+    let result = (byte << 1) | carry;
+
+    cpu.memory_bus.write_byte(address, result);
+    cpu.registers
+        .f
+        .set_flags(result == 0, false, false, shifted_out);
+}
+
 pub fn rr_r(cpu: &mut Cpu, target: Target) {
     // rotate target right through carry
 
@@ -107,6 +147,20 @@ pub fn rr_r(cpu: &mut Cpu, target: Target) {
     let result = (r >> 1) | (carry << 7);
 
     cpu.registers.set_register(target, result);
+    cpu.registers
+        .f
+        .set_flags(result == 0, false, false, shifted_out);
+}
+
+pub fn rr_hl(cpu: &mut Cpu) {
+    let address = cpu.registers.get_hl();
+    let byte = cpu.memory_bus.read_byte(address);
+    let carry: u8 = cpu.registers.f.get_carry().into();
+
+    let shifted_out = (byte & 0x01) != 0;
+    let result = (byte >> 1) | (carry << 7);
+
+    cpu.memory_bus.write_byte(address, result);
     cpu.registers
         .f
         .set_flags(result == 0, false, false, shifted_out);
