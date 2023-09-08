@@ -1,7 +1,7 @@
 use crate::cpu::Cpu;
-use crate::instruction::Target;
+use crate::instruction::{CycleDuration, Target};
 
-pub fn srl_r(cpu: &mut Cpu, target: Target) {
+pub fn srl_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
     // Shifts all the bits of the register to the
     // right by one position.
 
@@ -16,9 +16,11 @@ pub fn srl_r(cpu: &mut Cpu, target: Target) {
     cpu.registers.flags.set_subtract(false);
     cpu.registers.flags.set_half_carry(false);
     cpu.registers.flags.set_carry(shifted_out);
+
+    CycleDuration::Default
 }
 
-pub fn srl_hl(cpu: &mut Cpu) {
+pub fn srl_hl(cpu: &mut Cpu) -> CycleDuration {
     // Shifts all the bits of the byte pointed to by HL
     // to the right by one position.
 
@@ -34,9 +36,11 @@ pub fn srl_hl(cpu: &mut Cpu) {
     cpu.registers.flags.set_subtract(false);
     cpu.registers.flags.set_half_carry(false);
     cpu.registers.flags.set_carry(shifted_out);
+
+    CycleDuration::Default
 }
 
-pub fn sla_r(cpu: &mut Cpu, target: Target) {
+pub fn sla_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
     // Shift target register to the left arithmetically.
 
     let r = cpu.registers.get_register(&target);
@@ -50,9 +54,11 @@ pub fn sla_r(cpu: &mut Cpu, target: Target) {
     cpu.registers.flags.set_subtract(false);
     cpu.registers.flags.set_half_carry(false);
     cpu.registers.flags.set_carry(shifted_out);
+
+    CycleDuration::Default
 }
 
-pub fn sla_hl(cpu: &mut Cpu) {
+pub fn sla_hl(cpu: &mut Cpu) -> CycleDuration {
     // Shift the byte pointed to by HL to the left arithmetically.
 
     let address = cpu.registers.get_hl();
@@ -67,9 +73,11 @@ pub fn sla_hl(cpu: &mut Cpu) {
     cpu.registers.flags.set_subtract(false);
     cpu.registers.flags.set_half_carry(false);
     cpu.registers.flags.set_carry(shifted_out);
+
+    CycleDuration::Default
 }
 
-pub fn sra_r(cpu: &mut Cpu, target: Target) {
+pub fn sra_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
     // Shift target register to the right arithmetically.
 
     let r = cpu.registers.get_register(&target);
@@ -83,9 +91,11 @@ pub fn sra_r(cpu: &mut Cpu, target: Target) {
     cpu.registers.flags.set_subtract(false);
     cpu.registers.flags.set_half_carry(false);
     cpu.registers.flags.set_carry(shifted_out);
+
+    CycleDuration::Default
 }
 
-pub fn sra_hl(cpu: &mut Cpu) {
+pub fn sra_hl(cpu: &mut Cpu) -> CycleDuration {
     // Shift the byte pointed to by HL to the right arithmetically.
 
     let address = cpu.registers.get_hl();
@@ -100,9 +110,11 @@ pub fn sra_hl(cpu: &mut Cpu) {
     cpu.registers.flags.set_subtract(false);
     cpu.registers.flags.set_half_carry(false);
     cpu.registers.flags.set_carry(shifted_out);
+
+    CycleDuration::Default
 }
 
-pub fn swap_r(cpu: &mut Cpu, target: Target) {
+pub fn swap_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
     // Swap the upper 4 bits in the target register and the lower 4 ones.
 
     let r = cpu.registers.get_register(&target);
@@ -115,9 +127,11 @@ pub fn swap_r(cpu: &mut Cpu, target: Target) {
     cpu.registers.flags.set_subtract(false);
     cpu.registers.flags.set_half_carry(false);
     cpu.registers.flags.set_carry(false);
+
+    CycleDuration::Default
 }
 
-pub fn swap_hl(cpu: &mut Cpu) {
+pub fn swap_hl(cpu: &mut Cpu) -> CycleDuration {
     // Swap the upper 4 bits in the byte pointed by HL and the lower 4 ones.
 
     let address = cpu.registers.get_hl();
@@ -131,4 +145,6 @@ pub fn swap_hl(cpu: &mut Cpu) {
     cpu.registers.flags.set_subtract(false);
     cpu.registers.flags.set_half_carry(false);
     cpu.registers.flags.set_carry(false);
+
+    CycleDuration::Default
 }
