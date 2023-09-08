@@ -8,7 +8,7 @@ mod rotate;
 mod shift;
 
 use crate::cpu::program_counter::ProgramCounter;
-use crate::instruction::{Instruction, Mnemonic};
+use crate::instruction::{CycleDuration, Instruction, Mnemonic};
 use crate::memory_bus::MemoryBus;
 use crate::registers::Registers;
 
@@ -39,15 +39,24 @@ impl Cpu {
         }
     }
 
-    pub fn step(&mut self) {
+    pub fn step(&mut self) -> u8 {
         let byte = self.memory_bus.read_byte(self.program_counter.next());
         let instruction = Instruction::from_byte(byte);
-        self.execute_instruction(instruction);
+
+        let cycle_duration = match instruction.mnemonic {
+            Mnemonic::Prefix => self.prefix(),
+            _ => self.execute_instruction(instruction),
+        };       
+
+        match cycle_duration {
+            CycleDuration::Default => instruction.m_cycles,
+            CycleDuration::Optional => instruction.opt_m_cycles.unwrap()
+        }
     }
 
-    pub fn execute_instruction(&mut self, instruction: Instruction) {
+    pub fn execute_instruction(&mut self, instruction: Instruction) -> CycleDuration {
         match instruction.mnemonic {
-            Mnemonic::NOP => {}
+            Mnemonic::NOP => CycleDuration::Default,
             Mnemonic::DAA => control::daa(self),
             Mnemonic::CPL => control::cpl(self),
             Mnemonic::SCF => control::scf(self),
@@ -135,18 +144,17 @@ impl Cpu {
             Mnemonic::RET_nc(flag) => jump::ret_nc(self, flag),
             Mnemonic::RET => jump::ret(self),
             Mnemonic::RETI => jump::reti(self),
-            Mnemonic::Prefix => self.prefix(),
             _ => panic!("Unknown mnemonic."),
         }
     }
 
-    fn prefix(&mut self) {
+    fn prefix(&mut self) -> CycleDuration {
         let byte = self.memory_bus.read_byte(self.program_counter.next());
         let instruction = Instruction::from_prefix(byte);
-        self.execute_prefix(instruction);
+        self.execute_prefix(instruction)
     }
 
-    fn execute_prefix(&mut self, instruction: Instruction) {
+    fn execute_prefix(&mut self, instruction: Instruction) -> CycleDuration {
         match instruction.mnemonic {
             Mnemonic::RLC_r(target) => rotate::rlc_r(self, target),
             Mnemonic::RLC_hl => rotate::rlc_hl(self),

@@ -1,7 +1,7 @@
 use crate::cpu::Cpu;
-use crate::instruction::Target;
+use crate::instruction::{CycleDuration, Target};
 
-pub fn bit_r(cpu: &mut Cpu, position: u8, target: Target) {
+pub fn bit_r(cpu: &mut Cpu, position: u8, target: Target) -> CycleDuration {
     // Test bit at position in target register,
     // set the zero flag if bit not set.
 
@@ -14,9 +14,11 @@ pub fn bit_r(cpu: &mut Cpu, position: u8, target: Target) {
     cpu.registers.flags.set_zero(!is_set);
     cpu.registers.flags.set_subtract(false);
     cpu.registers.flags.set_half_carry(true);
+
+    CycleDuration::Default
 }
 
-pub fn bit_hl(cpu: &mut Cpu, position: u8) {
+pub fn bit_hl(cpu: &mut Cpu, position: u8) -> CycleDuration {
     // Test bit at position in the byte pointed by HL,
     // set the zero flag if bit not set.
 
@@ -30,9 +32,11 @@ pub fn bit_hl(cpu: &mut Cpu, position: u8) {
     cpu.registers.flags.set_zero(!is_set);
     cpu.registers.flags.set_subtract(false);
     cpu.registers.flags.set_half_carry(true);
+
+    CycleDuration::Default
 }
 
-pub fn res_r(cpu: &mut Cpu, position: u8, target: Target) {
+pub fn res_r(cpu: &mut Cpu, position: u8, target: Target) -> CycleDuration {
     // Set bit at position in target register to 0.
 
     let byte = cpu.registers.get_register(&target);
@@ -41,9 +45,11 @@ pub fn res_r(cpu: &mut Cpu, position: u8, target: Target) {
     let result = byte & bitmask;
 
     cpu.registers.set_register(target, result);
+
+    CycleDuration::Default
 }
 
-pub fn res_hl(cpu: &mut Cpu, position: u8) {
+pub fn res_hl(cpu: &mut Cpu, position: u8) -> CycleDuration {
     // Set bit at position in the byte pointed by HL to 0. 
 
     let address = cpu.registers.get_hl();
@@ -53,9 +59,11 @@ pub fn res_hl(cpu: &mut Cpu, position: u8) {
     let result = byte & bitmask;
 
     cpu.memory_bus.write_byte(address, result);
+
+    CycleDuration::Default
 }
 
-pub fn set_r(cpu: &mut Cpu, position: u8, target: Target) {
+pub fn set_r(cpu: &mut Cpu, position: u8, target: Target) -> CycleDuration {
     // Set bit at position in target register to 1.
 
     let byte = cpu.registers.get_register(&target);
@@ -64,9 +72,11 @@ pub fn set_r(cpu: &mut Cpu, position: u8, target: Target) {
     let result = byte | bitmask;
 
     cpu.registers.set_register(target, result);
+
+    CycleDuration::Default
 }
 
-pub fn set_hl(cpu: &mut Cpu, position: u8) {
+pub fn set_hl(cpu: &mut Cpu, position: u8) -> CycleDuration {
     // Set bit at position in the byte pointed by HL to 1. 
 
     let address = cpu.registers.get_hl();
@@ -76,4 +86,6 @@ pub fn set_hl(cpu: &mut Cpu, position: u8) {
     let result = byte | bitmask;
 
     cpu.memory_bus.write_byte(address, result);
+
+    CycleDuration::Default
 }

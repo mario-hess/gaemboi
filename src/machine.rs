@@ -13,7 +13,7 @@ impl Machine {
 
     pub fn run(&mut self) {
         loop {
-            self.cpu.step();
+            let cycle_length = self.cpu.step();
         }
     }
 }
