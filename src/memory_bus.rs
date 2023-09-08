@@ -21,9 +21,6 @@ const HRAM_END: u16 = 0xFFFE;
 
 const INTERRUPT_ENABLE: u16 = 0xFFFF;
 
-
-pub const BOOT_ROM_END: u16 = 0x100;
-
 /*
   0000-3FFF   16KB ROM Bank 00     (in cartridge, fixed at bank 00)
   4000-7FFF   16KB ROM Bank 01..NN (in cartridge, switchable bank number)
@@ -64,7 +61,7 @@ impl MemoryBus {
 
     pub fn read_byte(&self, address: u16) -> u8 {
         if address == 0xFF44 {
-            return 0x90
+            return 0x90;
         }
         match address {
             CARTRIDGE_ROM_START..=CARTRIDGE_ROM_END => self.cartridge.read(address),
@@ -92,7 +89,7 @@ impl MemoryBus {
                     print!("{}", char::from(value));
                 }
                 self.io[address as usize - IO_START as usize] = value
-            },
+            }
             HRAM_START..=HRAM_END => self.hram[address as usize - HRAM_START as usize] = value,
             INTERRUPT_ENABLE => self.interrupt_enable = value,
             _ => panic!("Unknown address: {:#X} Can't write byte.", address),

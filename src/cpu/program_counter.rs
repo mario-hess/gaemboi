@@ -1,10 +1,12 @@
+const BOOT_ROM_END: u16 = 0x100;
+
 pub struct ProgramCounter {
     pub value: u16,
 }
 
 impl ProgramCounter {
     pub fn new() -> Self {
-        Self { value: 0x0100 }
+        Self { value: BOOT_ROM_END }
     }
 
     pub fn get(&self) -> u16 {
