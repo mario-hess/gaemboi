@@ -55,14 +55,7 @@ impl FlagsRegister {
         self.carry
     }
 
-    pub fn set_flags(&mut self, zero: bool, subtract: bool, half_carry: bool, carry: bool) {
-        self.zero = zero;
-        self.subtract = subtract;
-        self.half_carry = half_carry;
-        self.carry = carry;
-    }
-
-    pub fn get_flag_value(&self, flag: Flag) -> bool {
+    pub fn get_flag(&self, flag: Flag) -> bool {
         match flag {
             Flag::Z => self.get_zero(),
             Flag::N => self.get_subtract(),

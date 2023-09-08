@@ -2,7 +2,8 @@ use crate::cpu::Cpu;
 use crate::instruction::Target;
 
 pub fn srl_r(cpu: &mut Cpu, target: Target) {
-    // shifts all the bits of the register to the right by one position
+    // Shifts all the bits of the register to the
+    // right by one position.
 
     let r = cpu.registers.get_register(&target);
 
@@ -10,12 +11,17 @@ pub fn srl_r(cpu: &mut Cpu, target: Target) {
     let result = r >> 1;
 
     cpu.registers.set_register(target, result);
-    cpu.registers
-        .f
-        .set_flags(result == 0, false, false, shifted_out);
+
+    cpu.registers.flags.set_zero(result == 0);
+    cpu.registers.flags.set_subtract(false);
+    cpu.registers.flags.set_half_carry(false);
+    cpu.registers.flags.set_carry(shifted_out);
 }
 
 pub fn srl_hl(cpu: &mut Cpu) {
+    // Shifts all the bits of the byte pointed to by HL
+    // to the right by one position.
+
     let address = cpu.registers.get_hl();
     let byte = cpu.memory_bus.read_byte(address);
 
@@ -23,13 +29,15 @@ pub fn srl_hl(cpu: &mut Cpu) {
     let result = byte >> 1;
 
     cpu.memory_bus.write_byte(address, result);
-    cpu.registers
-        .f
-        .set_flags(result == 0, false, false, shifted_out);
+
+    cpu.registers.flags.set_zero(result == 0);
+    cpu.registers.flags.set_subtract(false);
+    cpu.registers.flags.set_half_carry(false);
+    cpu.registers.flags.set_carry(shifted_out);
 }
 
 pub fn sla_r(cpu: &mut Cpu, target: Target) {
-    // Shift Left Arithmetically register r8
+    // Shift target register to the left arithmetically.
 
     let r = cpu.registers.get_register(&target);
 
@@ -37,12 +45,16 @@ pub fn sla_r(cpu: &mut Cpu, target: Target) {
     let result = r << 1;
 
     cpu.registers.set_register(target, result);
-    cpu.registers
-        .f
-        .set_flags(result == 0, false, false, shifted_out);
+
+    cpu.registers.flags.set_zero(result == 0);
+    cpu.registers.flags.set_subtract(false);
+    cpu.registers.flags.set_half_carry(false);
+    cpu.registers.flags.set_carry(shifted_out);
 }
 
 pub fn sla_hl(cpu: &mut Cpu) {
+    // Shift the byte pointed to by HL to the left arithmetically.
+
     let address = cpu.registers.get_hl();
     let byte = cpu.memory_bus.read_byte(address);
 
@@ -50,13 +62,15 @@ pub fn sla_hl(cpu: &mut Cpu) {
     let result = byte << 1;
 
     cpu.memory_bus.write_byte(address, result);
-    cpu.registers
-        .f
-        .set_flags(result == 0, false, false, shifted_out);
+
+    cpu.registers.flags.set_zero(result == 0);
+    cpu.registers.flags.set_subtract(false);
+    cpu.registers.flags.set_half_carry(false);
+    cpu.registers.flags.set_carry(shifted_out);
 }
 
 pub fn sra_r(cpu: &mut Cpu, target: Target) {
-    // Shift Right Arithmetically register r8
+    // Shift target register to the right arithmetically.
 
     let r = cpu.registers.get_register(&target);
 
@@ -64,12 +78,16 @@ pub fn sra_r(cpu: &mut Cpu, target: Target) {
     let result = (r >> 1) | (r & 0b1000_0000);
 
     cpu.registers.set_register(target, result);
-    cpu.registers
-        .f
-        .set_flags(result == 0, false, false, shifted_out);
+
+    cpu.registers.flags.set_zero(result == 0);
+    cpu.registers.flags.set_subtract(false);
+    cpu.registers.flags.set_half_carry(false);
+    cpu.registers.flags.set_carry(shifted_out);
 }
 
 pub fn sra_hl(cpu: &mut Cpu) {
+    // Shift the byte pointed to by HL to the right arithmetically.
+
     let address = cpu.registers.get_hl();
     let byte = cpu.memory_bus.read_byte(address);
 
@@ -77,28 +95,40 @@ pub fn sra_hl(cpu: &mut Cpu) {
     let result = (byte >> 1) | (byte & 0b1000_0000);
 
     cpu.memory_bus.write_byte(address, result);
-    cpu.registers
-        .f
-        .set_flags(result == 0, false, false, shifted_out);
+
+    cpu.registers.flags.set_zero(result == 0);
+    cpu.registers.flags.set_subtract(false);
+    cpu.registers.flags.set_half_carry(false);
+    cpu.registers.flags.set_carry(shifted_out);
 }
 
 pub fn swap_r(cpu: &mut Cpu, target: Target) {
-    // Swap the upper 4 bits in register r8 and the lower 4 ones
+    // Swap the upper 4 bits in the target register and the lower 4 ones.
 
     let r = cpu.registers.get_register(&target);
 
     let result = (r >> 4) | (r << 4);
 
     cpu.registers.set_register(target, result);
-    cpu.registers.f.set_flags(result == 0, false, false, false);
+
+    cpu.registers.flags.set_zero(result == 0);
+    cpu.registers.flags.set_subtract(false);
+    cpu.registers.flags.set_half_carry(false);
+    cpu.registers.flags.set_carry(false);
 }
 
 pub fn swap_hl(cpu: &mut Cpu) {
+    // Swap the upper 4 bits in the byte pointed by HL and the lower 4 ones.
+
     let address = cpu.registers.get_hl();
     let byte = cpu.memory_bus.read_byte(address);
 
     let result = (byte >> 4) | (byte << 4);
 
     cpu.memory_bus.write_byte(address, result);
-    cpu.registers.f.set_flags(result == 0, false, false, false);
+
+    cpu.registers.flags.set_zero(result == 0);
+    cpu.registers.flags.set_subtract(false);
+    cpu.registers.flags.set_half_carry(false);
+    cpu.registers.flags.set_carry(false);
 }

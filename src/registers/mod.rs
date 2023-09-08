@@ -9,33 +9,36 @@ pub struct Registers {
     c: u8,
     d: u8,
     e: u8,
-    pub f: FlagsRegister,
+    pub flags: FlagsRegister,
     h: u8,
     l: u8,
 }
 
 impl Registers {
-    pub fn new(enable_flags: bool) -> Self {
+    pub fn new(flags_enable: bool) -> Self {
+        // Registers are set to skip the power-up sequence,
+        // as the copyrighted boot rom can't be included.
+
         Self {
             a: 0x01,
             b: 0x00,
             c: 0x13,
             d: 0x00,
             e: 0xD8,
-            f: FlagsRegister::new(enable_flags),
+            flags: FlagsRegister::new(flags_enable),
             h: 0x01,
             l: 0x4D,
         }
     }
 
     pub fn get_af(&self) -> u16 {
-        let f: u8 = self.f.into();
+        let f: u8 = self.flags.into();
         (self.a as u16) << 8 | f as u16
     }
 
     pub fn set_af(&mut self, value: u16) {
         self.a = ((value & 0xFF00) >> 8) as u8;
-        self.f = ((value & 0xFF) as u8).into();
+        self.flags = ((value & 0xFF) as u8).into();
     }
     pub fn get_bc(&self) -> u16 {
         (self.b as u16) << 8 | self.c as u16
@@ -104,7 +107,7 @@ impl Registers {
     }
 
     pub fn get_f(&self) -> u8 {
-        self.f.into()
+        self.flags.into()
     }
 
     pub fn get_h(&self) -> u8 {

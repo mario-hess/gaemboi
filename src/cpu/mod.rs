@@ -1,14 +1,11 @@
 mod arithmetic;
+mod bit_ops;
 mod control;
 mod jump;
 mod load;
 mod program_counter;
 mod rotate;
 mod shift;
-mod bit_ops;
-
-use std::fs::File;
-use std::io::{LineWriter, Write};
 
 use crate::cpu::program_counter::ProgramCounter;
 use crate::instruction::{Instruction, Mnemonic};
@@ -23,36 +20,28 @@ pub struct Cpu {
     registers: Registers,
     program_counter: ProgramCounter,
     stack_pointer: u16,
-    interrupt_enabled: bool,
+    interrupt_master_enable: bool,
 }
 
 impl Cpu {
     pub fn new(rom_data: Vec<u8>) -> Self {
         // If the header checksum is 0x00, then the carry and
-        // half-carry flags are clear; otherwise, they are both set
+        // half-carry flags are clear; otherwise, they are both set.
 
-        let enable_flags = rom_data[HEADER_CHECKSUM_ADDRESS] != 0x00;
+        let flags_enable = rom_data[HEADER_CHECKSUM_ADDRESS] != 0x00;
 
         Self {
             memory_bus: MemoryBus::new(rom_data),
-            registers: Registers::new(enable_flags),
+            registers: Registers::new(flags_enable),
             program_counter: ProgramCounter::new(),
             stack_pointer: STACK_POINTER_START,
-            interrupt_enabled: false,
+            interrupt_master_enable: false,
         }
     }
 
-    pub fn step(&mut self, file: &mut LineWriter<File>) {
-        //self.log(file);
-
-        //print!("PC: {:#X} | ", self.program_counter.get());
+    pub fn step(&mut self) {
         let byte = self.memory_bus.read_byte(self.program_counter.next());
-        //print!("Opcode: {:#X} | ", byte);
         let instruction = Instruction::from_byte(byte);
-        //println!(
-        //    "Instruction: {:?} | new PC: {:#X}",
-        //    instruction.mnemonic, self.program_counter.value
-        //);
         self.execute_instruction(instruction);
     }
 
@@ -98,7 +87,7 @@ impl Cpu {
             Mnemonic::SUB_r(target) => arithmetic::sub_r(self, target),
             Mnemonic::SUB_hl => arithmetic::sub_hl(self),
             Mnemonic::SBC_r(target) => arithmetic::sbc_r(self, target),
-            Mnemonic::SBC_n => arithmetic::sbc_n(self), 
+            Mnemonic::SBC_n => arithmetic::sbc_n(self),
             Mnemonic::SBC_hl => arithmetic::sbc_hl(self),
             Mnemonic::POP_rr(target) => load::pop_rr(self, target),
             Mnemonic::POP_af => load::pop_af(self),
@@ -137,6 +126,7 @@ impl Cpu {
             Mnemonic::JR_e => jump::jr_e(self),
             Mnemonic::PUSH_rr(target) => load::push_rr(self, target),
             Mnemonic::DisableInterrupt => control::disable_interrupt(self),
+            Mnemonic::EnableInterrupt => control::enable_interrupt(self),
             Mnemonic::RRCA => rotate::rrca(self),
             Mnemonic::RRA => rotate::rra(self),
             Mnemonic::RLCA => rotate::rlca(self),
@@ -151,14 +141,8 @@ impl Cpu {
     }
 
     fn prefix(&mut self) {
-        //print!("PC: {:#X} | ", self.program_counter.get());
         let byte = self.memory_bus.read_byte(self.program_counter.next());
-        //print!("Opcode: {:#X} | ", byte);
         let instruction = Instruction::from_prefix(byte);
-        //println!(
-        //  "Instruction: {:?} | new PC: {:#X}",
-        //  instruction.mnemonic, self.program_counter.value
-        //);
         self.execute_prefix(instruction);
     }
 
@@ -217,26 +201,5 @@ impl Cpu {
 
         self.stack_pointer = self.stack_pointer.wrapping_sub(1);
         self.memory_bus.write_byte(self.stack_pointer, low_byte);
-    }
-
-    fn log(&self, file: &mut LineWriter<File>) {
-        // A: 01 F: B0 B: 00 C: 13 D: 00 E: D8 H: 01 L: 4D SP: FFFE PC: 00:0100 (00 C3 13 02)
-        let a = self.registers.get_a();
-        let f = self.registers.get_f();
-        let b = self.registers.get_b();
-        let c = self.registers.get_c();
-        let d = self.registers.get_d();
-        let e = self.registers.get_e();
-        let h = self.registers.get_h();
-        let l = self.registers.get_l();
-        let sp = self.stack_pointer;
-        let pc = self.program_counter.get();
-        let mem_pc = self.memory_bus.read_byte(self.program_counter.get());
-        let mem_pc2 = self.memory_bus.read_byte(self.program_counter.get() + 1);
-        let mem_pc3 = self.memory_bus.read_byte(self.program_counter.get() + 2);
-        let mem_pc4 = self.memory_bus.read_byte(self.program_counter.get() + 3);
-
-        let output = format!("A: {:02X} F: {:02X} B: {:02X} C: {:02X} D: {:02X} E: {:02X} H: {:02X} L: {:02X} SP: {:04X} PC: 00:{:04X} ({:02X} {:02X} {:02X} {:02X})\n", a, f, b, c, d, e, h, l, sp, pc, mem_pc, mem_pc2, mem_pc3, mem_pc4);
-        file.write_all(output.as_bytes()).unwrap();
     }
 }
