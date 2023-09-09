@@ -8,10 +8,10 @@ pub struct Timer {
 }
 
 impl Timer {
-    pub fn new() -> Timer {
+    pub fn new() -> Self {
         let cycles_per_frame = CLOCK_SPEED / FPS as usize;
 
-        Timer {
+        Self {
             cycles_per_frame,
             cycles_passed: 0,
         }
