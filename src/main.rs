@@ -9,6 +9,7 @@ mod instruction;
 mod machine;
 mod memory_bus;
 mod registers;
+mod timer;
 
 use crate::machine::Machine;
 
