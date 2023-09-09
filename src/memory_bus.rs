@@ -1,5 +1,6 @@
 use crate::cartridge::Cartridge;
 use crate::gpu::Gpu;
+use crate::io::IO;
 
 pub const CARTRIDGE_ROM_START: u16 = 0x0000;
 pub const CARTRIDGE_ROM_END: u16 = 0x7FFF;
@@ -13,7 +14,7 @@ pub const CARTRIDGE_RAM_END: u16 = 0xBFFF;
 pub const WRAM_START: u16 = 0xC000;
 pub const WRAM_END: u16 = 0xDFFF;
 
-const IO_START: u16 = 0xFF00;
+pub const IO_START: u16 = 0xFF00;
 const IO_END: u16 = 0xFF7F;
 
 const HRAM_START: u16 = 0xFF80;
@@ -40,7 +41,7 @@ pub struct MemoryBus {
     cartridge: Cartridge,
     gpu: Gpu,
     wram: [u8; 8192],
-    pub io: [u8; 128],
+    io: IO,
     hram: [u8; 128],
     interrupt_enable: u8,
 }
@@ -53,7 +54,7 @@ impl MemoryBus {
             cartridge,
             gpu: Gpu::new(),
             wram: [0; 8192],
-            io: [0; 128],
+            io: IO::new(),
             hram: [0; 128],
             interrupt_enable: 0,
         }
@@ -68,7 +69,7 @@ impl MemoryBus {
             VRAM_START..=VRAM_END => self.gpu.read_byte(address - VRAM_START),
             CARTRIDGE_RAM_START..=CARTRIDGE_RAM_END => self.cartridge.read(address),
             WRAM_START..=WRAM_END => self.wram[address as usize - WRAM_START as usize],
-            IO_START..=IO_END => self.io[address as usize - IO_START as usize],
+            IO_START..=IO_END => self.io.read_byte(address),
             HRAM_START..=HRAM_END => self.hram[address as usize - HRAM_START as usize],
             INTERRUPT_ENABLE => self.interrupt_enable,
             _ => {
@@ -88,7 +89,7 @@ impl MemoryBus {
                 if address as usize - IO_START as usize == 1 {
                     print!("{}", char::from(value));
                 }
-                self.io[address as usize - IO_START as usize] = value
+                self.io.write_byte(address, value);
             }
             HRAM_START..=HRAM_END => self.hram[address as usize - HRAM_START as usize] = value,
             INTERRUPT_ENABLE => self.interrupt_enable = value,
