@@ -6,6 +6,7 @@ mod cartridge;
 mod cpu;
 mod gpu;
 mod instruction;
+mod interrupt;
 mod io;
 mod machine;
 mod memory_bus;

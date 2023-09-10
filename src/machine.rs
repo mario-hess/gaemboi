@@ -1,3 +1,8 @@
+use std::fs::File;
+use std::io::LineWriter;
+use std::io::{Write, Error};
+use std::{thread, time};
+
 use crate::cpu::Cpu;
 use crate::timer::Timer;
 
@@ -17,13 +22,17 @@ impl Machine {
     }
 
     pub fn run(&mut self) {
+        let path = "log/lines.txt";
+        let file = File::create(path).expect("Could not create File.");
+        let mut file = LineWriter::new(file);
+
         let frame_duration = std::time::Duration::from_secs_f32(1.0 / FPS);
 
         loop {
             let frame_start_time = std::time::Instant::now();
 
             while self.timer.cycles_passed <= self.timer.cycles_per_frame {
-                let m_cycles = self.cpu.step();
+                let m_cycles = self.cpu.step(&mut file);
                 self.timer.tick(m_cycles);
             }
 
