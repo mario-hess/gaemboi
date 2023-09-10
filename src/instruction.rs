@@ -7,6 +7,8 @@ pub enum Mnemonic {
     CPL,
     SCF,
     CCF,
+    STOP,
+    HALT,
     RST(u16),
     JP_nn,
     JP_c_nn(Flag),
@@ -175,6 +177,7 @@ impl Instruction {
             0x0D => Instruction::new(Mnemonic::DEC_r(Target::C), 1, 1, None),
             0x0E => Instruction::new(Mnemonic::LD_r_n(Target::C), 2, 2, None),
             0x0F => Instruction::new(Mnemonic::RRCA, 1, 1, None),
+            0x10 => Instruction::new(Mnemonic::STOP, 1, 1, None),
             0x11 => Instruction::new(Mnemonic::LD_rr_nn(Target::DE), 3, 3, None),
             0x12 => Instruction::new(Mnemonic::LD_rr_r(Target::DE, Target::A), 1, 2, None),
             0x13 => Instruction::new(Mnemonic::INC_rr(Target::DE), 1, 2, None),
@@ -276,6 +279,7 @@ impl Instruction {
             0x73 => Instruction::new(Mnemonic::LD_rr_r(Target::HL, Target::E), 1, 2, None),
             0x74 => Instruction::new(Mnemonic::LD_rr_r(Target::HL, Target::H), 1, 2, None),
             0x75 => Instruction::new(Mnemonic::LD_rr_r(Target::HL, Target::L), 1, 2, None),
+            0x76 => Instruction::new(Mnemonic::HALT, 1, 1, None),
             0x77 => Instruction::new(Mnemonic::LD_rr_r(Target::HL, Target::A), 1, 2, None),
             0x78 => Instruction::new(Mnemonic::LD_r_r(Target::A, Target::B), 1, 1, None),
             0x79 => Instruction::new(Mnemonic::LD_r_r(Target::A, Target::C), 1, 1, None),
@@ -368,7 +372,7 @@ impl Instruction {
             0xD0 => Instruction::new(Mnemonic::RET_nc(Flag::C), 1, 2, Some(5)),
             0xD1 => Instruction::new(Mnemonic::POP_rr(Target::DE), 1, 3, None),
             0xD2 => Instruction::new(Mnemonic::JP_nc_nn(Flag::C), 3, 3, Some(4)),
-            0xD4 => Instruction::new(Mnemonic::CALL_nc_nn(Flag::C), 3, 3,Some(6)),
+            0xD4 => Instruction::new(Mnemonic::CALL_nc_nn(Flag::C), 3, 3, Some(6)),
             0xD5 => Instruction::new(Mnemonic::PUSH_rr(Target::DE), 1, 4, None),
             0xD6 => Instruction::new(Mnemonic::SUB_n, 2, 2, None),
             0xD7 => Instruction::new(Mnemonic::RST(0x0010), 1, 4, None),
@@ -406,7 +410,7 @@ impl Instruction {
         }
     }
 
-    pub fn from_prefix(value: u8) -> Self {
+    pub fn from_prefix_byte(value: u8) -> Self {
         match value {
             0x00 => Instruction::new(Mnemonic::RLC_r(Target::B), 2, 2, None),
             0x01 => Instruction::new(Mnemonic::RLC_r(Target::C), 2, 2, None),
@@ -664,7 +668,6 @@ impl Instruction {
             0xFD => Instruction::new(Mnemonic::SET_r(7, Target::L), 2, 2, None),
             0xFE => Instruction::new(Mnemonic::SET_hl(7), 2, 4, None),
             0xFF => Instruction::new(Mnemonic::SET_r(7, Target::A), 2, 2, None),
-            _ => panic!("PREFIX Instruction for byte {:#X} not implemented.", value),
         }
     }
 }

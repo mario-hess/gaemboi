@@ -137,7 +137,7 @@ pub fn call_nc_nn(cpu: &mut Cpu, flag: Flag) -> CycleDuration {
         return CycleDuration::Optional;
     }
 
-    return CycleDuration::Default;
+    CycleDuration::Default
 }
 
 pub fn rst(cpu: &mut Cpu, address: u16) -> CycleDuration {
@@ -165,7 +165,7 @@ pub fn reti(cpu: &mut Cpu) -> CycleDuration {
 
     let address = cpu.pop_stack();
     cpu.program_counter.set(address);
-    cpu.interrupt_master_enable = true;
+    cpu.ime = true;
 
     CycleDuration::Default
 }

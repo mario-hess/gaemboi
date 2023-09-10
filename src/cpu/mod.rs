@@ -7,20 +7,33 @@ mod program_counter;
 mod rotate;
 mod shift;
 
+use std::fs::File;
+use std::io::{LineWriter, Write};
+
 use crate::cpu::program_counter::ProgramCounter;
 use crate::instruction::{CycleDuration, Instruction, Mnemonic};
+use crate::interrupt::Interrupt;
 use crate::memory_bus::MemoryBus;
 use crate::registers::Registers;
 
 const HEADER_CHECKSUM_ADDRESS: usize = 0x014D;
 const STACK_POINTER_START: u16 = 0xFFFE;
 
+pub enum IMEState {
+    None,
+    Enabled,
+    Disabled,
+}
+
 pub struct Cpu {
-    memory_bus: MemoryBus,
+    pub memory_bus: MemoryBus,
     registers: Registers,
     program_counter: ProgramCounter,
     stack_pointer: u16,
-    interrupt_master_enable: bool,
+    interrupt: Interrupt,
+    ime: bool,
+    ime_state: IMEState,
+    halted: bool,
 }
 
 impl Cpu {
@@ -35,22 +48,58 @@ impl Cpu {
             registers: Registers::new(flags_enable),
             program_counter: ProgramCounter::new(),
             stack_pointer: STACK_POINTER_START,
-            interrupt_master_enable: false,
+            interrupt: Interrupt::new(),
+            ime: false,
+            ime_state: IMEState::None,
+            halted: false,
         }
     }
 
-    pub fn step(&mut self) -> u8 {
+    pub fn step(&mut self, file: &mut LineWriter<File>) -> u8 {
+        //self.log(file);
+
+        let interrupt_enable = self.memory_bus.interrupt_enable;
+        let interrupt_flag = self.memory_bus.io.interrupt_flag;
+
+        if self.halted
+            && self
+                .interrupt
+                .interrupt_enabled(interrupt_enable, interrupt_flag)
+        {
+            self.halted = false;
+        } else if self.halted {
+            return 1;
+        }
+
+        if self.ime {
+            if let Some(m_cycles) = self.interrupt.handle_interrupts(self) {
+                return m_cycles;
+            }
+        }
+
+        match self.ime_state {
+            IMEState::Enabled => {
+                self.ime = true;
+                self.ime_state = IMEState::None;
+            }
+            IMEState::Disabled => {
+                self.ime = false;
+                self.ime_state = IMEState::None;
+            }
+            _ => {}
+        }
+
         let byte = self.memory_bus.read_byte(self.program_counter.next());
         let instruction = Instruction::from_byte(byte);
 
-        let cycle_duration = match instruction.mnemonic {
+        let m_cycles = match instruction.mnemonic {
             Mnemonic::Prefix => self.prefix(),
             _ => self.execute_instruction(instruction),
-        };       
+        };
 
-        match cycle_duration {
+        match m_cycles {
             CycleDuration::Default => instruction.m_cycles,
-            CycleDuration::Optional => instruction.opt_m_cycles.unwrap()
+            CycleDuration::Optional => instruction.opt_m_cycles.unwrap(),
         }
     }
 
@@ -61,6 +110,11 @@ impl Cpu {
             Mnemonic::CPL => control::cpl(self),
             Mnemonic::SCF => control::scf(self),
             Mnemonic::CCF => control::ccf(self),
+            Mnemonic::STOP => CycleDuration::Default,
+            Mnemonic::HALT => {
+                self.halted = true;
+                CycleDuration::Default
+            }
             Mnemonic::RST(address) => jump::rst(self, address),
             Mnemonic::JP_nn => jump::jp_nn(self),
             Mnemonic::JP_c_nn(flag) => jump::jp_c_nn(self, flag),
@@ -144,13 +198,13 @@ impl Cpu {
             Mnemonic::RET_nc(flag) => jump::ret_nc(self, flag),
             Mnemonic::RET => jump::ret(self),
             Mnemonic::RETI => jump::reti(self),
-            _ => panic!("Unknown mnemonic."),
+            _ => panic!("Unknown mnemonic: {:?}.", instruction.mnemonic),
         }
     }
 
     fn prefix(&mut self) -> CycleDuration {
         let byte = self.memory_bus.read_byte(self.program_counter.next());
-        let instruction = Instruction::from_prefix(byte);
+        let instruction = Instruction::from_prefix_byte(byte);
         self.execute_prefix(instruction)
     }
 
@@ -200,7 +254,7 @@ impl Cpu {
         (high_byte << 8) | low_byte
     }
 
-    fn push_stack(&mut self, value: u16) {
+    pub fn push_stack(&mut self, value: u16) {
         let high_byte = (value >> 8) as u8;
         let low_byte = value as u8;
 
@@ -209,5 +263,33 @@ impl Cpu {
 
         self.stack_pointer = self.stack_pointer.wrapping_sub(1);
         self.memory_bus.write_byte(self.stack_pointer, low_byte);
+    }
+
+    pub fn interrupt_service_routine(&mut self, isr_address: u16, value: u8) {
+        self.ime = false;
+        self.push_stack(self.program_counter.get());
+        self.program_counter.set(isr_address);
+        self.memory_bus.io.interrupt_flag &= value ^ 0xFF;
+    }
+
+    fn log(&self, file: &mut LineWriter<File>) {
+        // A: 01 F: B0 B: 00 C: 13 D: 00 E: D8 H: 01 L: 4D SP: FFFE PC: 00:0100 (00 C3 13 02)
+        let a = self.registers.get_a();
+        let f = self.registers.get_f();
+        let b = self.registers.get_b();
+        let c = self.registers.get_c();
+        let d = self.registers.get_d();
+        let e = self.registers.get_e();
+        let h = self.registers.get_h();
+        let l = self.registers.get_l();
+        let sp = self.stack_pointer;
+        let pc = self.program_counter.get();
+        let mem_pc = self.memory_bus.read_byte(self.program_counter.get());
+        let mem_pc2 = self.memory_bus.read_byte(self.program_counter.get() + 1);
+        let mem_pc3 = self.memory_bus.read_byte(self.program_counter.get() + 2);
+        let mem_pc4 = self.memory_bus.read_byte(self.program_counter.get() + 3);
+
+        let output = format!("A: {:02X} F: {:02X} B: {:02X} C: {:02X} D: {:02X} E: {:02X} H: {:02X} L: {:02X} SP: {:04X} PC: 00:{:04X} ({:02X} {:02X} {:02X} {:02X})\n", a, f, b, c, d, e, h, l, sp, pc, mem_pc, mem_pc2, mem_pc3, mem_pc4);
+        file.write_all(output.as_bytes()).unwrap();
     }
 }

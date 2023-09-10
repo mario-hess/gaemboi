@@ -41,9 +41,9 @@ pub struct MemoryBus {
     cartridge: Cartridge,
     gpu: Gpu,
     wram: [u8; 8192],
-    io: IO,
+    pub io: IO,
     hram: [u8; 128],
-    interrupt_enable: u8,
+    pub interrupt_enable: u8,
 }
 
 impl MemoryBus {

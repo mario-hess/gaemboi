@@ -22,6 +22,7 @@ const OBJECT_PALETTE_0: u16 = 0xFF48;
 const OBJECT_PALETTE_1: u16 = 0xFF49;
 const WINDOW_Y: u16 = 0xFF4A;
 const WINDOW_X: u16 = 0xFF4B;
+const SPEED_SWITCH: u16 = 0xFF4D;
 
 pub struct IO {
     joypad_input: u8,
@@ -31,7 +32,7 @@ pub struct IO {
     timer_counter: u8,
     timer_modulo: u8,
     timer_control: u8,
-    interrupt_flag: u8,
+    pub interrupt_flag: u8,
     audio: [u8; 23],
     wave_pattern: [u8; 16],
     lcd_control: u8,
@@ -46,6 +47,7 @@ pub struct IO {
     object_palette_1: u8,
     window_y: u8,
     window_x: u8,
+    speed_switch: u8,
 }
 
 impl IO {
@@ -73,6 +75,7 @@ impl IO {
             object_palette_1: 0,
             window_y: 0,
             window_x: 0,
+            speed_switch: 0,
         }
     }
     pub fn read_byte(&self, address: u16) -> u8 {
@@ -101,6 +104,7 @@ impl IO {
             OBJECT_PALETTE_1 => self.object_palette_1,
             WINDOW_Y => self.window_y,
             WINDOW_X => self.window_x,
+            SPEED_SWITCH => self.speed_switch,
             _ => {
                 println!("Unknown serial address: {:#X} Can't read byte.", address);
                 0x00
@@ -134,6 +138,7 @@ impl IO {
             OBJECT_PALETTE_1 => self.object_palette_1 = value,
             WINDOW_Y => self.window_y = value,
             WINDOW_X => self.window_x = value,
+            SPEED_SWITCH => self.speed_switch = value,
             _ => println!("Unknown serial address: {:#X} Can't write byte: {:#X}.", address, value),
         };
     }
