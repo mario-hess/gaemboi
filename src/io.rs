@@ -1,10 +1,8 @@
+use crate::timer::{DIV, TAC, Timer};
+
 const JOYPAD_INPUT: u16 = 0xFF00;
 const SERIAL_SB: u16 = 0xFF01;
 const SERIAL_SC: u16 = 0xFF02;
-const CLOCK_DIVIDER: u16 = 0xFF04;
-const TIMER_COUNTER: u16 = 0xFF05;
-const TIMER_MODULO: u16 = 0xFF06;
-const TIMER_CONTROL: u16 = 0xFF07;
 const INTERRUPT_FLAG: u16 = 0xFF0F;
 const AUDIO_START: u16 = 0xFF10;
 const AUDIO_END: u16 = 0xFF26;
@@ -28,10 +26,7 @@ pub struct IO {
     joypad_input: u8,
     serial_sb: u8,
     serial_sc: u8,
-    clock_divider: u8,
-    timer_counter: u8,
-    timer_modulo: u8,
-    timer_control: u8,
+    pub timer: Timer,
     pub interrupt_flag: u8,
     audio: [u8; 23],
     wave_pattern: [u8; 16],
@@ -56,10 +51,7 @@ impl IO {
             joypad_input: 0,
             serial_sb: 0,
             serial_sc: 0,
-            clock_divider: 0,
-            timer_counter: 0,
-            timer_modulo: 0,
-            timer_control: 0,
+            timer: Timer::new(),
             interrupt_flag: 0,
             audio: [0; 23],
             wave_pattern: [0; 16],
@@ -78,15 +70,14 @@ impl IO {
             speed_switch: 0,
         }
     }
+
+
     pub fn read_byte(&self, address: u16) -> u8 {
         match address {
             JOYPAD_INPUT => self.joypad_input,
             SERIAL_SB => self.serial_sb,
             SERIAL_SC => self.serial_sc,
-            CLOCK_DIVIDER => self.clock_divider,
-            TIMER_COUNTER => self.timer_counter,
-            TIMER_MODULO => self.timer_modulo,
-            TIMER_CONTROL => self.timer_control,
+            DIV..= TAC => self.timer.read_byte(address),
             INTERRUPT_FLAG => self.interrupt_flag,
             AUDIO_START..=AUDIO_END => self.audio[address as usize - AUDIO_START as usize],
             WAVE_PATTERN_START..=WAVE_PATTERN_END => {
@@ -117,10 +108,7 @@ impl IO {
             JOYPAD_INPUT => self.joypad_input = value,
             SERIAL_SB => self.serial_sb = value,
             SERIAL_SC => self.serial_sc = value,
-            CLOCK_DIVIDER => self.clock_divider = value,
-            TIMER_COUNTER => self.timer_counter = value,
-            TIMER_MODULO => self.timer_modulo = value,
-            TIMER_CONTROL => self.timer_control = value,
+            DIV..=TAC => self.timer.write_byte(address, value),
             INTERRUPT_FLAG => self.interrupt_flag = value,
             AUDIO_START..=AUDIO_END => self.audio[address as usize - AUDIO_START as usize] = value,
             WAVE_PATTERN_START..=WAVE_PATTERN_END => {

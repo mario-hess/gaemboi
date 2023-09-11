@@ -377,7 +377,7 @@ impl Instruction {
             0xD6 => Instruction::new(Mnemonic::SUB_n, 2, 2, None),
             0xD7 => Instruction::new(Mnemonic::RST(0x0010), 1, 4, None),
             0xD8 => Instruction::new(Mnemonic::RET_c(Flag::C), 1, 2, Some(5)),
-            0xD9 => Instruction::new(Mnemonic::RETI, 3, 3, None),
+            0xD9 => Instruction::new(Mnemonic::RETI, 1, 4, None),
             0xDA => Instruction::new(Mnemonic::JP_c_nn(Flag::C), 3, 3, Some(4)),
             0xDC => Instruction::new(Mnemonic::CALL_c_nn(Flag::C), 3, 3, Some(6)),
             0xDE => Instruction::new(Mnemonic::SBC_n, 2, 2, None),

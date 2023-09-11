@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io::Read;
 
 mod cartridge;
+mod clock;
 mod cpu;
 mod gpu;
 mod instruction;

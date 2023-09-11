@@ -56,7 +56,7 @@ impl Cpu {
     }
 
     pub fn step(&mut self, file: &mut LineWriter<File>) -> u8 {
-        //self.log(file);
+        self.log(file);
 
         let interrupt_enable = self.memory_bus.interrupt_enable;
         let interrupt_flag = self.memory_bus.io.interrupt_flag;
@@ -272,7 +272,7 @@ impl Cpu {
         self.memory_bus.io.interrupt_flag &= value ^ 0xFF;
     }
 
-    fn log(&self, file: &mut LineWriter<File>) {
+    fn log(&mut self, file: &mut LineWriter<File>) {
         // A: 01 F: B0 B: 00 C: 13 D: 00 E: D8 H: 01 L: 4D SP: FFFE PC: 00:0100 (00 C3 13 02)
         let a = self.registers.get_a();
         let f = self.registers.get_f();
