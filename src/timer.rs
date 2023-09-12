@@ -1,16 +1,21 @@
+use crate::interrupt::TIMER_MASK;
+
 pub const DIV: u16 = 0xFF04;
 const TIMA: u16 = 0xFF05;
 const TMA: u16 = 0xFF06;
 pub const TAC: u16 = 0xFF07;
+
+const DIV_CYCLES: u16 = 256;
 
 pub struct Timer {
     div: u8,
     div_counter: u32,
     tima: u8,
     tima_counter: i64,
+    tima_rate: u32,
+    tima_enabled: bool,
     tma: u8,
     tac: u8,
-    overflowed: bool,
     pub interrupt_request: u8,
 }
 
@@ -21,55 +26,40 @@ impl Timer {
             div_counter: 0,
             tima: 0,
             tima_counter: 0,
+            tima_rate: 1024,
+            tima_enabled: false,
             tma: 0,
             tac: 0,
-            overflowed: false,
             interrupt_request: 0,
         }
     }
 
     pub fn tick(&mut self, m_cycles: u8) {
-        let cycles = (m_cycles * 4) as u32;
-        self.div_counter += cycles;
+        let t_cycles = (m_cycles * 4) as u32;
+        self.div_counter += t_cycles;
 
-        while self.div_counter >= 256 {
+        while self.div_counter >= DIV_CYCLES as u32 {
             self.div = self.div.wrapping_add(1);
-            self.div_counter -= 256;
+            self.div_counter -= DIV_CYCLES as u32;
         }
 
-        let speed = self.tac << 6;
-        let running = (1 << 2) & self.tac > 0;
+        if self.tima_enabled {
+            self.tima_counter += t_cycles as i64;
+            while self.tima_counter >= self.tima_rate as i64 {
+                if self.tima == 255 {
+                    self.interrupt_request = TIMER_MASK;
+                    self.tima = self.tma;
+                } else {
+                    self.tima = self.tima.wrapping_add(1);
+                }
 
-        if !running {
-            return;
-        }
-
-        self.tima_counter += cycles as i64;
-
-        let timer_cycles = match speed {
-            0 => 1024,
-            0x40 => 16,
-            0x80 => 64,
-            0xC0 => 256,
-            _ => panic!("Unknown timer speed: 0x{:X}", speed),
-        };
-
-        if self.overflowed {
-            self.interrupt_request |= 0x04;
-            self.tima = self.tma;
-            self.overflowed = false;
-        }
-
-        while self.tima_counter >= timer_cycles {
-            if self.tima == 255 {
-                self.overflowed = true;
-                self.tima = 0;
-                return;
+                self.tima_counter -= self.tima_rate as i64;
             }
-
-            self.tima += 1;
-            self.tima_counter -= timer_cycles;
         }
+    }
+
+    pub fn reset_interrupt(&mut self) {
+        self.interrupt_request = 0;
     }
 
     pub fn read_byte(&self, address: u16) -> u8 {
@@ -87,8 +77,19 @@ impl Timer {
             DIV => self.div = 0,
             TIMA => self.tima = value,
             TMA => self.tma = value,
-            TAC => self.tac = value,
+            TAC => {
+                self.tac = value;
+                match value & 0x03 {
+                    0x00 => self.tima_rate = 1024,
+                    0x01 => self.tima_rate = 16,
+                    0x02 => self.tima_rate = 64,
+                    0x03 => self.tima_rate = 256,
+                    _ => panic!("Invalid TAC value: {:#X}", value),
+                }
+                self.tima_enabled = (value & TIMER_MASK) == TIMER_MASK;
+            }
             _ => unreachable!(),
         }
     }
 }
+

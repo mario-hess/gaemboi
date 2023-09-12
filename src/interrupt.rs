@@ -1,5 +1,20 @@
 use crate::cpu::Cpu;
 
+const VBLANK_MASK: u8 = 0x01;
+const VBLANK_ISR: u16 = 0x0040;
+
+const LCD_STAT_MASK: u8 = 0x02;
+const LCD_STAT_ISR: u16 = 0x0048;
+
+pub const TIMER_MASK: u8 = 0x04;
+const TIMER_ISR: u16 = 0x0050;
+
+const SERIAL_MASK: u8 = 0x08;
+const SERIAL_ISR: u16 = 0x0058;
+
+const JOYPAD_MASK: u8 = 0x10;
+const JOYPAD_ISR: u16 = 0x0060;
+
 #[derive(Copy, Clone)]
 pub struct Interrupt {
     interrupts: [(u8, u16); 5], // (bit_position, isr_address)
@@ -9,28 +24,28 @@ impl Interrupt {
     pub fn new() -> Self {
         Self {
             interrupts: [
-                (0x01, 0x0040), // VBlank
-                (0x02, 0x0048), // LCDStat
-                (0x04, 0x0050), // Timer
-                (0x08, 0x0058), // Serial
-                (0x10, 0x0060), // Joypad
+                (VBLANK_MASK, VBLANK_ISR), // VBlank
+                (LCD_STAT_MASK, LCD_STAT_ISR), // LCDStat
+                (TIMER_MASK, TIMER_ISR), // Timer
+                (SERIAL_MASK, SERIAL_ISR), // Serial
+                (JOYPAD_MASK, JOYPAD_ISR), // Joypad
             ],
         }
     }
 
-    pub fn interrupt_enabled(self, interrupt_enable: u8, interrupt_flag: u8) -> bool {
-        let mut enabled = false;
-
+    pub fn interrupt_enabled(self, i_enable: u8, i_flag: u8) -> bool {
         for (interrupt, _) in self.interrupts {
-            enabled = self.is_enabled(interrupt_enable, interrupt_flag, interrupt);
+            if self.is_enabled(i_enable, i_flag, interrupt) {
+                return true;
+            }
         }
 
-        enabled
+        false
     }
 
-    pub fn is_enabled(self, interrupt_enable: u8, interrupt_flag: u8, value: u8) -> bool {
-        let is_requested = interrupt_flag & value;
-        let is_enabled = interrupt_enable & value;
+    pub fn is_enabled(self, i_enable: u8, i_flag: u8, value: u8) -> bool {
+        let is_requested = i_flag & value;
+        let is_enabled = i_enable & value;
 
         is_requested == value && is_enabled == value
     }
@@ -46,10 +61,10 @@ impl Interrupt {
     }
 
     fn handle_interrupt(self, cpu: &mut Cpu, value: u8, isr_address: u16) -> bool {
-        let interrupt_enable = cpu.memory_bus.interrupt_enable;
-        let interrupt_flag = cpu.memory_bus.io.interrupt_flag;
+        let i_enable = cpu.memory_bus.interrupt_enable;
+        let i_flag = cpu.memory_bus.io.interrupt_flag;
 
-        if !self.is_enabled(interrupt_enable, interrupt_flag, value) {
+        if !self.is_enabled(i_enable, i_flag, value) {
             return false;
         }
 

@@ -63,14 +63,10 @@ impl MemoryBus {
     pub fn tick(&mut self, m_cycles: u8) {
         self.io.timer.tick(m_cycles);
         self.io.interrupt_flag |= self.io.timer.interrupt_request;
-        self.io.timer.interrupt_request = 0;
+        self.io.timer.reset_interrupt();
     }
 
     pub fn read_byte(&mut self, address: u16) -> u8 {
-        if address == 0xFF44 {
-            return 0x90;
-        }
-
         match address {
             CARTRIDGE_ROM_START..=CARTRIDGE_ROM_END => self.cartridge.read(address),
             VRAM_START..=VRAM_END => self.gpu.read_byte(address - VRAM_START),
@@ -79,10 +75,7 @@ impl MemoryBus {
             IO_START..=IO_END => self.io.read_byte(address),
             HRAM_START..=HRAM_END => self.hram[address as usize - HRAM_START as usize],
             INTERRUPT_ENABLE => self.interrupt_enable,
-            _ => {
-                println!("Unknown address: {:#X} Can't read byte.", address);
-                0x00
-            }
+            _ => panic!("Unknown address: {:#X} Can't read byte.", address),
         }
     }
 

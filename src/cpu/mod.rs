@@ -7,9 +7,6 @@ mod program_counter;
 mod rotate;
 mod shift;
 
-use std::fs::File;
-use std::io::{LineWriter, Write};
-
 use crate::cpu::program_counter::ProgramCounter;
 use crate::instruction::{CycleDuration, Instruction, Mnemonic};
 use crate::interrupt::Interrupt;
@@ -55,13 +52,11 @@ impl Cpu {
         }
     }
 
-    pub fn step(&mut self, file: &mut LineWriter<File>) -> u8 {
-        // self.log(file);
+    pub fn step(&mut self) -> u8 {
+        let i_enable = self.memory_bus.interrupt_enable;
+        let i_flag = self.memory_bus.io.interrupt_flag;
 
-        let interrupt_enable = self.memory_bus.interrupt_enable;
-        let interrupt_flag = self.memory_bus.io.interrupt_flag;
-
-        if interrupt_flag & interrupt_enable != 0 {
+        if i_enable & i_flag != 0 {
             self.halted = false;
             if self.ime {
                 if let Some(m_cycles) = self.interrupt.handle_interrupts(self) {
@@ -70,11 +65,7 @@ impl Cpu {
             }
         }
 
-        if self.halted
-            && self
-                .interrupt
-                .interrupt_enabled(interrupt_enable, interrupt_flag)
-        {
+        if self.halted && self.interrupt.interrupt_enabled(i_enable, i_flag) {
             self.halted = false;
         }
 
@@ -237,11 +228,10 @@ impl Cpu {
             Mnemonic::RES_hl(position) => bit_ops::res_hl(self, position),
             Mnemonic::SET_r(position, target) => bit_ops::set_r(self, position, target),
             Mnemonic::SET_hl(position) => bit_ops::set_hl(self, position),
-            _ => panic!("Unknown PREFIX Mnemnoic."),
+            _ => panic!("Unknown prefix mnemonic: {:?}.", instruction.mnemonic),
         }
     }
 
-    // --- Util ---
     fn get_nn_little_endian(&mut self) -> u16 {
         let low_byte = self.memory_bus.read_byte(self.program_counter.next()) as u16;
         let high_byte = self.memory_bus.read_byte(self.program_counter.next()) as u16;
@@ -275,26 +265,5 @@ impl Cpu {
         self.push_stack(self.program_counter.get());
         self.program_counter.set(isr_address);
         self.memory_bus.io.interrupt_flag &= value ^ 0xFF;
-    }
-
-    fn log(&mut self, file: &mut LineWriter<File>) {
-        // A: 01 F: B0 B: 00 C: 13 D: 00 E: D8 H: 01 L: 4D SP: FFFE PC: 00:0100 (00 C3 13 02)
-        let a = self.registers.get_a();
-        let f = self.registers.get_f();
-        let b = self.registers.get_b();
-        let c = self.registers.get_c();
-        let d = self.registers.get_d();
-        let e = self.registers.get_e();
-        let h = self.registers.get_h();
-        let l = self.registers.get_l();
-        let sp = self.stack_pointer;
-        let pc = self.program_counter.get();
-        let mem_pc = self.memory_bus.read_byte(self.program_counter.get());
-        let mem_pc2 = self.memory_bus.read_byte(self.program_counter.get() + 1);
-        let mem_pc3 = self.memory_bus.read_byte(self.program_counter.get() + 2);
-        let mem_pc4 = self.memory_bus.read_byte(self.program_counter.get() + 3);
-
-        let output = format!("A: {:02X} F: {:02X} B: {:02X} C: {:02X} D: {:02X} E: {:02X} H: {:02X} L: {:02X} SP: {:04X} PC: 00:{:04X} ({:02X} {:02X} {:02X} {:02X})\n", a, f, b, c, d, e, h, l, sp, pc, mem_pc, mem_pc2, mem_pc3, mem_pc4);
-        file.write_all(output.as_bytes()).unwrap();
     }
 }
