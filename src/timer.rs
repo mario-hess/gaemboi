@@ -8,10 +8,9 @@ pub struct Timer {
     div_counter: u32,
     tima: u8,
     tima_counter: i64,
-    tima_ratio: u32,
-    tima_enabled: bool,
     tma: u8,
     tac: u8,
+    overflowed: bool,
     pub interrupt_request: u8,
 }
 
@@ -22,10 +21,9 @@ impl Timer {
             div_counter: 0,
             tima: 0,
             tima_counter: 0,
-            tima_ratio: 1024,
-            tima_enabled: false,
             tma: 0,
             tac: 0,
+            overflowed: false,
             interrupt_request: 0,
         }
     }
@@ -39,18 +37,38 @@ impl Timer {
             self.div_counter -= 256;
         }
 
-        if self.tima_enabled {
-            self.tima_counter += cycles as i64;
-            while self.tima_counter >= self.tima_ratio as i64 {
-                if self.tima == 255 {
-                    self.interrupt_request |= 0x04;
-                    self.tima = self.tma;
-                } else {
-                    self.tima = self.tima.wrapping_add(1);
-                }
+        let speed = self.tac << 6;
+        let running = (1 << 2) & self.tac > 0;
 
-                self.tima_counter -= self.tima_ratio as i64;
+        if !running {
+            return;
+        }
+
+        self.tima_counter += cycles as i64;
+
+        let timer_cycles = match speed {
+            0 => 1024,
+            0x40 => 16,
+            0x80 => 64,
+            0xC0 => 256,
+            _ => panic!("Unknown timer speed: 0x{:X}", speed),
+        };
+
+        if self.overflowed {
+            self.interrupt_request |= 0x04;
+            self.tima = self.tma;
+            self.overflowed = false;
+        }
+
+        while self.tima_counter >= timer_cycles {
+            if self.tima == 255 {
+                self.overflowed = true;
+                self.tima = 0;
+                return;
             }
+
+            self.tima += 1;
+            self.tima_counter -= timer_cycles;
         }
     }
 
@@ -66,24 +84,10 @@ impl Timer {
 
     pub fn write_byte(&mut self, address: u16, value: u8) {
         match address {
-            DIV => {
-                self.div = 0;
-                self.div_counter = 0;
-                self.tima_counter = 0;
-            }
+            DIV => self.div = 0,
             TIMA => self.tima = value,
             TMA => self.tma = value,
-            TAC => {
-                self.tac = value;
-                match value & 0x03 {
-                    0x00 => self.tima_ratio = 1024,
-                    0x01 => self.tima_ratio = 16,
-                    0x02 => self.tima_ratio = 64,
-                    0x03 => self.tima_ratio = 256,
-                    value => panic!("Invalid TAC value 0x{:02x}", value),
-                }
-                self.tima_enabled = (value & 0x04) == 0x04;
-            }
+            TAC => self.tac = value,
             _ => unreachable!(),
         }
     }
