@@ -22,7 +22,7 @@ impl Timer {
             div_counter: 0,
             tima: 0,
             tima_counter: 0,
-            tima_ratio: 256,
+            tima_ratio: 1024,
             tima_enabled: false,
             tma: 0,
             tac: 0,
@@ -31,12 +31,12 @@ impl Timer {
     }
 
     pub fn tick(&mut self, m_cycles: u8) {
-        let cycles = m_cycles as u32;
+        let cycles = (m_cycles * 4) as u32;
         self.div_counter += cycles;
 
-        while self.div_counter >= 64 {
+        while self.div_counter >= 256 {
             self.div = self.div.wrapping_add(1);
-            self.div_counter -= 64;
+            self.div_counter -= 256;
         }
 
         if self.tima_enabled {
@@ -76,10 +76,10 @@ impl Timer {
             TAC => {
                 self.tac = value;
                 match value & 0x03 {
-                    0x00 => self.tima_ratio = 256,
-                    0x01 => self.tima_ratio = 4,
-                    0x02 => self.tima_ratio = 8,
-                    0x03 => self.tima_ratio = 16,
+                    0x00 => self.tima_ratio = 1024,
+                    0x01 => self.tima_ratio = 16,
+                    0x02 => self.tima_ratio = 64,
+                    0x03 => self.tima_ratio = 256,
                     value => panic!("Invalid TAC value 0x{:02x}", value),
                 }
                 self.tima_enabled = (value & 0x04) == 0x04;

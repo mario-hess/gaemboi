@@ -19,7 +19,7 @@ impl Clock {
     }
 
     pub fn tick(&mut self, m_cycles: u8) {
-        self.cycles_passed += m_cycles as u32;
+        self.cycles_passed += (m_cycles * 4) as u32;
     }
 
     pub fn reset(&mut self) {
