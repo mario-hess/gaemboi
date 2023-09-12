@@ -22,7 +22,7 @@ impl Timer {
             div_counter: 0,
             tima: 0,
             tima_counter: 0,
-            tima_ratio: 1024,
+            tima_ratio: 256,
             tima_enabled: false,
             tma: 0,
             tac: 0,
@@ -76,10 +76,10 @@ impl Timer {
             TAC => {
                 self.tac = value;
                 match value & 0x03 {
-                    0x00 => self.tima_ratio = 1024,
-                    0x01 => self.tima_ratio = 16,
-                    0x02 => self.tima_ratio = 64,
-                    0x03 => self.tima_ratio = 256,
+                    0x00 => self.tima_ratio = 256,
+                    0x01 => self.tima_ratio = 4,
+                    0x02 => self.tima_ratio = 8,
+                    0x03 => self.tima_ratio = 16,
                     value => panic!("Invalid TAC value 0x{:02x}", value),
                 }
                 self.tima_enabled = (value & 0x04) == 0x04;
