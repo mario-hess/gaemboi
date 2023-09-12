@@ -56,7 +56,7 @@ impl Cpu {
     }
 
     pub fn step(&mut self, file: &mut LineWriter<File>) -> u8 {
-        self.log(file);
+        // self.log(file);
 
         let interrupt_enable = self.memory_bus.interrupt_enable;
         let interrupt_flag = self.memory_bus.io.interrupt_flag;

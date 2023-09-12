@@ -4,10 +4,10 @@ const TMA: u16 = 0xFF06;
 pub const TAC: u16 = 0xFF07;
 
 pub struct Timer {
-    div: u16,
+    div: u8,
     div_counter: u32,
     tima: u8,
-    tima_counter: u32,
+    tima_counter: i64,
     tima_ratio: u32,
     tima_enabled: bool,
     tma: u8,
@@ -40,8 +40,8 @@ impl Timer {
         }
 
         if self.tima_enabled {
-            self.tima_counter += cycles;
-            while self.tima_counter >= self.tima_ratio {
+            self.tima_counter += cycles as i64;
+            while self.tima_counter >= self.tima_ratio as i64 {
                 if self.tima == 255 {
                     self.interrupt_request |= 0x04;
                     self.tima = self.tma;
@@ -49,14 +49,14 @@ impl Timer {
                     self.tima = self.tima.wrapping_add(1);
                 }
 
-                self.tima_counter -= self.tima_ratio;
+                self.tima_counter -= self.tima_ratio as i64;
             }
         }
     }
 
     pub fn read_byte(&self, address: u16) -> u8 {
         match address {
-            DIV => (self.div >> 8) as u8,
+            DIV => self.div,
             TIMA => self.tima,
             TMA => self.tma,
             TAC => self.tac,
@@ -66,7 +66,11 @@ impl Timer {
 
     pub fn write_byte(&mut self, address: u16, value: u8) {
         match address {
-            DIV => self.div = 0,
+            DIV => {
+                self.div = 0;
+                self.div_counter = 0;
+                self.tima_counter = 0;
+            }
             TIMA => self.tima = value,
             TMA => self.tma = value,
             TAC => {
