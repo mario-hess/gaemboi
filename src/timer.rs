@@ -34,9 +34,9 @@ impl Timer {
         let cycles = m_cycles as u32;
         self.div_counter += cycles;
 
-        while self.div_counter >= 256 {
+        while self.div_counter >= 64 {
             self.div = self.div.wrapping_add(1);
-            self.div_counter -= 256;
+            self.div_counter -= 64;
         }
 
         if self.tima_enabled {
