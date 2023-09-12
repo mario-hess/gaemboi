@@ -61,6 +61,15 @@ impl Cpu {
         let interrupt_enable = self.memory_bus.interrupt_enable;
         let interrupt_flag = self.memory_bus.io.interrupt_flag;
 
+        if interrupt_flag & interrupt_enable != 0 {
+            self.halted = false;
+            if self.ime {
+                if let Some(m_cycles) = self.interrupt.handle_interrupts(self) {
+                    return m_cycles;
+                }
+            }
+        }
+
         if self.halted
             && self
                 .interrupt
@@ -71,12 +80,6 @@ impl Cpu {
 
         if self.halted {
             return 1;
-        }
-
-        if self.ime {
-            if let Some(m_cycles) = self.interrupt.handle_interrupts(self) {
-                return m_cycles;
-            }
         }
 
         match self.ime_state {
