@@ -31,7 +31,8 @@ impl Machine {
 
             while self.clock.cycles_passed <= self.clock.cycles_per_frame {
                 let m_cycles = self.cpu.step(&mut file);
-                self.tick(m_cycles);
+                self.clock.tick(m_cycles);
+                self.cpu.memory_bus.tick(m_cycles);
             }
 
             self.clock.reset();
@@ -41,14 +42,5 @@ impl Machine {
             //    std::thread::sleep(frame_duration - elapsed_time);
             //}
         }
-    }
-
-    fn tick(&mut self, m_cycles: u8) {
-        self.timer_tick(m_cycles);
-        self.clock.tick(m_cycles);
-    }
-
-    fn timer_tick(&mut self, m_cycles: u8) {
-        self.cpu.memory_bus.io.timer.tick(m_cycles, &mut self.cpu.memory_bus.io.interrupt_flag);
     }
 }

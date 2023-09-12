@@ -71,7 +71,6 @@ impl IO {
         }
     }
 
-
     pub fn read_byte(&self, address: u16) -> u8 {
         match address {
             JOYPAD_INPUT => self.joypad_input,

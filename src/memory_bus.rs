@@ -60,6 +60,12 @@ impl MemoryBus {
         }
     }
 
+    pub fn tick(&mut self, m_cycles: u8) {
+        self.io.timer.tick(m_cycles);
+        self.io.interrupt_flag |= self.io.timer.interrupt_request;
+        self.io.timer.interrupt_request = 0;
+    }
+
     pub fn read_byte(&mut self, address: u16) -> u8 {
         match address {
             CARTRIDGE_ROM_START..=CARTRIDGE_ROM_END => self.cartridge.read(address),
