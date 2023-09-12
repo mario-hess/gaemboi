@@ -56,7 +56,7 @@ impl Cpu {
     }
 
     pub fn step(&mut self, file: &mut LineWriter<File>) -> u8 {
-        self.log(file);
+        // self.log(file);
 
         let interrupt_enable = self.memory_bus.interrupt_enable;
         let interrupt_flag = self.memory_bus.io.interrupt_flag;
@@ -67,10 +67,6 @@ impl Cpu {
                 .interrupt_enabled(interrupt_enable, interrupt_flag)
         {
             self.halted = false;
-            
-            if !self.ime {
-                self.program_counter.set(self.program_counter.get().wrapping_sub(1));
-            }
         }
 
         if self.halted {
