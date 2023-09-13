@@ -24,11 +24,11 @@ impl Interrupt {
     pub fn new() -> Self {
         Self {
             interrupts: [
-                (VBLANK_MASK, VBLANK_ISR), // VBlank
+                (VBLANK_MASK, VBLANK_ISR),     // VBlank
                 (LCD_STAT_MASK, LCD_STAT_ISR), // LCDStat
-                (TIMER_MASK, TIMER_ISR), // Timer
-                (SERIAL_MASK, SERIAL_ISR), // Serial
-                (JOYPAD_MASK, JOYPAD_ISR), // Joypad
+                (TIMER_MASK, TIMER_ISR),       // Timer
+                (SERIAL_MASK, SERIAL_ISR),     // Serial
+                (JOYPAD_MASK, JOYPAD_ISR),     // Joypad
             ],
         }
     }

@@ -16,12 +16,6 @@ use crate::registers::Registers;
 const HEADER_CHECKSUM_ADDRESS: usize = 0x014D;
 const STACK_POINTER_START: u16 = 0xFFFE;
 
-pub enum IMEState {
-    None,
-    Enabled,
-    Disabled,
-}
-
 pub struct Cpu {
     pub memory_bus: MemoryBus,
     registers: Registers,
@@ -29,7 +23,7 @@ pub struct Cpu {
     stack_pointer: u16,
     interrupt: Interrupt,
     ime: bool,
-    ime_state: IMEState,
+    ime_state: bool,
     halted: bool,
 }
 
@@ -47,7 +41,7 @@ impl Cpu {
             stack_pointer: STACK_POINTER_START,
             interrupt: Interrupt::new(),
             ime: false,
-            ime_state: IMEState::None,
+            ime_state: false,
             halted: false,
         }
     }
@@ -56,34 +50,20 @@ impl Cpu {
         let i_enable = self.memory_bus.interrupt_enable;
         let i_flag = self.memory_bus.io.interrupt_flag;
 
-        if i_enable & i_flag != 0 {
-            self.halted = false;
-            if self.ime {
-                if let Some(m_cycles) = self.interrupt.handle_interrupts(self) {
-                    return m_cycles;
-                }
-            }
-        }
-
         if self.halted && self.interrupt.interrupt_enabled(i_enable, i_flag) {
             self.halted = false;
-        }
-
-        if self.halted {
+        } else if self.halted {
             return 1;
         }
 
-        match self.ime_state {
-            IMEState::Enabled => {
-                self.ime = true;
-                self.ime_state = IMEState::None;
+        if self.ime && self.interrupt.interrupt_enabled(i_enable, i_flag) {
+            self.halted = false;
+            if let Some(m_cycles) = self.interrupt.handle_interrupts(self) {
+                return m_cycles;
             }
-            IMEState::Disabled => {
-                self.ime = false;
-                self.ime_state = IMEState::None;
-            }
-            _ => {}
         }
+
+        self.ime = self.ime_state;
 
         let byte = self.memory_bus.read_byte(self.program_counter.next());
         let mut instruction = Instruction::from_byte(byte);

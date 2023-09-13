@@ -1,8 +1,6 @@
 use crate::cpu::Cpu;
 use crate::instruction::CycleDuration;
 
-use super::IMEState;
-
 pub fn daa(cpu: &mut Cpu) -> CycleDuration {
     // Decimal Adjust Accumulator to get a correct
     // BCD representation after an arithmetic instruction.
@@ -79,13 +77,13 @@ pub fn disable_interrupt(cpu: &mut Cpu) -> CycleDuration {
     // and cancelling any scheduled effects of the EI
     // instruction if any.
 
-    cpu.ime_state = IMEState::Disabled;
+    cpu.ime_state = false;
 
     CycleDuration::Default
 }
 
 pub fn enable_interrupt(cpu: &mut Cpu) -> CycleDuration {
-    cpu.ime_state = IMEState::Enabled;
+    cpu.ime_state = true;
 
     CycleDuration::Default
 }

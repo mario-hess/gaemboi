@@ -6,16 +6,24 @@ const TMA: u16 = 0xFF06;
 pub const TAC: u16 = 0xFF07;
 
 const DIV_CYCLES: u16 = 256;
+const TIMER_ENABLE_MASK: u8 = 0x04;
+const TIMER_CONTROL_MASK: u8 = 0x03;
+
+const TAC_CYCLES_0: u16 = 1024;
+const TAC_CYCLES_1: u16 = 16;
+const TAC_CYCLES_2: u16 = 64;
+const TAC_CYCLES_3: u16 = 256;
 
 pub struct Timer {
     div: u8,
-    div_counter: u32,
     tima: u8,
-    tima_counter: i64,
-    tima_rate: u32,
-    tima_enabled: bool,
     tma: u8,
     tac: u8,
+    div_counter: u32,
+    tima_counter: i64,
+    tima_overflowed: bool,
+    tac_cycles: u16,
+    enabled: bool,
     pub interrupt_request: u8,
 }
 
@@ -23,13 +31,14 @@ impl Timer {
     pub fn new() -> Self {
         Self {
             div: 0,
-            div_counter: 0,
             tima: 0,
-            tima_counter: 0,
-            tima_rate: 1024,
-            tima_enabled: false,
             tma: 0,
             tac: 0,
+            div_counter: 0,
+            tima_counter: 0,
+            tima_overflowed: false,
+            tac_cycles: TAC_CYCLES_0,
+            enabled: false,
             interrupt_request: 0,
         }
     }
@@ -43,18 +52,27 @@ impl Timer {
             self.div_counter -= DIV_CYCLES as u32;
         }
 
-        if self.tima_enabled {
-            self.tima_counter += t_cycles as i64;
-            while self.tima_counter >= self.tima_rate as i64 {
-                if self.tima == 255 {
-                    self.interrupt_request = TIMER_MASK;
-                    self.tima = self.tma;
-                } else {
-                    self.tima = self.tima.wrapping_add(1);
-                }
+        if !self.enabled {
+            return;
+        }
 
-                self.tima_counter -= self.tima_rate as i64;
+        if self.tima_overflowed {
+            self.interrupt_request = TIMER_MASK;
+            self.tima = self.tma;
+            self.tima_overflowed = false;
+        }
+
+        self.tima_counter += t_cycles as i64;
+
+        while self.tima_counter >= self.tac_cycles as i64 {
+            if self.tima == 255 {
+                self.tima_overflowed = true;
+                self.tima = 0;
+                return;
             }
+
+            self.tima = self.tima.wrapping_add(1);
+            self.tima_counter -= self.tac_cycles as i64;
         }
     }
 
@@ -77,22 +95,24 @@ impl Timer {
             DIV => {
                 self.div = 0;
                 self.div_counter = 0;
+                self.tima_counter = 0;
             }
             TIMA => self.tima = value,
             TMA => self.tma = value,
             TAC => {
                 self.tac = value;
-                match value & 0x03 {
-                    0x00 => self.tima_rate = 1024,
-                    0x01 => self.tima_rate = 16,
-                    0x02 => self.tima_rate = 64,
-                    0x03 => self.tima_rate = 256,
-                    _ => panic!("Invalid TAC value: {:#X}", value),
-                }
-                self.tima_enabled = (value & TIMER_MASK) == TIMER_MASK;
+
+                self.tac_cycles = match value & TIMER_CONTROL_MASK {
+                    0x00 => TAC_CYCLES_0,
+                    0x01 => TAC_CYCLES_1,
+                    0x02 => TAC_CYCLES_2,
+                    0x03 => TAC_CYCLES_3,
+                    _ => panic!("Invalid TAC value: {:#X}", self.tac),
+                };
+
+                self.enabled = (self.tac & TIMER_ENABLE_MASK) == TIMER_ENABLE_MASK;
             }
             _ => unreachable!(),
         }
     }
 }
-
