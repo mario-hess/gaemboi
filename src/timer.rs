@@ -74,7 +74,10 @@ impl Timer {
 
     pub fn write_byte(&mut self, address: u16, value: u8) {
         match address {
-            DIV => self.div = 0,
+            DIV => {
+                self.div = 0;
+                self.div_counter = 0;
+            }
             TIMA => self.tima = value,
             TMA => self.tma = value,
             TAC => {

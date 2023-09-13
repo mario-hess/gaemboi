@@ -86,10 +86,14 @@ impl Cpu {
         }
 
         let byte = self.memory_bus.read_byte(self.program_counter.next());
-        let instruction = Instruction::from_byte(byte);
+        let mut instruction = Instruction::from_byte(byte);
 
         let m_cycles = match instruction.mnemonic {
-            Mnemonic::Prefix => self.prefix(),
+            Mnemonic::Prefix => {
+                let (instr, cycles) = self.prefix();
+                instruction = instr;
+                cycles
+            }
             _ => self.execute_instruction(instruction),
         };
 
@@ -198,10 +202,10 @@ impl Cpu {
         }
     }
 
-    fn prefix(&mut self) -> CycleDuration {
+    fn prefix(&mut self) -> (Instruction, CycleDuration) {
         let byte = self.memory_bus.read_byte(self.program_counter.next());
         let instruction = Instruction::from_prefix_byte(byte);
-        self.execute_prefix(instruction)
+        (instruction, self.execute_prefix(instruction))
     }
 
     fn execute_prefix(&mut self, instruction: Instruction) -> CycleDuration {
