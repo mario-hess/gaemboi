@@ -22,8 +22,8 @@ pub struct Cpu {
     program_counter: ProgramCounter,
     stack_pointer: u16,
     interrupt: Interrupt,
-    ime: bool,
-    ime_state: bool,
+    interrupt_master: bool,
+    interrupt_master_state: bool,
     halted: bool,
     instruction: Option<Instruction>,
 }
@@ -41,8 +41,8 @@ impl Cpu {
             program_counter: ProgramCounter::new(),
             stack_pointer: STACK_POINTER_START,
             interrupt: Interrupt::new(),
-            ime: false,
-            ime_state: false,
+            interrupt_master: false,
+            interrupt_master_state: false,
             halted: false,
             instruction: None,
         }
@@ -59,7 +59,7 @@ impl Cpu {
             return 1;
         }
 
-        if self.ime && self.interrupt.interrupt_enabled(i_enable, i_flag) {
+        if self.interrupt_master && self.interrupt.interrupt_enabled(i_enable, i_flag) {
             // Exit halt and handle interrupts if IME = 1.
             self.halted = false;
             if let Some(m_cycles) = self.interrupt.handle_interrupts(self) {
@@ -68,7 +68,7 @@ impl Cpu {
         }
 
         // IME is set after last instruction.
-        self.ime = self.ime_state;
+        self.interrupt_master = self.interrupt_master_state;
 
         let byte = self.memory_bus.read_byte(self.program_counter.next());
         self.instruction = Some(Instruction::from_byte(byte));
@@ -119,7 +119,7 @@ impl Cpu {
     }
 
     pub fn interrupt_service_routine(&mut self, isr_address: u16, value: u8) {
-        self.ime = false;
+        self.interrupt_master = false;
         self.push_stack(self.program_counter.get());
         self.program_counter.set(isr_address);
         self.memory_bus.io.interrupt_flag &= value ^ 0xFF;

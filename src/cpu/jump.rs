@@ -165,7 +165,7 @@ pub fn reti(cpu: &mut Cpu) -> CycleDuration {
 
     let address = cpu.pop_stack();
     cpu.program_counter.set(address);
-    cpu.ime = true;
+    cpu.interrupt_master = true;
 
     CycleDuration::Default
 }
