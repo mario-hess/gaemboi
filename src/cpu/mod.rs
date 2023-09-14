@@ -25,6 +25,7 @@ pub struct Cpu {
     ime: bool,
     ime_state: bool,
     halted: bool,
+    instruction: Option<Instruction>,
 }
 
 impl Cpu {
@@ -43,44 +44,85 @@ impl Cpu {
             ime: false,
             ime_state: false,
             halted: false,
+            instruction: None,
         }
     }
 
     pub fn step(&mut self) -> u8 {
-        let i_enable = self.memory_bus.interrupt_enable;
-        let i_flag = self.memory_bus.io.interrupt_flag;
+        let (i_enable, i_flag) = self.memory_bus.get_interupt_flags();
 
         if self.halted && self.interrupt.interrupt_enabled(i_enable, i_flag) {
+            // Exit halt if any interrupt is enabled.
             self.halted = false;
         } else if self.halted {
+            // Halt consumes 1 m_cycle.
             return 1;
         }
 
         if self.ime && self.interrupt.interrupt_enabled(i_enable, i_flag) {
+            // Exit halt and handle interrupts if IME = 1.
             self.halted = false;
             if let Some(m_cycles) = self.interrupt.handle_interrupts(self) {
                 return m_cycles;
             }
         }
 
+        // IME is set after last instruction.
         self.ime = self.ime_state;
 
         let byte = self.memory_bus.read_byte(self.program_counter.next());
-        let mut instruction = Instruction::from_byte(byte);
+        self.instruction = Some(Instruction::from_byte(byte));
 
-        let m_cycles = match instruction.mnemonic {
-            Mnemonic::Prefix => {
-                let (instr, cycles) = self.prefix();
-                instruction = instr;
-                cycles
-            }
-            _ => self.execute_instruction(instruction),
+        let m_cycles = match self.instruction.unwrap().mnemonic {
+            Mnemonic::Prefix => self.prefix_step(),
+            _ => self.execute_instruction(self.instruction.unwrap()),
         };
 
         match m_cycles {
-            CycleDuration::Default => instruction.m_cycles,
-            CycleDuration::Optional => instruction.opt_m_cycles.unwrap(),
+            CycleDuration::Default => self.instruction.unwrap().m_cycles,
+            CycleDuration::Optional => self.instruction.unwrap().cond_m_cycles.unwrap(),
         }
+    }
+
+    fn prefix_step(&mut self) -> CycleDuration {
+        let byte = self.memory_bus.read_byte(self.program_counter.next());
+        self.instruction = Some(Instruction::from_prefix_byte(byte));
+        self.execute_prefix(self.instruction.unwrap())
+    }
+
+    fn get_nn_little_endian(&mut self) -> u16 {
+        let low_byte = self.memory_bus.read_byte(self.program_counter.next()) as u16;
+        let high_byte = self.memory_bus.read_byte(self.program_counter.next()) as u16;
+
+        (high_byte << 8) | low_byte
+    }
+
+    fn pop_stack(&mut self) -> u16 {
+        let low_byte = self.memory_bus.read_byte(self.stack_pointer) as u16;
+        self.stack_pointer = self.stack_pointer.wrapping_add(1);
+
+        let high_byte = self.memory_bus.read_byte(self.stack_pointer) as u16;
+        self.stack_pointer = self.stack_pointer.wrapping_add(1);
+
+        (high_byte << 8) | low_byte
+    }
+
+    pub fn push_stack(&mut self, value: u16) {
+        let high_byte = (value >> 8) as u8;
+        let low_byte = value as u8;
+
+        self.stack_pointer = self.stack_pointer.wrapping_sub(1);
+        self.memory_bus.write_byte(self.stack_pointer, high_byte);
+
+        self.stack_pointer = self.stack_pointer.wrapping_sub(1);
+        self.memory_bus.write_byte(self.stack_pointer, low_byte);
+    }
+
+    pub fn interrupt_service_routine(&mut self, isr_address: u16, value: u8) {
+        self.ime = false;
+        self.push_stack(self.program_counter.get());
+        self.program_counter.set(isr_address);
+        self.memory_bus.io.interrupt_flag &= value ^ 0xFF;
     }
 
     pub fn execute_instruction(&mut self, instruction: Instruction) -> CycleDuration {
@@ -182,12 +224,6 @@ impl Cpu {
         }
     }
 
-    fn prefix(&mut self) -> (Instruction, CycleDuration) {
-        let byte = self.memory_bus.read_byte(self.program_counter.next());
-        let instruction = Instruction::from_prefix_byte(byte);
-        (instruction, self.execute_prefix(instruction))
-    }
-
     fn execute_prefix(&mut self, instruction: Instruction) -> CycleDuration {
         match instruction.mnemonic {
             Mnemonic::RLC_r(target) => rotate::rlc_r(self, target),
@@ -214,40 +250,5 @@ impl Cpu {
             Mnemonic::SET_hl(position) => bit_ops::set_hl(self, position),
             _ => panic!("Unknown prefix mnemonic: {:?}.", instruction.mnemonic),
         }
-    }
-
-    fn get_nn_little_endian(&mut self) -> u16 {
-        let low_byte = self.memory_bus.read_byte(self.program_counter.next()) as u16;
-        let high_byte = self.memory_bus.read_byte(self.program_counter.next()) as u16;
-
-        (high_byte << 8) | low_byte
-    }
-
-    fn pop_stack(&mut self) -> u16 {
-        let low_byte = self.memory_bus.read_byte(self.stack_pointer) as u16;
-        self.stack_pointer = self.stack_pointer.wrapping_add(1);
-
-        let high_byte = self.memory_bus.read_byte(self.stack_pointer) as u16;
-        self.stack_pointer = self.stack_pointer.wrapping_add(1);
-
-        (high_byte << 8) | low_byte
-    }
-
-    pub fn push_stack(&mut self, value: u16) {
-        let high_byte = (value >> 8) as u8;
-        let low_byte = value as u8;
-
-        self.stack_pointer = self.stack_pointer.wrapping_sub(1);
-        self.memory_bus.write_byte(self.stack_pointer, high_byte);
-
-        self.stack_pointer = self.stack_pointer.wrapping_sub(1);
-        self.memory_bus.write_byte(self.stack_pointer, low_byte);
-    }
-
-    pub fn interrupt_service_routine(&mut self, isr_address: u16, value: u8) {
-        self.ime = false;
-        self.push_stack(self.program_counter.get());
-        self.program_counter.set(isr_address);
-        self.memory_bus.io.interrupt_flag &= value ^ 0xFF;
     }
 }

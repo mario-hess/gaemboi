@@ -66,6 +66,10 @@ impl MemoryBus {
         self.io.timer.reset_interrupt();
     }
 
+    pub fn get_interupt_flags(&mut self) -> (u8, u8) {
+        (self.interrupt_enable, self.io.interrupt_flag)
+    }
+
     pub fn read_byte(&mut self, address: u16) -> u8 {
         match address {
             CARTRIDGE_ROM_START..=CARTRIDGE_ROM_END => self.cartridge.read(address),
