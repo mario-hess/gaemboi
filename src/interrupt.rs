@@ -62,7 +62,7 @@ impl Interrupt {
 
     fn handle_interrupt(self, cpu: &mut Cpu, value: u8, isr_address: u16) -> bool {
         let i_enable = cpu.memory_bus.interrupt_enable;
-        let i_flag = cpu.memory_bus.io.interrupt_flag;
+        let i_flag = cpu.memory_bus.interrupt_flag;
 
         if !self.is_enabled(i_enable, i_flag, value) {
             return false;

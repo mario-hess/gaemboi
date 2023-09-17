@@ -49,7 +49,8 @@ impl Cpu {
     }
 
     pub fn step(&mut self) -> u8 {
-        let (i_enable, i_flag) = self.memory_bus.get_interupt_flags();
+        let i_enable = self.memory_bus.get_interrupt_enable();
+        let i_flag = self.memory_bus.get_interrupt_flag();
 
         if self.halted && self.interrupt.interrupt_enabled(i_enable, i_flag) {
             // Exit halt if any interrupt is enabled.
@@ -122,7 +123,7 @@ impl Cpu {
         self.interrupt_master = false;
         self.push_stack(self.program_counter.get());
         self.program_counter.set(isr_address);
-        self.memory_bus.io.interrupt_flag &= value ^ 0xFF;
+        self.memory_bus.interrupt_flag &= value ^ 0xFF;
     }
 
     pub fn execute_instruction(&mut self, instruction: Instruction) -> CycleDuration {
