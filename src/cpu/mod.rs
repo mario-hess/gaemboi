@@ -122,7 +122,7 @@ impl Cpu {
         self.interrupt_master = false;
         self.push_stack(self.program_counter.get());
         self.program_counter.set(isr_address);
-        self.memory_bus.io.interrupt_flag &= value ^ 0xFF;
+        self.memory_bus.interrupt_flag &= value ^ 0xFF;
     }
 
     pub fn execute_instruction(&mut self, instruction: Instruction) -> CycleDuration {
