@@ -1,9 +1,9 @@
 use crate::interrupt::TIMER_MASK;
 
-pub const DIV: u16 = 0xFF04;
+const DIV: u16 = 0xFF04;
 const TIMA: u16 = 0xFF05;
 const TMA: u16 = 0xFF06;
-pub const TAC: u16 = 0xFF07;
+const TAC: u16 = 0xFF07;
 
 const DIV_CYCLES: u16 = 256;
 const TIMER_ENABLE_MASK: u8 = 0x04;

@@ -1,9 +1,12 @@
 use crate::cartridge::Cartridge;
-use crate::ppu::{Ppu, VRAM_START, VRAM_END};
-use crate::timer::{Timer, DIV, TAC};
+use crate::ppu::Ppu;
+use crate::timer::Timer;
 
 pub const CARTRIDGE_ROM_START: u16 = 0x0000;
 pub const CARTRIDGE_ROM_END: u16 = 0x7FFF;
+
+pub const VRAM_START: u16 = 0x8000;
+pub const VRAM_END: u16 = 0x9FFF;
 
 pub const CARTRIDGE_RAM_START: u16 = 0xA000;
 pub const CARTRIDGE_RAM_END: u16 = 0xBFFF;
@@ -11,12 +14,15 @@ pub const CARTRIDGE_RAM_END: u16 = 0xBFFF;
 pub const WRAM_START: u16 = 0xC000;
 pub const WRAM_END: u16 = 0xDFFF;
 
-const IO_START: u16 = 0xFF00;
-const IO_END: u16 = 0xFF7F;
+pub const OAM_START: u16 = 0xFE00;
+pub const OAM_END: u16 = 0xFE9F;
 
 const JOYPAD_INPUT: u16 = 0xFF00;
 const SERIAL_SB: u16 = 0xFF01;
 const SERIAL_SC: u16 = 0xFF02;
+
+const TIMER_START: u16 = 0xFF04;
+const TIMER_END: u16 = 0xFF07;
 
 const INTERRUPT_FLAG: u16 = 0xFF0F;
 
@@ -93,61 +99,94 @@ impl MemoryBus {
         self.timer.reset_interrupt();
     }
 
-    pub fn get_interupt_flags(&mut self) -> (u8, u8) {
-        (self.interrupt_enable, self.interrupt_flag)
+    pub fn get_interrupt_flag(&mut self) -> u8 {
+        self.interrupt_flag
+    }
+
+    pub fn get_interrupt_enable(&mut self) -> u8 {
+        self.interrupt_enable
     }
 
     pub fn read_byte(&mut self, address: u16) -> u8 {
         match address {
+            // 0000 - 7FFF (Cartridge ROM Banks)
             CARTRIDGE_ROM_START..=CARTRIDGE_ROM_END => self.cartridge.read(address),
+            // 8000 - 9FFF (Video Ram)
             VRAM_START..=VRAM_END => self.ppu.read_byte(address),
+            // A000 - BFFF (Cartridge RAM Banks)
             CARTRIDGE_RAM_START..=CARTRIDGE_RAM_END => self.cartridge.read(address),
+            // C000 - DFFF (Work RAM)
             WRAM_START..=WRAM_END => self.wram[address as usize - WRAM_START as usize],
-            // IO START
+            // FF00 - FF7F (Object Attribute Memory)
+            OAM_START..=OAM_END => self.ppu.read_byte(address),
+            // FF00 (Joypad)
             JOYPAD_INPUT => self.joypad_input,
+            // FF01 (Serial transfer data)
             SERIAL_SB => self.serial_sb,
+            // FF02 (Serial transfer control)
             SERIAL_SC => self.serial_sc,
-            DIV..=TAC => self.timer.read_byte(address),
+            // FF04 - FF07 (Timer Registers)
+            TIMER_START..=TIMER_END => self.timer.read_byte(address),
+            // FF0F (Interrupt Flag Register)
             INTERRUPT_FLAG => self.interrupt_flag,
+            // FF10 - FF26 (Audio Channel Control)
             AUDIO_START..=AUDIO_END => self.audio[address as usize - AUDIO_START as usize],
+            // FF30 - FF3F (Audio Wave storage)
             WAVE_PATTERN_START..=WAVE_PATTERN_END => {
                 self.wave_pattern[address as usize - WAVE_PATTERN_START as usize]
             }
+            // FF40 - FF4B (PPU Registers)
             PPU_IO_START..=PPU_IO_END => self.ppu.read_byte(address),
+            // FF4D (Speed Switch)
             SPEED_SWITCH => self.speed_switch,
-            // IO END
+            // FF80 - FFFE (High RAM)
             HRAM_START..=HRAM_END => self.hram[address as usize - HRAM_START as usize],
+            // FFFF (Interrupt Enable Register)
             INTERRUPT_ENABLE => self.interrupt_enable,
             _ => panic!("Unknown address: {:#X} Can't read byte.", address),
         }
     }
 
     pub fn write_byte(&mut self, address: u16, value: u8) {
-        if let IO_START..=IO_END = address {
-            if address as usize - IO_START as usize == 1 {
-                print!("{}", char::from(value));
-            }
+        // Test rom logs
+        if address == SERIAL_SB {
+            print!("{}", char::from(value));
         }
 
         match address {
+            // 0000 - 7FFF (Cartridge ROM Banks)
             CARTRIDGE_ROM_START..=CARTRIDGE_ROM_END => self.cartridge.write(address, value),
+            // 8000 - 9FFF (Video Ram)
             VRAM_START..=VRAM_END => self.ppu.write_byte(address, value),
+            // A000 - BFFF (Cartridge RAM Banks)
             CARTRIDGE_RAM_START..=CARTRIDGE_RAM_END => self.cartridge.write(address, value),
+            // C000 - DFFF (Work RAM)
             WRAM_START..=WRAM_END => self.wram[address as usize - WRAM_START as usize] = value,
-            // IO START
+            // FF00 - FF7F (Object Attribute Memory)
+            OAM_START..=OAM_END => self.ppu.write_byte(address, value),
+            // FF00 (Joypad)
             JOYPAD_INPUT => self.joypad_input = value,
+            // FF01 (Serial transfer data)
             SERIAL_SB => self.serial_sb = value,
+            // FF02 (Serial transfer control)
             SERIAL_SC => self.serial_sc = value,
-            DIV..=TAC => self.timer.write_byte(address, value),
+            // FF04 - FF07 (Timer Registers)
+            TIMER_START..=TIMER_END => self.timer.write_byte(address, value),
+            // FF0F (Interrupt Flag Register)
             INTERRUPT_FLAG => self.interrupt_flag = value,
+            // FF10 - FF26 (Audio Channel Control)
             AUDIO_START..=AUDIO_END => self.audio[address as usize - AUDIO_START as usize] = value,
+            // FF30 - FF3F (Audio Wave storage)
             WAVE_PATTERN_START..=WAVE_PATTERN_END => {
                 self.wave_pattern[address as usize - WAVE_PATTERN_START as usize] = value;
             }
+            // FF40 - FF4B (PPU Registers)
             PPU_IO_START..=PPU_IO_END => self.ppu.write_byte(address, value),
+            // FF4D (Speed Switch)
             SPEED_SWITCH => self.speed_switch = value,
-            // IO END
+            // FF80 - FFFE (High RAM)
             HRAM_START..=HRAM_END => self.hram[address as usize - HRAM_START as usize] = value,
+            // FFFF (Interrupt Enable Register)
             INTERRUPT_ENABLE => self.interrupt_enable = value,
             _ => panic!("Unknown address: {:#X} Can't write byte.", address),
         }

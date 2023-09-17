@@ -49,7 +49,8 @@ impl Cpu {
     }
 
     pub fn step(&mut self) -> u8 {
-        let (i_enable, i_flag) = self.memory_bus.get_interupt_flags();
+        let i_enable = self.memory_bus.get_interrupt_enable();
+        let i_flag = self.memory_bus.get_interrupt_flag();
 
         if self.halted && self.interrupt.interrupt_enabled(i_enable, i_flag) {
             // Exit halt if any interrupt is enabled.

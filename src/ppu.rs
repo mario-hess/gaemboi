@@ -1,8 +1,7 @@
+use crate::memory_bus::{OAM_END, OAM_START, VRAM_END, VRAM_START};
+
 pub const VRAM_SIZE: usize = 8192;
 const OAM_SIZE: usize = 160;
-
-pub const VRAM_START: u16 = 0x8000;
-pub const VRAM_END: u16 = 0x9FFF;
 
 const LCD_CONTROL: u16 = 0xFF40;
 const LCD_STATUS: u16 = 0xFF41;
@@ -17,6 +16,9 @@ const OBJECT_PALETTE_1: u16 = 0xFF49;
 const WINDOW_Y: u16 = 0xFF4A;
 const WINDOW_X: u16 = 0xFF4B;
 
+pub const SCREEN_WIDTH: usize = 160;
+pub const SCREEN_HEIGHT: usize = 144;
+pub const SCALE: u8 = 4;
 
 #[allow(clippy::upper_case_acronyms)]
 #[allow(non_camel_case_types)]
@@ -69,6 +71,7 @@ impl Ppu {
     pub fn read_byte(&self, address: u16) -> u8 {
         match address {
             VRAM_START..=VRAM_END => self.video_ram[(address - VRAM_START) as usize],
+            OAM_START..=OAM_END => self.oam[(address - OAM_START) as usize],
             LCD_CONTROL => self.lcd_control,
             LCD_STATUS => self.lcd_status,
             SCROLL_Y => self.scroll_y,
@@ -88,6 +91,7 @@ impl Ppu {
     pub fn write_byte(&mut self, address: u16, value: u8) {
         match address {
             VRAM_START..=VRAM_END => self.video_ram[(address - VRAM_START) as usize] = value,
+            OAM_START..=OAM_END => self.oam[(address - OAM_START) as usize] = value,
             LCD_CONTROL => self.lcd_control = value,
             LCD_STATUS => self.lcd_status = value,
             SCROLL_Y => self.scroll_y = value,
