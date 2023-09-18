@@ -1,4 +1,5 @@
-use crate::ppu::Color;
+use sdl2::pixels::Color;
+use crate::ppu::{BLACK, DARK, LIGHT, WHITE};
 
 const TILE_WIDTH: usize = 8;
 const TILE_HEIGHT: usize = 8;
@@ -12,13 +13,13 @@ pub struct Tile {
 
 impl Tile {
     pub fn new(bytes: [u8; 16]) -> Self {
-        let mut data = [[Color::White; TILE_WIDTH]; TILE_HEIGHT];
+        let mut data = [[WHITE; TILE_WIDTH]; TILE_HEIGHT];
 
         for row in 0..TILE_HEIGHT {
             let first_byte = bytes[row * 2];
             let second_byte = bytes[row * 2 + 1];
 
-            let mut row_data = [Color::White; TILE_WIDTH];
+            let mut row_data = [WHITE; TILE_WIDTH];
 
             for (index, row_color) in row_data.iter_mut().enumerate().take(TILE_WIDTH) {
                 let bit1 = (first_byte >> (7 - index)) & 0x01;
@@ -27,10 +28,10 @@ impl Tile {
                 // The first byte specifies the least significant bit of the color ID of each pixel,
                 // and the second byte specifies the most significant bit.
                 let color = match (bit2, bit1) {
-                    (0, 0) => Color::White,
-                    (0, 1) => Color::Light,
-                    (1, 0) => Color::Dark,
-                    (1, 1) => Color::Black,
+                    (0, 0) => WHITE,
+                    (0, 1) => LIGHT,
+                    (1, 0) => DARK,
+                    (1, 1) => BLACK,
                     _ => unreachable!(),
                 };
 

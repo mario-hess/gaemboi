@@ -1,6 +1,7 @@
-mod screen;
+pub mod screen;
 mod tile;
 
+use sdl2::pixels::Color;
 use crate::memory_bus::{OAM_END, OAM_START, VRAM_END, VRAM_START};
 
 pub const VRAM_SIZE: usize = 8192;
@@ -19,13 +20,11 @@ const OBJECT_PALETTE_1: u16 = 0xFF49;
 const WINDOW_Y: u16 = 0xFF4A;
 const WINDOW_X: u16 = 0xFF4B;
 
-#[derive(Copy, Clone, Debug)]
-pub enum Color {
-    White,
-    Light,
-    Dark,
-    Black,
-}
+pub const BLACK: Color = Color::RGB(0, 0, 0);
+pub const DARK: Color = Color::RGB(96, 96, 96);
+pub const LIGHT: Color = Color::RGB(192, 192, 192);
+pub const WHITE: Color = Color::RGB(255, 255, 255);
+
 
 #[allow(clippy::upper_case_acronyms)]
 #[allow(non_camel_case_types)]
