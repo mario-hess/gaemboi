@@ -21,7 +21,7 @@ impl Machine {
 
         loop {
             //let frame_start_time = std::time::Instant::now();
-            
+
             while self.clock.cycles_passed <= self.clock.cycles_per_frame {
                 let m_cycles = self.cpu.step();
                 self.cpu.memory_bus.tick(m_cycles);

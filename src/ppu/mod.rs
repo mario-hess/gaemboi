@@ -1,3 +1,6 @@
+mod screen;
+mod tile;
+
 use crate::memory_bus::{OAM_END, OAM_START, VRAM_END, VRAM_START};
 
 pub const VRAM_SIZE: usize = 8192;
@@ -16,9 +19,14 @@ const OBJECT_PALETTE_1: u16 = 0xFF49;
 const WINDOW_Y: u16 = 0xFF4A;
 const WINDOW_X: u16 = 0xFF4B;
 
-pub const SCREEN_WIDTH: usize = 160;
-pub const SCREEN_HEIGHT: usize = 144;
-pub const SCALE: u8 = 4;
+#[derive(Copy, Clone, Debug)]
+pub enum Color {
+    White,
+    Light,
+    Dark,
+    Black,
+}
+
 
 #[allow(clippy::upper_case_acronyms)]
 #[allow(non_camel_case_types)]
@@ -30,7 +38,6 @@ enum Mode {
 }
 
 pub struct Ppu {
-    tile_set: [[u8; 8]; 384],
     video_ram: [u8; VRAM_SIZE],
     oam: [u8; OAM_SIZE],
     lcd_control: u8,
@@ -50,7 +57,6 @@ pub struct Ppu {
 impl Ppu {
     pub fn new() -> Self {
         Self {
-            tile_set: [[0; 8]; 384],
             video_ram: [0; VRAM_SIZE],
             oam: [0; OAM_SIZE],
             lcd_control: 0,
