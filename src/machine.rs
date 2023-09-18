@@ -39,6 +39,16 @@ impl Machine {
             "gemboi",
         );
 
+        let tilemap_width = 16 * 8;
+        let tilemap_height = 32 * 8;
+        let mut tilemap_canvas = self.create_canvas(
+            &video_subsystem,
+            tilemap_width,
+            tilemap_height,
+            SCALE,
+            "tilemap",
+        );
+
         let mut event_pump = sdl_context.event_pump().unwrap();
 
         while !self.keyboard.escape_pressed {
@@ -46,6 +56,9 @@ impl Machine {
 
             viewport_canvas.set_draw_color(WHITE);
             viewport_canvas.clear();
+
+            tilemap_canvas.set_draw_color(WHITE);
+            tilemap_canvas.clear();
 
             let frame_start_time = std::time::Instant::now();
 
@@ -58,6 +71,7 @@ impl Machine {
             self.clock.reset();
 
             viewport_canvas.present();
+            tilemap_canvas.present();
 
             let elapsed_time = frame_start_time.elapsed();
             if elapsed_time < frame_duration {
