@@ -12,6 +12,7 @@ mod memory_bus;
 mod ppu;
 mod registers;
 mod timer;
+mod keyboard;
 
 use crate::machine::Machine;
 
