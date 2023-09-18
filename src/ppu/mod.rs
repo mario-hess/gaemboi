@@ -1,8 +1,8 @@
 pub mod screen;
-mod tile;
+pub mod tile;
 
-use sdl2::pixels::Color;
 use crate::memory_bus::{OAM_END, OAM_START, VRAM_END, VRAM_START};
+use sdl2::pixels::Color;
 
 pub const VRAM_SIZE: usize = 8192;
 const OAM_SIZE: usize = 160;
@@ -24,7 +24,6 @@ pub const BLACK: Color = Color::RGB(0, 0, 0);
 pub const DARK: Color = Color::RGB(96, 96, 96);
 pub const LIGHT: Color = Color::RGB(192, 192, 192);
 pub const WHITE: Color = Color::RGB(255, 255, 255);
-
 
 #[allow(clippy::upper_case_acronyms)]
 #[allow(non_camel_case_types)]
