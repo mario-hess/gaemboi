@@ -27,7 +27,6 @@ pub enum Color {
     Black,
 }
 
-
 #[allow(clippy::upper_case_acronyms)]
 #[allow(non_camel_case_types)]
 enum Mode {
