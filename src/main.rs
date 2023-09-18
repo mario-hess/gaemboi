@@ -5,11 +5,11 @@ use std::io::Read;
 mod cartridge;
 mod clock;
 mod cpu;
-mod ppu;
 mod instruction;
 mod interrupt;
 mod machine;
 mod memory_bus;
+mod ppu;
 mod registers;
 mod timer;
 
