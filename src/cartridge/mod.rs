@@ -1,8 +1,10 @@
 mod core;
+mod mbc0;
 mod mbc1;
 mod mbc3;
 
 use crate::cartridge::core::Core;
+use crate::cartridge::mbc0::Mbc0;
 use crate::cartridge::mbc1::Mbc1;
 use crate::cartridge::mbc3::Mbc3;
 
@@ -36,6 +38,7 @@ impl Cartridge {
         let core = Core::new(&rom_data);
 
         let mbc: Box<dyn MemoryBankController> = match rom_data[CARTRIDGE_TYPE_ADDRESS] {
+            0x0 => Box::new(Mbc0::new()),
             0x01..=0x03 => Box::new(Mbc1::new()),
             0x0F..=0x13 => Box::new(Mbc3::new()),
             _ => {
