@@ -1,8 +1,12 @@
 pub mod screen;
 pub mod tile;
 
-use crate::memory_bus::{OAM_END, OAM_START, VRAM_END, VRAM_START};
+use crate::memory_bus::{MemoryBus, OAM_END, OAM_START, VRAM_END, VRAM_START};
+use crate::ppu::tile::{Tile, TILE_HEIGHT, TILE_WIDTH};
 use sdl2::pixels::Color;
+use sdl2::rect::Point;
+use sdl2::render::Canvas;
+use sdl2::video::Window;
 
 pub const VRAM_SIZE: usize = 8192;
 const OAM_SIZE: usize = 160;
@@ -25,6 +29,10 @@ pub const DARK: Color = Color::RGB(96, 96, 96);
 pub const LIGHT: Color = Color::RGB(192, 192, 192);
 pub const WHITE: Color = Color::RGB(255, 255, 255);
 
+pub const TILEMAP_WIDTH: usize = 256;
+pub const TILEMAP_HEIGHT: usize = 64;
+const TILES_PER_ROW: usize = 32;
+
 #[allow(clippy::upper_case_acronyms)]
 #[allow(non_camel_case_types)]
 enum Mode {
@@ -34,6 +42,7 @@ enum Mode {
     VRam = 3,
 }
 
+#[derive(Copy, Clone)]
 pub struct Ppu {
     video_ram: [u8; VRAM_SIZE],
     oam: [u8; OAM_SIZE],
@@ -68,6 +77,69 @@ impl Ppu {
             object_palette_1: 0,
             window_y: 0,
             window_x: 0,
+        }
+    }
+
+    pub fn debug_draw_tile_table(
+        self,
+        memory_bus: &mut MemoryBus,
+        tile_data_canvas: &mut Canvas<Window>,
+    ) {
+        // Tile data is stored in VRAM in the memory area at 0x8000-0x97FF.
+        // Block 0 at 0x8000–0x87FF, Objects 0–127.
+        // Block 1 at 0x8800–0x8FFF, Objects 128–255.
+        // Block 2 at 0x9000–0x97FF, (Can't use, Objects always use “0x8000 addressing”).
+        // 0x8000 addressing: unsigned addressing (Block 0 and 1).
+        // 0x8800 addressing: signed addressing (Block 2 and 1).
+
+        // 4096 bytes
+        let mut tile_data = Vec::<u8>::new();
+        for i in VRAM_START..=0x8FFF {
+            tile_data.push(memory_bus.read_byte(i));
+        }
+
+        let mut tile_table = Vec::<Tile>::new();
+        // Each tile taking 16 bytes
+        for chunk in tile_data.chunks(16) {
+            let mut tile_bytes = [0; 16];
+            tile_bytes.copy_from_slice(chunk);
+
+            let tile = Tile::new(tile_bytes);
+            tile_table.push(tile);
+        }
+
+        for row in 0..TILE_HEIGHT {
+            for col in 0..TILEMAP_WIDTH {
+                let tile_index = row * TILES_PER_ROW + col;
+
+                if tile_index < tile_table.len() {
+                    let tile = &tile_table[tile_index];
+
+                    let x = col * TILE_WIDTH;
+                    let y = row * TILE_HEIGHT;
+
+                    for (tile_row, row_pixels) in tile.data.iter().enumerate() {
+                        for (tile_col, pixel) in row_pixels.iter().enumerate() {
+                            let color = match *pixel {
+                                WHITE => WHITE,
+                                LIGHT => LIGHT,
+                                DARK => DARK,
+                                BLACK => BLACK,
+                                _ => unreachable!(),
+                            };
+
+                            tile_data_canvas.set_draw_color(color);
+
+                            tile_data_canvas
+                                .draw_point(Point::new(
+                                    x as i32 + tile_col as i32,
+                                    y as i32 + tile_row as i32,
+                                ))
+                                .unwrap();
+                        }
+                    }
+                }
+            }
         }
     }
 

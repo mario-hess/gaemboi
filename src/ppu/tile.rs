@@ -1,8 +1,8 @@
 use crate::ppu::{BLACK, DARK, LIGHT, WHITE};
 use sdl2::pixels::Color;
 
-const TILE_WIDTH: usize = 8;
-const TILE_HEIGHT: usize = 8;
+pub const TILE_WIDTH: usize = 8;
+pub const TILE_HEIGHT: usize = 8;
 
 // In the Gameboy’s 2BPP format, 2 bytes make up a row of 8 pixels.
 // Each bit of the first byte is combined with the bit at the same
