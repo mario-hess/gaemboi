@@ -30,13 +30,13 @@ impl LCD_control {
 
     pub fn get_lcd_control(self) -> u8 {
         let bg_window_enable: u8 = if self.bg_window_enable { 0x01 } else { 0 };
-        let object_enable: u8 = if self.bg_window_enable { 0x02 } else { 0 };
-        let object_size: u8 = if self.bg_window_enable { 0x04 } else { 0 };
-        let bg_tilemap: u8 = if self.bg_window_enable { 0x08 } else { 0 };
-        let addressing_mode: u8 = if self.bg_window_enable { 0x010 } else { 0 };
-        let window_enable: u8 = if self.bg_window_enable { 0x20 } else { 0 };
-        let window_tilemap: u8 = if self.bg_window_enable { 0x40 } else { 0 };
-        let lcd_enable: u8 = if self.bg_window_enable { 0x80 } else { 0 };
+        let object_enable: u8 = if self.object_enable { 0x02 } else { 0 };
+        let object_size: u8 = if self.object_size { 0x04 } else { 0 };
+        let bg_tilemap: u8 = if self.bg_tilemap { 0x08 } else { 0 };
+        let addressing_mode: u8 = if self.addressing_mode { 0x010 } else { 0 };
+        let window_enable: u8 = if self.window_enable { 0x20 } else { 0 };
+        let window_tilemap: u8 = if self.window_tilemap { 0x40 } else { 0 };
+        let lcd_enable: u8 = if self.lcd_enable { 0x80 } else { 0 };
 
         bg_window_enable
             | object_enable
