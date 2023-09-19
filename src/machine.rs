@@ -1,5 +1,3 @@
-use crate::ppu::{BLACK, DARK, LIGHT, WHITE, TILEMAP_WIDTH, TILEMAP_HEIGHT};
-use sdl2::rect::Point;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
 use sdl2::VideoSubsystem;
@@ -7,9 +5,9 @@ use sdl2::VideoSubsystem;
 use crate::clock::Clock;
 use crate::cpu::Cpu;
 use crate::keyboard::Keyboard;
+use crate::ppu::WHITE;
 use crate::ppu::screen::{SCALE, SCREEN_HEIGHT, SCREEN_WIDTH};
-use crate::ppu::tile::Tile;
-
+use crate::memory_bus::{TILE_TABLE_WIDTH, TILE_TABLE_HEIGHT};
 pub const FPS: f32 = 60.0;
 
 pub struct Machine {
@@ -43,8 +41,8 @@ impl Machine {
 
         let mut tile_table_canvas = self.create_canvas(
             &video_subsystem,
-            TILEMAP_WIDTH,
-            TILEMAP_HEIGHT,
+            TILE_TABLE_WIDTH,
+            TILE_TABLE_HEIGHT,
             SCALE,
             "tile_table",
         );
@@ -72,8 +70,7 @@ impl Machine {
 
             self.cpu
                 .memory_bus
-                .ppu
-                .debug_draw_tile_table(&mut self.cpu.memory_bus, &mut tile_table_canvas);
+                .debug_draw_tile_table(&mut tile_table_canvas);
 
             viewport_canvas.present();
             tile_table_canvas.present();
