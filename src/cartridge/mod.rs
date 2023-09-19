@@ -38,7 +38,10 @@ impl Cartridge {
         let mbc: Box<dyn MemoryBankController> = match rom_data[CARTRIDGE_TYPE_ADDRESS] {
             0x01..=0x03 => Box::new(Mbc1::new()),
             0x0F..=0x13 => Box::new(Mbc3::new()),
-            _ => panic!("Error: Cartridge type not supported"),
+            _ => {
+                println!("{:#X}", rom_data[CARTRIDGE_TYPE_ADDRESS]);
+                panic!("Error: Cartridge type not supported");
+            },
         };
 
         Self { core, mbc }
