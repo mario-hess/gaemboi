@@ -5,9 +5,9 @@ use sdl2::VideoSubsystem;
 use crate::clock::Clock;
 use crate::cpu::Cpu;
 use crate::keyboard::Keyboard;
-use crate::ppu::WHITE;
 use crate::ppu::screen::{SCALE, SCREEN_HEIGHT, SCREEN_WIDTH};
-use crate::memory_bus::{TILE_TABLE_WIDTH, TILE_TABLE_HEIGHT};
+use crate::ppu::{TILE_TABLE_HEIGHT, TILE_TABLE_WIDTH, WHITE};
+
 pub const FPS: f32 = 60.0;
 
 pub struct Machine {
@@ -68,9 +68,7 @@ impl Machine {
 
             self.clock.reset();
 
-            self.cpu
-                .memory_bus
-                .debug_draw_tile_table(&mut tile_table_canvas);
+            self.debug_draw(&mut tile_table_canvas);
 
             viewport_canvas.present();
             tile_table_canvas.present();
@@ -102,5 +100,12 @@ impl Machine {
             .unwrap();
 
         canvas
+    }
+
+    fn debug_draw(&mut self, tile_table_canvas: &mut Canvas<Window>) {
+        self.cpu
+            .memory_bus
+            .ppu
+            .debug_draw_tile_table(tile_table_canvas);
     }
 }

@@ -1,11 +1,6 @@
 use crate::cartridge::Cartridge;
-use crate::ppu::{Ppu, BLACK, DARK, LIGHT, WHITE};
-use crate::ppu::tile::{Tile, TILE_HEIGHT, TILE_WIDTH};
+use crate::ppu::Ppu;
 use crate::timer::Timer;
-
-use sdl2::rect::Point;
-use sdl2::render::Canvas;
-use sdl2::video::Window;
 
 pub const CARTRIDGE_ROM_START: u16 = 0x0000;
 pub const CARTRIDGE_ROM_END: u16 = 0x7FFF;
@@ -45,11 +40,6 @@ const HRAM_START: u16 = 0xFF80;
 const HRAM_END: u16 = 0xFFFE;
 
 const INTERRUPT_ENABLE: u16 = 0xFFFF;
-
-pub const TILE_TABLE_WIDTH: usize = 256;
-pub const TILE_TABLE_HEIGHT: usize = 96;
-const TILE_TABLE_PER_ROW: usize = 32;
-
 
 /*
   0000-3FFF   16KB ROM Bank 00     (in cartridge, fixed at bank 00)
@@ -201,72 +191,4 @@ impl MemoryBus {
             _ => panic!("Unknown address: {:#X} Can't write byte.", address),
         }
     }
-
-    pub fn debug_draw_tile_table(
-        &mut self,
-        tile_data_canvas: &mut Canvas<Window>,
-    ) {
-        // Tile data is stored in VRAM in the memory area at 0x8000-0x97FF.
-        // Block 0 at 0x8000–0x87FF, Objects 0–127.
-        // Block 1 at 0x8800–0x8FFF, Objects 128–255.
-        // Block 2 at 0x9000–0x97FF, (Can't use, Objects always use “0x8000 addressing”).
-        // 0x8000 addressing: unsigned addressing (Block 0 and 1).
-        // 0x8800 addressing: signed addressing (Block 2 and 1).
-
-        // 6144 bytes
-        let mut tile_data = Vec::<u8>::new();
-
-        let addressing_mode = self.ppu.get_lcd_control4();
-
-        self.ppu.set_lcd_control4(false);
-        for i in VRAM_START..=VRAM_END {
-            tile_data.push(self.read_byte(i));
-        }
-        self.ppu.set_lcd_control4(addressing_mode);
-
-        let mut tile_table = Vec::<Tile>::new();
-        // Each tile taking 16 bytes
-        for chunk in tile_data.chunks(16) {
-            let mut tile_bytes = [0; 16];
-            tile_bytes.copy_from_slice(chunk);
-
-            let tile = Tile::new(tile_bytes);
-            tile_table.push(tile);
-        }
-
-        for row in 0..TILE_HEIGHT {
-            for col in 0..TILE_TABLE_WIDTH {
-                let tile_index = row * TILE_TABLE_PER_ROW + col;
-
-                if tile_index < tile_table.len() {
-                    let tile = &tile_table[tile_index];
-
-                    let x = col * TILE_WIDTH;
-                    let y = row * TILE_HEIGHT;
-
-                    for (tile_row, row_pixels) in tile.data.iter().enumerate() {
-                        for (tile_col, pixel) in row_pixels.iter().enumerate() {
-                            let color = match *pixel {
-                                WHITE => WHITE,
-                                LIGHT => LIGHT,
-                                DARK => DARK,
-                                BLACK => BLACK,
-                                _ => unreachable!(),
-                            };
-
-                            tile_data_canvas.set_draw_color(color);
-
-                            tile_data_canvas
-                                .draw_point(Point::new(
-                                    x as i32 + tile_col as i32,
-                                    y as i32 + tile_row as i32,
-                                ))
-                                .unwrap();
-                        }
-                    }
-                }
-            }
-        }
-    }
-
 }
