@@ -1,7 +1,9 @@
+mod lcd_control;
 pub mod screen;
 pub mod tile;
 
 use crate::memory_bus::{OAM_END, OAM_START, VRAM_END, VRAM_START};
+use crate::ppu::lcd_control::LCD_control;
 use crate::ppu::tile::{Tile, TILE_HEIGHT, TILE_WIDTH};
 use sdl2::pixels::Color;
 use sdl2::rect::Point;
@@ -46,7 +48,7 @@ enum Mode {
 pub struct Ppu {
     video_ram: [u8; VRAM_SIZE],
     oam: [u8; OAM_SIZE],
-    lcd_control: u8,
+    lcd_control: LCD_control,
     lcd_status: u8,
     scroll_y: u8,
     scroll_x: u8,
@@ -65,7 +67,7 @@ impl Ppu {
         Self {
             video_ram: [0; VRAM_SIZE],
             oam: [0; OAM_SIZE],
-            lcd_control: 0,
+            lcd_control: LCD_control::new(),
             lcd_status: 0,
             scroll_y: 0,
             scroll_x: 0,
@@ -84,7 +86,7 @@ impl Ppu {
         match address {
             VRAM_START..=VRAM_END => self.video_ram[(address - VRAM_START) as usize],
             OAM_START..=OAM_END => self.oam[(address - OAM_START) as usize],
-            LCD_CONTROL => self.lcd_control,
+            LCD_CONTROL => self.lcd_control.get_lcd_control(),
             LCD_STATUS => self.lcd_status,
             SCROLL_Y => self.scroll_y,
             SCROLL_X => self.scroll_x,
@@ -104,7 +106,7 @@ impl Ppu {
         match address {
             VRAM_START..=VRAM_END => self.video_ram[(address - VRAM_START) as usize] = value,
             OAM_START..=OAM_END => self.oam[(address - OAM_START) as usize] = value,
-            LCD_CONTROL => self.lcd_control = value,
+            LCD_CONTROL => self.lcd_control.set_lcd_control(value),
             LCD_STATUS => self.lcd_status = value,
             SCROLL_Y => self.scroll_y = value,
             SCROLL_X => self.scroll_x = value,
@@ -120,17 +122,6 @@ impl Ppu {
         }
     }
 
-    // LCDC.4 — BG and Window tile data area
-    //This bit controls which addressing mode the BG and Window use to pick tiles.
-    //Objects (sprites) aren’t affected by this, and will always use the $8000 addressing mode.
-    pub fn get_lcd_control4(self) -> bool {
-        (self.lcd_control >> 4) & 0x01 != 0
-    }
-
-    pub fn set_lcd_control4(&mut self, value: bool) {
-        self.lcd_control = (self.lcd_control & !(1 << 4)) | ((value as u8) << 4);
-    }
-
     pub fn debug_draw_tile_table(&mut self, tile_data_canvas: &mut Canvas<Window>) {
         // Tile data is stored in VRAM in the memory area at 0x8000-0x97FF.
         // Block 0 at 0x8000–0x87FF, Objects 0–127.
@@ -142,13 +133,9 @@ impl Ppu {
         // 6144 bytes
         let mut tile_data = Vec::<u8>::new();
 
-        let addressing_mode = self.get_lcd_control4();
-
-        self.set_lcd_control4(false);
         for i in VRAM_START..=VRAM_END {
             tile_data.push(self.read_byte(i));
         }
-        self.set_lcd_control4(addressing_mode);
 
         let mut tile_table = Vec::<Tile>::new();
         // Each tile taking 16 bytes
