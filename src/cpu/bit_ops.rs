@@ -1,3 +1,9 @@
+/**
+ * @file    cpu/bit_ops.rs
+ * @brief   Implementation of bit operation instructions.
+ * @author  Mario Hess
+ * @date    September 20, 2023
+ */
 use crate::cpu::Cpu;
 use crate::instruction::{CycleDuration, Target};
 

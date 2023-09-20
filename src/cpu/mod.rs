@@ -1,3 +1,9 @@
+/**
+ * @file    cpu/mod.rs
+ * @brief   Overarching construct, facilitates instruction execution coordination. 
+ * @author  Mario Hess
+ * @date    September 20, 2023
+ */
 mod arithmetic;
 mod bit_ops;
 mod control;

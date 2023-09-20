@@ -1,3 +1,9 @@
+/**
+ * @file    ppu/lcd_control.rs
+ * @brief   Handles the PPU's LCD Control register.
+ * @author  Mario Hess
+ * @date    September 20, 2023
+ */
 const TILEMAP_ADDRESS_1: u16 = 0x9800;
 const TILEMAP_ADDRESS_2: u16 = 0x9C00;
 
@@ -59,9 +65,6 @@ impl LCD_control {
         self.lcd_enable = value & 0x80 == 0x80;
     }
 
-    // LCDC.3 — BG tile map area
-    // This bit works similarly to LCDC bit 6: if the bit is clear (0),
-    // the BG uses tilemap $9800, otherwise tilemap $9C00.
     pub fn bg_tilemap_address(self) -> u16 {
         if !self.bg_tilemap {
             TILEMAP_ADDRESS_1
@@ -70,9 +73,6 @@ impl LCD_control {
         }
     }
 
-    // LCDC.6 — Window tile map area
-    // This bit controls which background map the Window uses for rendering.
-    // When it’s clear (0), the $9800 tilemap is used, otherwise it’s the $9C00 one.
     pub fn window_tilemap_address(self) -> u16 {
         if !self.window_tilemap {
             TILEMAP_ADDRESS_1

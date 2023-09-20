@@ -1,3 +1,9 @@
+/**
+ * @file    clock.rs
+ * @brief   Controls the CPU frequency.
+ * @author  Mario Hess
+ * @date    September 20, 2023
+ */
 use crate::machine::FPS;
 
 // 4.194304 MHz

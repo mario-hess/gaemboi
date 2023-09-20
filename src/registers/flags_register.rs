@@ -1,3 +1,9 @@
+/**
+ * @file    registers/flags_register.rs
+ * @brief   Handles CPU flag registers.
+ * @author  Mario Hess
+ * @date    September 20, 2023
+ */
 use crate::instruction::Flag;
 
 const ZERO_FLAG_BYTE_POSITION: u8 = 7;

@@ -1,3 +1,9 @@
+/**
+ * @file    interrupt.rs
+ * @brief   Handles CPU interrupts.
+ * @author  Mario Hess
+ * @date    September 20, 2023
+ */
 use crate::cpu::Cpu;
 
 const VBLANK_MASK: u8 = 0x01;

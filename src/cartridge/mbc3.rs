@@ -1,3 +1,9 @@
+/**
+ * @file    cartridge/mbc3.rs
+ * @brief   MBC3 Memory Bank Controller implementation.
+ * @author  Mario Hess
+ * @date    September 20, 2023
+ */
 use crate::cartridge::core::Core;
 use crate::cartridge::{MemoryBankController, MASK_MSB, RAM_ADDRESS};
 
@@ -31,7 +37,6 @@ impl MemoryBankController for Mbc3 {
             }
             // 0x2000 - 0x3FFF (ROM bank number)
             0x2 | 0x3 => {
-                // Specify the lower 5 bits
                 let bank_number = if value == 0 { 1 } else { value };
                 core.rom_bank = (core.rom_bank & 0b0110_0000) | (bank_number & 0b0111_1111);
             }

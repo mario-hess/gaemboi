@@ -1,3 +1,9 @@
+/**
+ * @file    cartridge/core.rs
+ * @brief   Initializes cartridge ROM-, and RAM-Bank data.
+ * @author  Mario Hess
+ * @date    September 20, 2023
+ */
 use crate::cartridge::{RAM_BANK_SIZE, RAM_SIZE_ADDRESS, ROM_BANK_SIZE};
 
 pub struct Core {

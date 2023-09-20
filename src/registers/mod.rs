@@ -1,3 +1,9 @@
+/**
+ * @file    registers/mod.rs
+ * @brief   Module for handling CPU registers.
+ * @author  Mario Hess
+ * @date    September 20, 2023
+ */
 mod flags_register;
 
 use crate::instruction::Target;
@@ -104,10 +110,6 @@ impl Registers {
 
     pub fn set_e(&mut self, value: u8) {
         self.e = value;
-    }
-
-    pub fn get_f(&self) -> u8 {
-        self.flags.into()
     }
 
     pub fn get_h(&self) -> u8 {

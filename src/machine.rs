@@ -1,3 +1,9 @@
+/**
+ * @file    machine.rs
+ * @brief   Orchestrates the emulation loop, utilizing SDL2 for rendering and input handling.
+ * @author  Mario Hess
+ * @date    September 20, 2023
+ */
 use sdl2::render::Canvas;
 use sdl2::video::Window;
 use sdl2::VideoSubsystem;

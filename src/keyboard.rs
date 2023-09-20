@@ -1,3 +1,9 @@
+/**
+ * @file    keyboard.rs
+ * @brief   Manages keyboard input and key states.
+ * @author  Mario Hess
+ * @date    September 20, 2023
+ */
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::EventPump;

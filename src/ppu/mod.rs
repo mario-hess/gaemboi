@@ -1,3 +1,9 @@
+/**
+ * @file    ppu/mod.rs
+ * @brief   Handles the Picture Processing Unit for graphics rendering.
+ * @author  Mario Hess
+ * @date    September 20, 2023
+ */
 mod lcd_control;
 pub mod screen;
 pub mod tile;
@@ -123,22 +129,16 @@ impl Ppu {
     }
 
     pub fn debug_draw_tile_table(&mut self, tile_data_canvas: &mut Canvas<Window>) {
-        // Tile data is stored in VRAM in the memory area at 0x8000-0x97FF.
-        // Block 0 at 0x8000–0x87FF, Objects 0–127.
-        // Block 1 at 0x8800–0x8FFF, Objects 128–255.
-        // Block 2 at 0x9000–0x97FF, (Can't use, Objects always use “0x8000 addressing”).
-        // 0x8000 addressing: unsigned addressing (Block 0 and 1).
-        // 0x8800 addressing: signed addressing (Block 2 and 1).
-
-        // 6144 bytes
         let mut tile_data = Vec::<u8>::new();
 
+        // Tile data is stored in VRAM in the memory area at 0x8000-0x97FF.
         for i in VRAM_START..=VRAM_END {
             tile_data.push(self.read_byte(i));
         }
 
         let mut tile_table = Vec::<Tile>::new();
-        // Each tile taking 16 bytes
+
+        // Each tile takes 16 bytes
         for chunk in tile_data.chunks(16) {
             let mut tile_bytes = [0; 16];
             tile_bytes.copy_from_slice(chunk);

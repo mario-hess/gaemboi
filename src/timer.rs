@@ -1,3 +1,9 @@
+/**
+ * @file    timer.rs
+ * @brief   Handles the timer and divider registers.
+ * @author  Mario Hess
+ * @date    September 20, 2023
+ */
 use crate::interrupt::TIMER_MASK;
 
 const DIV: u16 = 0xFF04;

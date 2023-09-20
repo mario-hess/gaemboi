@@ -1,3 +1,9 @@
+/**
+ * @file    cartridge/mod.rs
+ * @brief   Module for constructing cartridges with memory bank controllers.
+ * @author  Mario Hess
+ * @date    September 20, 2023
+ */
 mod core;
 mod mbc0;
 mod mbc1;
@@ -13,13 +19,9 @@ const RAM_BANK_SIZE: usize = 8 * 1024;
 
 const RAM_ADDRESS: usize = 0xA000;
 const CARTRIDGE_TYPE_ADDRESS: usize = 0x147;
-
-// const ROM_SIZE_ADDRESS: usize = 0x0148;
 const RAM_SIZE_ADDRESS: usize = 0x149;
 
 const MASK_MSB: u16 = 0xF000;
-
-// const GAME_TYPE: u16 = 0x0143;
 
 pub trait MemoryBankController {
     fn read_rom(&self, core: &Core, address: u16) -> u8;
@@ -41,10 +43,7 @@ impl Cartridge {
             0x0 => Box::new(Mbc0::new()),
             0x01..=0x03 => Box::new(Mbc1::new()),
             0x0F..=0x13 => Box::new(Mbc3::new()),
-            _ => {
-                println!("{:#X}", rom_data[CARTRIDGE_TYPE_ADDRESS]);
-                panic!("Error: Cartridge type not supported");
-            },
+            _ => panic!("Error: Cartridge type not supported"),
         };
 
         Self { core, mbc }

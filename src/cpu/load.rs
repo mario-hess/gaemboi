@@ -1,3 +1,9 @@
+/**
+ * @file    cpu/load.rs
+ * @brief   Implementation of load instructions.
+ * @author  Mario Hess
+ * @date    September 20, 2023
+ */
 use crate::cpu::Cpu;
 use crate::instruction::{CycleDuration, Target};
 

@@ -1,3 +1,9 @@
+/**
+ * @file    cpu/arithmetic.rs
+ * @brief   Implementation of arithmetic instructions.
+ * @author  Mario Hess
+ * @date    September 20, 2023
+ */
 use crate::cpu::Cpu;
 use crate::instruction::{CycleDuration, Target};
 
