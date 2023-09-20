@@ -37,7 +37,7 @@ fn main() {
         Err(error) => match error.kind() {
             ErrorKind::NotFound => panic!("File not found."),
             ErrorKind::InvalidData => panic!("Invalid file."),
-            _ => panic!("Couldn't create ROM."),
+            _ => panic!("Couldn't read ROM from provided file."),
         },
     };
 
@@ -47,7 +47,7 @@ fn main() {
 
 fn parse_config(args: &[String]) -> String {
     if args.len() < 2 {
-        panic!("Error: No file path provided.");
+        panic!("No file path provided.");
     }
 
     ROM_FOLDER.to_owned() + &args[1]

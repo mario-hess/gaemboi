@@ -37,53 +37,61 @@ impl Machine {
         let sdl_context = sdl2::init().unwrap();
         let video_subsystem = sdl_context.video().unwrap();
 
-        let mut viewport_canvas = self.create_canvas(
-            &video_subsystem,
-            SCREEN_WIDTH,
-            SCREEN_HEIGHT,
-            SCALE,
-            "gemboi",
-        );
-
-        let mut tile_table_canvas = self.create_canvas(
-            &video_subsystem,
-            TILE_TABLE_WIDTH,
-            TILE_TABLE_HEIGHT,
-            SCALE,
-            "tile_table",
-        );
+        let (mut viewport_canvas, mut tile_table_canvas) = self.create_windows(&video_subsystem);
 
         let mut event_pump = sdl_context.event_pump().unwrap();
 
+        // Core emulation loop
         while !self.keyboard.escape_pressed {
             self.keyboard.set_key(&mut event_pump);
 
-            viewport_canvas.set_draw_color(WHITE);
-            viewport_canvas.clear();
-
-            tile_table_canvas.set_draw_color(WHITE);
-            tile_table_canvas.clear();
+            self.clear_canvases([&mut viewport_canvas, &mut tile_table_canvas]);
 
             let frame_start_time = std::time::Instant::now();
 
+            // Component tick
             while self.clock.cycles_passed <= self.clock.cycles_per_frame {
-                let m_cycles = self.cpu.step();
+                let m_cycles = self.cpu.tick();
                 self.cpu.memory_bus.tick(m_cycles);
                 self.clock.tick(m_cycles);
             }
 
             self.clock.reset();
 
+            // Draw debug windows (Tile Data & Tile Maps)
             self.debug_draw(&mut tile_table_canvas);
 
-            viewport_canvas.present();
-            tile_table_canvas.present();
+            self.present_canvases([&mut viewport_canvas, &mut tile_table_canvas]);
 
+            // Tick at the CPU frequency rate
             let elapsed_time = frame_start_time.elapsed();
             if elapsed_time < frame_duration {
                 std::thread::sleep(frame_duration - elapsed_time);
             }
         }
+    }
+
+    fn create_windows(
+        &mut self,
+        video_subsystem: &VideoSubsystem,
+    ) -> (Canvas<Window>, Canvas<Window>) {
+        let viewport_canvas = self.create_canvas(
+            video_subsystem,
+            SCREEN_WIDTH,
+            SCREEN_HEIGHT,
+            SCALE,
+            "gemboi",
+        );
+
+        let tile_table_canvas = self.create_canvas(
+            video_subsystem,
+            TILE_TABLE_WIDTH,
+            TILE_TABLE_HEIGHT,
+            SCALE,
+            "tile_table",
+        );
+
+        (viewport_canvas, tile_table_canvas)
     }
 
     fn create_canvas(
@@ -106,6 +114,19 @@ impl Machine {
             .unwrap();
 
         canvas
+    }
+
+    fn clear_canvases(&mut self, canvases: [&mut Canvas<Window>; 2]) {
+        for canvas in canvases {
+            canvas.set_draw_color(WHITE);
+            canvas.clear();
+        }
+    }
+
+    fn present_canvases(&mut self, canvases: [&mut Canvas<Window>; 2]) {
+        for canvas in canvases {
+            canvas.present();
+        }
     }
 
     fn debug_draw(&mut self, tile_table_canvas: &mut Canvas<Window>) {

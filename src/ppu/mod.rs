@@ -8,13 +8,14 @@ mod lcd_control;
 pub mod screen;
 pub mod tile;
 
-use crate::memory_bus::{OAM_END, OAM_START, VRAM_END, VRAM_START};
-use crate::ppu::lcd_control::LCD_control;
-use crate::ppu::tile::{Tile, TILE_HEIGHT, TILE_WIDTH};
 use sdl2::pixels::Color;
 use sdl2::rect::Point;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
+
+use crate::memory_bus::{OAM_END, OAM_START, VRAM_END, VRAM_START};
+use crate::ppu::lcd_control::LCD_control;
+use crate::ppu::tile::{Tile, TILE_HEIGHT, TILE_WIDTH};
 
 pub const VRAM_SIZE: usize = 8192;
 const OAM_SIZE: usize = 160;

@@ -54,7 +54,7 @@ impl Cpu {
         }
     }
 
-    pub fn step(&mut self) -> u8 {
+    pub fn tick(&mut self) -> u8 {
         let i_enable = self.memory_bus.get_interrupt_enable();
         let i_flag = self.memory_bus.get_interrupt_flag();
 
