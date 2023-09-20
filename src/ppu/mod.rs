@@ -105,7 +105,7 @@ impl Ppu {
             OBJECT_PALETTE_1 => self.object_palette_1,
             WINDOW_Y => self.window_y,
             WINDOW_X => self.window_x,
-            _ => panic!("Unknown address: {:#X} Can't read byte.", address),
+            _ => panic!("Unknown address: {:#X}. Can't read byte.", address),
         }
     }
 
@@ -125,7 +125,7 @@ impl Ppu {
             OBJECT_PALETTE_1 => self.object_palette_1 = value,
             WINDOW_Y => self.window_y = value,
             WINDOW_X => self.window_x = value,
-            _ => panic!("Unknown address: {:#X} Can't write byte.", address),
+            _ => panic!("Unknown address: {:#X}. Can't write byte: {:#X}.", address, value),
         }
     }
 

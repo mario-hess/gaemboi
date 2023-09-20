@@ -25,7 +25,7 @@ impl MemoryBankController for Mbc3 {
                 let offset = core.rom_offset * core.rom_bank as usize;
                 core.rom_data[(address as usize - core.rom_offset) + offset]
             }
-            _ => panic!("Address unknown: 0x{:#X}", address),
+            _ => panic!("Unknown address: {:#X}. Can't read byte.", address),
         }
     }
 
@@ -44,9 +44,9 @@ impl MemoryBankController for Mbc3 {
             0x4 | 0x5 => {
                 core.ram_bank = value & 0b0000_0011;
             }
-            _ => println!(
-                "Writing to unknown Cartridge ROM location 0x{:04x}",
-                address
+            _ => panic!(
+                "Unknown address: {:#X}. Can't write byte: {:#X}.",
+                address, value
             ),
         }
     }

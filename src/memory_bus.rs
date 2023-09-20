@@ -179,7 +179,7 @@ impl MemoryBus {
             HRAM_START..=HRAM_END => self.hram[address as usize - HRAM_START as usize] = value,
             // 0xFFFF (Interrupt Enable Register)
             INTERRUPT_ENABLE => self.interrupt_enable = value,
-            _ => panic!("Unknown address: {:#X} Can't write byte.", address),
+            _ => panic!("Unknown address: {:#X} Can't write byte: {:#X}.", address, value),
         }
     }
 }
