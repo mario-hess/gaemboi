@@ -1,5 +1,12 @@
+/**
+ * @file    ppu/lcd_status.rs
+ * @brief   Handles the PPU's LCD Status register.
+ * @author  Mario Hess
+ * @date    September 21, 2023
+ */
 use crate::ppu::Mode;
 
+#[allow(non_camel_case_types)]
 #[derive(Copy, Clone)]
 pub struct LCD_status {
     mode: Mode,

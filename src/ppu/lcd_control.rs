@@ -2,10 +2,13 @@
  * @file    ppu/lcd_control.rs
  * @brief   Handles the PPU's LCD Control register.
  * @author  Mario Hess
- * @date    September 20, 2023
+ * @date    September 21, 2023
  */
-const TILEMAP_ADDRESS_1: u16 = 0x9800;
-const TILEMAP_ADDRESS_2: u16 = 0x9C00;
+use crate::ppu::{TILE_MAP_START_0, TILE_MAP_START_1};
+
+const TILE_BLOCK_0: u16 = 0x8000;
+const TILE_BLOCK_1: u16 = 0x8800;
+const TILE_BLOCK_2: u16 = 0x9000;
 
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone)]
@@ -14,7 +17,7 @@ pub struct LCD_control {
     object_enable: bool,
     object_size: bool,
     bg_tilemap: bool,
-    addressing_mode: bool,
+    pub addressing_mode: bool,
     window_enable: bool,
     window_tilemap: bool,
     lcd_enable: bool,
@@ -65,19 +68,29 @@ impl LCD_control {
         self.lcd_enable = value & 0x80 == 0x80;
     }
 
-    pub fn bg_tilemap_address(self) -> u16 {
+    pub fn get_bg_tilemap_address(self) -> u16 {
         if !self.bg_tilemap {
-            TILEMAP_ADDRESS_1
+            TILE_MAP_START_0
         } else {
-            TILEMAP_ADDRESS_2
+            TILE_MAP_START_1
         }
     }
 
-    pub fn window_tilemap_address(self) -> u16 {
+    pub fn get_window_tilemap_address(self) -> u16 {
         if !self.window_tilemap {
-            TILEMAP_ADDRESS_1
+            TILE_MAP_START_0
         } else {
-            TILEMAP_ADDRESS_2
+            TILE_MAP_START_1
+        }
+    }
+
+    pub fn get_address(self, tile_index: u8) -> u16 {
+        if self.addressing_mode {
+            TILE_BLOCK_0 + tile_index as u16
+        } else if tile_index < 128 {
+            TILE_BLOCK_2 + tile_index as u16
+        } else {
+            TILE_BLOCK_1 + (tile_index - 128) as u16
         }
     }
 }

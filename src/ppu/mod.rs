@@ -2,7 +2,7 @@
  * @file    ppu/mod.rs
  * @brief   Handles the Picture Processing Unit for graphics rendering.
  * @author  Mario Hess
- * @date    September 20, 2023
+ * @date    September 21, 2023
  */
 mod lcd_control;
 mod lcd_status;
@@ -22,6 +22,15 @@ use crate::ppu::tile::{Tile, TILE_HEIGHT, TILE_WIDTH};
 pub const VRAM_SIZE: usize = 8192;
 const OAM_SIZE: usize = 160;
 
+const TILE_DATA_START: u16 = VRAM_START;
+const TILE_DATA_END: u16 = 0x97FF;
+
+pub const TILE_MAP_START_0: u16 = 0x9800;
+pub const TILE_MAP_END_0: u16 = 0x9BFF;
+
+pub const TILE_MAP_START_1: u16 = 0x9C00;
+pub const TILE_MAP_END_1: u16 = VRAM_END;
+
 const LCD_CONTROL: u16 = 0xFF40;
 const LCD_STATUS: u16 = 0xFF41;
 const SCROLL_Y: u16 = 0xFF42;
@@ -40,9 +49,8 @@ pub const DARK: Color = Color::RGB(96, 96, 96);
 pub const LIGHT: Color = Color::RGB(192, 192, 192);
 pub const WHITE: Color = Color::RGB(255, 255, 255);
 
-pub const TILE_TABLE_WIDTH: usize = 256;
-pub const TILE_TABLE_HEIGHT: usize = 96;
-const TILE_TABLE_PER_ROW: usize = 32;
+const WIDTH: usize = 32;
+const HEIGHT: usize = 12;
 
 #[allow(clippy::upper_case_acronyms, non_camel_case_types)]
 #[derive(Copy, Clone)]
@@ -134,17 +142,80 @@ impl Ppu {
         }
     }
 
+    pub fn debug_draw_tile_map(
+        &mut self,
+        tile_map_canvas: &mut Canvas<Window>,
+        start_address: u16,
+        end_address: u16,
+    ) {
+        let mut tile_indexes = Vec::<u8>::new();
+
+        for i in start_address..=end_address {
+            tile_indexes.push(self.read_byte(i));
+        }
+
+        let mut tile_data = Vec::<u8>::new();
+
+        for tile_index in tile_indexes {
+            let address = self.lcd_control.get_address(tile_index);
+            tile_data.push(self.read_byte(address));
+        }
+
+        let mut tile_map = Vec::<Tile>::new();
+
+        for chunk in tile_data.chunks(16) {
+            let mut tile_bytes = [0; 16];
+            tile_bytes.copy_from_slice(chunk);
+
+            let tile = Tile::new(tile_bytes);
+            tile_map.push(tile);
+        }
+
+        for row in 0..WIDTH {
+            for col in 0..WIDTH {
+                let tile_index = row * WIDTH + col;
+
+                if tile_index < tile_map.len() {
+                    let tile = &tile_map[tile_index];
+
+                    let x = col * TILE_WIDTH;
+                    let y = row * TILE_HEIGHT;
+
+                    for (tile_row, row_pixels) in tile.data.iter().enumerate() {
+                        for (tile_col, pixel) in row_pixels.iter().enumerate() {
+                            let color = match *pixel {
+                                WHITE => WHITE,
+                                LIGHT => LIGHT,
+                                DARK => DARK,
+                                BLACK => BLACK,
+                                _ => unreachable!(),
+                            };
+
+                            tile_map_canvas.set_draw_color(color);
+
+                            tile_map_canvas
+                                .draw_point(Point::new(
+                                    x as i32 + tile_col as i32,
+                                    y as i32 + tile_row as i32,
+                                ))
+                                .unwrap();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     pub fn debug_draw_tile_table(&mut self, tile_data_canvas: &mut Canvas<Window>) {
         let mut tile_data = Vec::<u8>::new();
 
         // Tile data is stored in VRAM in the memory area at 0x8000-0x97FF.
-        for i in VRAM_START..=VRAM_END {
+        for i in TILE_DATA_START..=TILE_DATA_END {
             tile_data.push(self.read_byte(i));
         }
 
         let mut tile_table = Vec::<Tile>::new();
 
-        // Each tile takes 16 bytes
         for chunk in tile_data.chunks(16) {
             let mut tile_bytes = [0; 16];
             tile_bytes.copy_from_slice(chunk);
@@ -153,9 +224,9 @@ impl Ppu {
             tile_table.push(tile);
         }
 
-        for row in 0..TILE_HEIGHT {
-            for col in 0..TILE_TABLE_WIDTH {
-                let tile_index = row * TILE_TABLE_PER_ROW + col;
+        for row in 0..HEIGHT {
+            for col in 0..WIDTH {
+                let tile_index = row * WIDTH + col;
 
                 if tile_index < tile_table.len() {
                     let tile = &tile_table[tile_index];
