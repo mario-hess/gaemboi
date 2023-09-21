@@ -77,7 +77,7 @@ impl MemoryBus {
             serial_sb: 0,
             serial_sc: 0,
             timer: Timer::new(),
-            interrupt_flag: 0,
+            interrupt_flag: 0xE1,
             audio: [0; 23],
             wave_pattern: [0; 16],
             speed_switch: 0,

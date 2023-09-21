@@ -34,7 +34,7 @@ impl LCD_control {
         }
     }
 
-    pub fn get_lcd_control(self) -> u8 {
+    pub fn get(self) -> u8 {
         let bg_window_enable: u8 = if self.bg_window_enable { 0x01 } else { 0 };
         let object_enable: u8 = if self.object_enable { 0x02 } else { 0 };
         let object_size: u8 = if self.object_size { 0x04 } else { 0 };
@@ -54,7 +54,7 @@ impl LCD_control {
             | lcd_enable
     }
 
-    pub fn set_lcd_control(&mut self, value: u8) {
+    pub fn set(&mut self, value: u8) {
         self.bg_window_enable = value & 0x01 == 0x01;
         self.object_enable = value & 0x02 == 0x02;
         self.object_size = value & 0x04 == 0x04;

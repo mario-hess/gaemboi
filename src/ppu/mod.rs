@@ -16,6 +16,7 @@ use sdl2::video::Window;
 
 use crate::memory_bus::{OAM_END, OAM_START, VRAM_END, VRAM_START};
 use crate::ppu::lcd_control::LCD_control;
+use crate::ppu::lcd_status::LCD_status;
 use crate::ppu::tile::{Tile, TILE_HEIGHT, TILE_WIDTH};
 
 pub const VRAM_SIZE: usize = 8192;
@@ -43,8 +44,8 @@ pub const TILE_TABLE_WIDTH: usize = 256;
 pub const TILE_TABLE_HEIGHT: usize = 96;
 const TILE_TABLE_PER_ROW: usize = 32;
 
-#[allow(clippy::upper_case_acronyms)]
-#[allow(non_camel_case_types)]
+#[allow(clippy::upper_case_acronyms, non_camel_case_types)]
+#[derive(Copy, Clone)]
 pub enum Mode {
     HBlank = 0,
     VBlank = 1,
@@ -57,7 +58,7 @@ pub struct Ppu {
     video_ram: [u8; VRAM_SIZE],
     oam: [u8; OAM_SIZE],
     lcd_control: LCD_control,
-    lcd_status: u8,
+    lcd_status: LCD_status,
     scroll_y: u8,
     scroll_x: u8,
     line_y: u8,
@@ -76,7 +77,7 @@ impl Ppu {
             video_ram: [0; VRAM_SIZE],
             oam: [0; OAM_SIZE],
             lcd_control: LCD_control::new(),
-            lcd_status: 0,
+            lcd_status: LCD_status::new(),
             scroll_y: 0,
             scroll_x: 0,
             line_y: 0,
@@ -94,8 +95,8 @@ impl Ppu {
         match address {
             VRAM_START..=VRAM_END => self.video_ram[(address - VRAM_START) as usize],
             OAM_START..=OAM_END => self.oam[(address - OAM_START) as usize],
-            LCD_CONTROL => self.lcd_control.get_lcd_control(),
-            LCD_STATUS => self.lcd_status,
+            LCD_CONTROL => self.lcd_control.get(),
+            LCD_STATUS => self.lcd_status.get(),
             SCROLL_Y => self.scroll_y,
             SCROLL_X => self.scroll_x,
             LINE_Y => self.line_y,
@@ -114,8 +115,8 @@ impl Ppu {
         match address {
             VRAM_START..=VRAM_END => self.video_ram[(address - VRAM_START) as usize] = value,
             OAM_START..=OAM_END => self.oam[(address - OAM_START) as usize] = value,
-            LCD_CONTROL => self.lcd_control.set_lcd_control(value),
-            LCD_STATUS => self.lcd_status = value,
+            LCD_CONTROL => self.lcd_control.set(value),
+            LCD_STATUS => self.lcd_status.set(value),
             SCROLL_Y => self.scroll_y = value,
             SCROLL_X => self.scroll_x = value,
             LINE_Y => self.line_y = value,

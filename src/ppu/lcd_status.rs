@@ -1,6 +1,7 @@
 use crate::ppu::Mode;
 
-struct LCD_status {
+#[derive(Copy, Clone)]
+pub struct LCD_status {
     mode: Mode,
     compare_flag: bool,
     interrupt_hblank: bool,
@@ -12,8 +13,8 @@ struct LCD_status {
 impl LCD_status {
     pub fn new() -> Self {
         Self {
-            mode: Mode::HBlank,
-            compare_flag: false,
+            mode: Mode::VBlank,
+            compare_flag: true,
             interrupt_hblank: false,
             interrupt_vblank: false,
             interrupt_oam: false,

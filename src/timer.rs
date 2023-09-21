@@ -36,10 +36,10 @@ pub struct Timer {
 impl Timer {
     pub fn new() -> Self {
         Self {
-            div: 0,
+            div: 0xAB,
             tima: 0,
             tma: 0,
-            tac: 0,
+            tac: 0xF8,
             div_counter: 0,
             tima_counter: 0,
             tima_overflowed: false,
