@@ -5,6 +5,7 @@
  * @date    September 20, 2023
  */
 mod lcd_control;
+mod lcd_status;
 pub mod screen;
 pub mod tile;
 
@@ -44,7 +45,7 @@ const TILE_TABLE_PER_ROW: usize = 32;
 
 #[allow(clippy::upper_case_acronyms)]
 #[allow(non_camel_case_types)]
-enum Mode {
+pub enum Mode {
     HBlank = 0,
     VBlank = 1,
     OAM = 2,
