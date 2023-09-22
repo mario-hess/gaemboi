@@ -21,6 +21,9 @@ pub const CARTRIDGE_RAM_END: u16 = 0xBFFF;
 pub const WRAM_START: u16 = 0xC000;
 pub const WRAM_END: u16 = 0xDFFF;
 
+const ECHO_RAM_START: u16 = 0xE000;
+const ECHO_RAM_END: u16 = 0xFDFF;
+
 pub const OAM_START: u16 = 0xFE00;
 pub const OAM_END: u16 = 0xFE9F;
 
@@ -116,6 +119,8 @@ impl MemoryBus {
             CARTRIDGE_RAM_START..=CARTRIDGE_RAM_END => self.cartridge.read(address),
             // 0xC000 - 0xDFFF (Work RAM)
             WRAM_START..=WRAM_END => self.wram[address as usize - WRAM_START as usize],
+            // 0xE000 - 0xFDFF (Echo Ram)
+            ECHO_RAM_START..=ECHO_RAM_END => self.wram[address as usize - ECHO_RAM_START as usize],
             // 0xFE00 - 0xFE9F (Object Attribute Memory)
             OAM_START..=OAM_END => self.ppu.read_byte(address),
             // 0xFEA0 - 0xFEFF
@@ -163,6 +168,8 @@ impl MemoryBus {
             CARTRIDGE_RAM_START..=CARTRIDGE_RAM_END => self.cartridge.write(address, value),
             // 0xC000 - 0xDFFF (Work RAM)
             WRAM_START..=WRAM_END => self.wram[address as usize - WRAM_START as usize] = value,
+            // 0xE000 - 0xFDFF (Echo Ram)
+            ECHO_RAM_START..=ECHO_RAM_END => self.wram[address as usize - ECHO_RAM_START as usize] = value,
             // 0xFE00 - 0xFE9F (Object Attribute Memory)
             OAM_START..=OAM_END => self.ppu.write_byte(address, value),
             // 0xFEA0 - 0xFEFF
