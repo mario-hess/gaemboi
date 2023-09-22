@@ -2,10 +2,11 @@
  * @file    ppu/mod.rs
  * @brief   Handles the Picture Processing Unit for graphics rendering.
  * @author  Mario Hess
- * @date    September 21, 2023
+ * @date    September 22, 2023
  */
 mod lcd_control;
 mod lcd_status;
+mod oam;
 pub mod screen;
 pub mod tile;
 
@@ -17,10 +18,11 @@ use sdl2::video::Window;
 use crate::memory_bus::{OAM_END, OAM_START, VRAM_END, VRAM_START};
 use crate::ppu::lcd_control::LCD_control;
 use crate::ppu::lcd_status::LCD_status;
+use crate::ppu::oam::OAM;
 use crate::ppu::tile::{Tile, TILE_HEIGHT, TILE_WIDTH};
 
 pub const VRAM_SIZE: usize = 8192;
-const OAM_SIZE: usize = 160;
+const OAM_SIZE: usize = 40; // 40 * 4 = 160 byte
 
 const TILE_DATA_START: u16 = VRAM_START;
 const TILE_DATA_END: u16 = 0x97FF;
@@ -64,7 +66,7 @@ pub enum Mode {
 #[derive(Copy, Clone)]
 pub struct Ppu {
     video_ram: [u8; VRAM_SIZE],
-    oam: [u8; OAM_SIZE],
+    oam: [OAM; OAM_SIZE],
     lcd_control: LCD_control,
     lcd_status: LCD_status,
     scroll_y: u8,
@@ -83,7 +85,7 @@ impl Ppu {
     pub fn new() -> Self {
         Self {
             video_ram: [0; VRAM_SIZE],
-            oam: [0; OAM_SIZE],
+            oam: [OAM::new(); OAM_SIZE],
             lcd_control: LCD_control::new(),
             lcd_status: LCD_status::new(),
             scroll_y: 0,
@@ -102,7 +104,7 @@ impl Ppu {
     pub fn read_byte(&self, address: u16) -> u8 {
         match address {
             VRAM_START..=VRAM_END => self.video_ram[(address - VRAM_START) as usize],
-            OAM_START..=OAM_END => self.oam[(address - OAM_START) as usize],
+            OAM_START..=OAM_END => self.read_oam(address - OAM_START),
             LCD_CONTROL => self.lcd_control.get(),
             LCD_STATUS => self.lcd_status.get(),
             SCROLL_Y => self.scroll_y,
@@ -122,7 +124,7 @@ impl Ppu {
     pub fn write_byte(&mut self, address: u16, value: u8) {
         match address {
             VRAM_START..=VRAM_END => self.video_ram[(address - VRAM_START) as usize] = value,
-            OAM_START..=OAM_END => self.oam[(address - OAM_START) as usize] = value,
+            OAM_START..=OAM_END => self.write_oam(address - OAM_START, value),
             LCD_CONTROL => self.lcd_control.set(value),
             LCD_STATUS => self.lcd_status.set(value),
             SCROLL_Y => self.scroll_y = value,
@@ -139,6 +141,32 @@ impl Ppu {
                 "Unknown address: {:#X}. Can't write byte: {:#X}.",
                 address, value
             ),
+        }
+    }
+
+    fn write_oam(&mut self, address: u16, value: u8) {
+        let index = (address / 4) as usize;
+        let offset = (address % 4) as usize;
+
+        match offset {
+            0 => self.oam[index].y_pos = value,
+            1 => self.oam[index].x_pos = value,
+            2 => self.oam[index].tile_index = value,
+            3 => self.oam[index].attributes = value,
+            _ => unreachable!(),
+        }
+    }
+
+    fn read_oam(&self, address: u16) -> u8 {
+        let index = (address / 4) as usize;
+        let offset = (address % 4) as usize;
+
+        match offset {
+            0 => self.oam[index].y_pos,
+            1 => self.oam[index].x_pos,
+            2 => self.oam[index].tile_index,
+            3 => self.oam[index].attributes,
+            _ => unreachable!(),
         }
     }
 
