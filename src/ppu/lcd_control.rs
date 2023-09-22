@@ -2,7 +2,7 @@
  * @file    ppu/lcd_control.rs
  * @brief   Handles the PPU's LCD Control register.
  * @author  Mario Hess
- * @date    September 21, 2023
+ * @date    September 22, 2023
  */
 use crate::ppu::{TILE_MAP_START_0, TILE_MAP_START_1};
 
@@ -18,9 +18,9 @@ pub struct LCD_control {
     object_size: bool,
     bg_tilemap: bool,
     pub addressing_mode: bool,
-    window_enable: bool,
+    pub window_enable: bool,
     window_tilemap: bool,
-    lcd_enable: bool,
+    pub lcd_enable: bool,
 }
 
 impl LCD_control {

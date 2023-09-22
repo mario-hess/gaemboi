@@ -2,7 +2,7 @@
  * @file    ppu/oam.rs
  * @brief   Handles the Object Attribute Memory
  * @author  Mario Hess
- * @date    September 21, 2023
+ * @date    September 22, 2023
  */
 
 #[allow(clippy::upper_case_acronyms)]

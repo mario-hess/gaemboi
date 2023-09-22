@@ -2,7 +2,7 @@
  * @file    cartridge/mbc1.rs
  * @brief   MBC1 Memory Bank Controller implementation.
  * @author  Mario Hess
- * @date    September 20, 2023
+ * @date    September 22, 2023
  */
 use crate::cartridge::core::Core;
 use crate::cartridge::{MemoryBankController, MASK_MSB, RAM_ADDRESS};
@@ -41,9 +41,7 @@ impl MemoryBankController for Mbc1 {
     fn write_rom(&mut self, core: &mut Core, address: u16, value: u8) {
         match (address & MASK_MSB) >> 12 {
             // 0x0000 - 0x1FFF (RAM enable)
-            0x0 | 0x1 => {
-                core.ram_enabled = (value & 0x0F) == 0x0A;
-            }
+            0x0 | 0x1 => core.ram_enabled = (value & 0x0F) == 0x0A,
             // 0x2000 - 0x3FFF (ROM bank number)
             0x2 | 0x3 => {
                 // Specify the lower 5 bits
@@ -52,12 +50,8 @@ impl MemoryBankController for Mbc1 {
             }
             // 0x4000 - 0x5FFF (RAM bank number — or — upper bits of ROM bank number)
             0x4 | 0x5 => match self.mode {
-                Mode::RamBanking => {
-                    core.ram_bank = value & 0b0000_0011;
-                }
-                Mode::RomBanking => {
-                    core.rom_bank |= (value & 0b0000_0011) << 5;
-                }
+                Mode::RamBanking => core.ram_bank = value & 0b0000_0011,
+                Mode::RomBanking => core.rom_bank |= (value & 0b0000_0011) << 5,
             },
             // 0x6000 - 0x7FFF (Banking mode select)
             0x6 | 0x7 => match value {

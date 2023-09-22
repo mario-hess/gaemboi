@@ -6,7 +6,7 @@
  */
 use crate::cpu::Cpu;
 
-const VBLANK_MASK: u8 = 0x01;
+pub const VBLANK_MASK: u8 = 0x01;
 const VBLANK_ISR: u16 = 0x0040;
 
 const LCD_STAT_MASK: u8 = 0x02;
