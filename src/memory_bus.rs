@@ -5,6 +5,7 @@
  * @date    September 20, 2023
  */
 use crate::cartridge::Cartridge;
+use crate::interrupt::VBLANK_MASK;
 use crate::ppu::Ppu;
 use crate::timer::Timer;
 
@@ -22,6 +23,9 @@ pub const WRAM_END: u16 = 0xDFFF;
 
 pub const OAM_START: u16 = 0xFE00;
 pub const OAM_END: u16 = 0xFE9F;
+
+const NOT_USABLE_START: u16 = 0xFEA0;
+const NOT_USABLE_END: u16 = 0xFEFF;
 
 const JOYPAD_INPUT: u16 = 0xFF00;
 const SERIAL_SB: u16 = 0xFF01;
@@ -88,6 +92,10 @@ impl MemoryBus {
         self.timer.tick(m_cycles);
         self.interrupt_flag |= self.timer.interrupt_request;
         self.timer.reset_interrupt();
+
+        self.ppu.tick(m_cycles);
+        self.interrupt_flag |= self.ppu.interrupts;
+        self.ppu.reset_interrupt(VBLANK_MASK);
     }
 
     pub fn get_interrupt_flag(&mut self) -> u8 {
@@ -108,8 +116,10 @@ impl MemoryBus {
             CARTRIDGE_RAM_START..=CARTRIDGE_RAM_END => self.cartridge.read(address),
             // 0xC000 - 0xDFFF (Work RAM)
             WRAM_START..=WRAM_END => self.wram[address as usize - WRAM_START as usize],
-            // 0xFF00 - 0xFF7F (Object Attribute Memory)
+            // 0xFE00 - 0xFE9F (Object Attribute Memory)
             OAM_START..=OAM_END => self.ppu.read_byte(address),
+            // 0xFEA0 - 0xFEFF
+            NOT_USABLE_START..=NOT_USABLE_END => 0,
             // 0xFF00 (Joypad)
             JOYPAD_INPUT => self.joypad_input,
             // 0xFF01 (Serial transfer data)
@@ -153,8 +163,10 @@ impl MemoryBus {
             CARTRIDGE_RAM_START..=CARTRIDGE_RAM_END => self.cartridge.write(address, value),
             // 0xC000 - 0xDFFF (Work RAM)
             WRAM_START..=WRAM_END => self.wram[address as usize - WRAM_START as usize] = value,
-            // 0xFF00 - 0xFF7F (Object Attribute Memory)
+            // 0xFE00 - 0xFE9F (Object Attribute Memory)
             OAM_START..=OAM_END => self.ppu.write_byte(address, value),
+            // 0xFEA0 - 0xFEFF
+            NOT_USABLE_START..=NOT_USABLE_END => {},
             // 0xFF00 (Joypad)
             JOYPAD_INPUT => self.joypad_input = value,
             // 0xFF01 (Serial transfer data)
@@ -179,7 +191,10 @@ impl MemoryBus {
             HRAM_START..=HRAM_END => self.hram[address as usize - HRAM_START as usize] = value,
             // 0xFFFF (Interrupt Enable Register)
             INTERRUPT_ENABLE => self.interrupt_enable = value,
-            _ => panic!("Unknown address: {:#X} Can't write byte: {:#X}.", address, value),
+            _ => println!(
+                "Unknown address: {:#X} Can't write byte: {:#X}.",
+                address, value
+            ),
         }
     }
 }

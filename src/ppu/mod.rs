@@ -20,6 +20,7 @@ use crate::ppu::lcd_control::LCD_control;
 use crate::ppu::lcd_status::LCD_status;
 use crate::ppu::oam::OAM;
 use crate::ppu::tile::{Tile, TILE_HEIGHT, TILE_WIDTH};
+use crate::interrupt::VBLANK_MASK;
 
 pub const VRAM_SIZE: usize = 8192;
 const OAM_SIZE: usize = 40; // 40 * 4 = 160 byte
@@ -51,8 +52,18 @@ pub const DARK: Color = Color::RGB(96, 96, 96);
 pub const LIGHT: Color = Color::RGB(192, 192, 192);
 pub const WHITE: Color = Color::RGB(255, 255, 255);
 
-const WIDTH: usize = 32;
-const HEIGHT: usize = 12;
+const CYCLES_OAM: u16 = 80;
+const CYCLES_VRAM: u16 = 172;
+const CYCLES_HBLANK: u16 = 204;
+const CYCLES_VBLANK: u16 = 456;
+
+const LINES_Y: u8 = 143;
+const MAX_LINES_Y: u8 = 153;
+
+pub const TILE_TABLE_WIDTH: usize = 16;
+pub const TILE_TABLE_HEIGHT: usize = 24;
+
+pub const TILE_MAP_WIDTH: usize = 32;
 
 #[allow(clippy::upper_case_acronyms, non_camel_case_types)]
 #[derive(Copy, Clone)]
@@ -79,6 +90,8 @@ pub struct Ppu {
     object_palette_1: u8,
     window_y: u8,
     window_x: u8,
+    counter: u16,
+    pub interrupts: u8,
 }
 
 impl Ppu {
@@ -98,7 +111,64 @@ impl Ppu {
             object_palette_1: 0,
             window_y: 0,
             window_x: 0,
+            counter: 0,
+            interrupts: 0,
         }
+    }
+
+    pub fn tick(&mut self, m_cycles: u8) {
+        if !self.lcd_control.lcd_enable {
+            return;
+        }
+
+        let t_cycles = (m_cycles * 4) as u16;
+        self.counter += t_cycles;
+
+        match self.lcd_status.mode {
+            Mode::HBlank => {
+                if self.counter >= CYCLES_HBLANK {
+                    self.counter %= CYCLES_HBLANK;
+                    
+                    if self.line_y >= LINES_Y {
+                        self.lcd_status.mode = Mode::VBlank;
+                        // render viewport
+                        self.interrupts |= VBLANK_MASK;
+                        // clear viewport
+                    } else {
+                        self.line_y = self.line_y.wrapping_add(1);
+                        self.lcd_status.mode = Mode::OAM;
+                    }
+                }
+            },
+            Mode::VBlank => {
+                if self.counter >= CYCLES_VBLANK {
+                    self.line_y = self.line_y.wrapping_add(1);
+                    self.counter %= CYCLES_VBLANK;
+
+                    if self.line_y > MAX_LINES_Y {
+                        self.lcd_status.mode = Mode::OAM;
+                        self.line_y = 0;
+                    }
+                }
+            },
+            Mode::OAM => {
+                if self.counter >= CYCLES_OAM {
+                    self.lcd_status.mode = Mode::VRam;
+                    self.counter %= CYCLES_OAM;
+                }
+            },
+            Mode::VRam => {
+                if self.counter >= CYCLES_VRAM {
+                    // render scanline to screen
+                    self.lcd_status.mode = Mode::HBlank;
+                    self.counter %= CYCLES_VRAM;
+                }
+            }
+        }
+    }
+
+    pub fn reset_interrupt(&mut self, interrupt_mask: u8) {
+       self.interrupts ^= interrupt_mask; 
     }
 
     pub fn read_byte(&self, address: u16) -> u8 {
@@ -199,9 +269,9 @@ impl Ppu {
             tile_map.push(tile);
         }
 
-        for row in 0..WIDTH {
-            for col in 0..WIDTH {
-                let tile_index = row * WIDTH + col;
+        for row in 0..TILE_MAP_WIDTH {
+            for col in 0..TILE_MAP_WIDTH {
+                let tile_index = row * TILE_MAP_WIDTH + col;
 
                 if tile_index < tile_map.len() {
                     let tile = &tile_map[tile_index];
@@ -252,9 +322,9 @@ impl Ppu {
             tile_table.push(tile);
         }
 
-        for row in 0..HEIGHT {
-            for col in 0..WIDTH {
-                let tile_index = row * WIDTH + col;
+        for row in 0..TILE_TABLE_HEIGHT {
+            for col in 0..TILE_TABLE_WIDTH {
+                let tile_index = row * TILE_TABLE_WIDTH + col;
 
                 if tile_index < tile_table.len() {
                     let tile = &tile_table[tile_index];

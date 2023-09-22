@@ -2,7 +2,7 @@
  * @file    timer.rs
  * @brief   Handles the timer and divider registers.
  * @author  Mario Hess
- * @date    September 20, 2023
+ * @date    September 22, 2023
  */
 use crate::interrupt::TIMER_MASK;
 
@@ -25,7 +25,7 @@ pub struct Timer {
     tima: u8,
     tma: u8,
     tac: u8,
-    div_counter: u32,
+    div_counter: u16,
     tima_counter: i64,
     tima_overflowed: bool,
     tac_cycles: u16,
@@ -50,12 +50,12 @@ impl Timer {
     }
 
     pub fn tick(&mut self, m_cycles: u8) {
-        let t_cycles = (m_cycles * 4) as u32;
+        let t_cycles = (m_cycles * 4) as u16;
         self.div_counter += t_cycles;
 
-        while self.div_counter >= DIV_CYCLES as u32 {
+        while self.div_counter >= DIV_CYCLES {
             self.div = self.div.wrapping_add(1);
-            self.div_counter -= DIV_CYCLES as u32;
+            self.div_counter -= DIV_CYCLES;
         }
 
         if !self.enabled {

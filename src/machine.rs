@@ -12,11 +12,10 @@ use crate::clock::Clock;
 use crate::cpu::Cpu;
 use crate::keyboard::Keyboard;
 use crate::ppu::screen::{SCALE, SCREEN_HEIGHT, SCREEN_WIDTH};
-use crate::ppu::{TILE_MAP_END_0, TILE_MAP_END_1, TILE_MAP_START_0, TILE_MAP_START_1, WHITE};
-
-const TILE_TABLE_WIDTH: usize = 256;
-const TILE_TABLE_HEIGHT: usize = 96;
-const TILE_MAP_WIDTH: usize = TILE_TABLE_WIDTH;
+use crate::ppu::{
+    TILE_MAP_END_0, TILE_MAP_END_1, TILE_MAP_START_0, TILE_MAP_START_1, TILE_MAP_WIDTH,
+    TILE_TABLE_HEIGHT, TILE_TABLE_WIDTH, WHITE,
+};
 
 pub const FPS: f32 = 60.0;
 
@@ -73,7 +72,11 @@ impl Machine {
             self.clock.reset();
 
             // Draw debug windows (Tile Data & Tile Maps)
-            self.debug_draw(&mut tile_table_canvas, &mut tile_map_0_canvas, &mut tile_map_1_canvas);
+            self.debug_draw(
+                &mut tile_table_canvas,
+                &mut tile_map_0_canvas,
+                &mut tile_map_1_canvas,
+            );
 
             self.present_canvases([
                 &mut viewport_canvas,
@@ -109,24 +112,24 @@ impl Machine {
 
         let tile_table_canvas = self.create_canvas(
             video_subsystem,
-            TILE_TABLE_WIDTH,
-            TILE_TABLE_HEIGHT,
+            TILE_TABLE_WIDTH * 8,
+            TILE_TABLE_HEIGHT * 8,
             SCALE,
             "tile_table",
         );
 
         let tile_map_0 = self.create_canvas(
             video_subsystem,
-            TILE_MAP_WIDTH,
-            TILE_MAP_WIDTH,
+            TILE_MAP_WIDTH * 8,
+            TILE_MAP_WIDTH * 8,
             SCALE,
             "tile_map_0",
         );
 
         let tile_map_1 = self.create_canvas(
             video_subsystem,
-            TILE_MAP_WIDTH,
-            TILE_MAP_WIDTH,
+            TILE_MAP_WIDTH * 8,
+            TILE_MAP_WIDTH * 8,
             SCALE,
             "tile_map_1",
         );
