@@ -1,9 +1,12 @@
 /**
  * @file    cpu/mod.rs
- * @brief   Overarching construct, facilitates instruction execution coordination. 
+ * @brief   Overarching construct, facilitates instruction execution coordination.
  * @author  Mario Hess
  * @date    September 20, 2023
  */
+use std::fs::File;
+use std::io::{LineWriter, Write};
+
 mod arithmetic;
 mod bit_ops;
 mod control;
@@ -54,7 +57,9 @@ impl Cpu {
         }
     }
 
-    pub fn tick(&mut self) -> u8 {
+    pub fn tick(&mut self, file: &mut LineWriter<File>) -> u8 {
+        //self.log(file);
+
         let i_enable = self.memory_bus.get_interrupt_enable();
         let i_flag = self.memory_bus.get_interrupt_flag();
 
@@ -144,7 +149,12 @@ impl Cpu {
                 self.halted = true;
                 CycleDuration::Default
             }
-            Mnemonic::RST(address) => jump::rst(self, address),
+            Mnemonic::RST(address) => {
+                if address == 0x0038 {
+                    //panic!("Encountered RST 38");
+                }
+                jump::rst(self, address)
+            }
             Mnemonic::JP_nn => jump::jp_nn(self),
             Mnemonic::JP_c_nn(flag) => jump::jp_c_nn(self, flag),
             Mnemonic::JP_nc_nn(flag) => jump::jp_nc_nn(self, flag),
@@ -257,5 +267,20 @@ impl Cpu {
             Mnemonic::SET_hl(position) => bit_ops::set_hl(self, position),
             _ => panic!("Unknown prefix mnemonic: {:?}.", instruction.mnemonic),
         }
+    }
+
+    fn log(&self, file: &mut LineWriter<File>) {
+        let bc = self.registers.get_bc();
+        let de = self.registers.get_de();
+        let hl = self.registers.get_hl();
+        let af = self.registers.get_af();
+        let sp = self.stack_pointer;
+        let pc = self.program_counter.get();
+
+        let output = format!(
+            "BC={:04X} DE={:04X} HL={:04X} AF={:04X} SP={:04X} PC={:04X}\n",
+            bc, de, hl, af, sp, pc
+        );
+        file.write_all(output.as_bytes()).unwrap();
     }
 }

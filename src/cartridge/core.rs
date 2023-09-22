@@ -19,7 +19,7 @@ pub struct Core {
 impl Core {
     pub fn new(rom_data: &[u8]) -> Self {
         let ram_data = create_ram(rom_data);
-        let rom_bank = 1;
+        let rom_bank = 0;
         let ram_bank = 0;
         let rom_offset: usize = ROM_BANK_SIZE;
         let ram_offset: usize = RAM_BANK_SIZE;

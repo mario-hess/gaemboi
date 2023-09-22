@@ -49,23 +49,23 @@ impl Cartridge {
         Self { core, mbc }
     }
 
-    pub fn read(&self, addr: u16) -> u8 {
-        match (addr & MASK_MSB) >> 12 {
-            0x0..=0x7 => self.mbc.read_rom(&self.core, addr),
-            0xA | 0xB => self.mbc.read_ram(&self.core, addr),
+    pub fn read(&self, address: u16) -> u8 {
+        match (address & MASK_MSB) >> 12 {
+            0x0..=0x7 => self.mbc.read_rom(&self.core, address),
+            0xA | 0xB => self.mbc.read_ram(&self.core, address),
             _ => {
-                println!("Reading from unknown Cartridge address 0x{:#X}", addr);
+                println!("Unknown adress: {:#X} Can't read byte.", address);
 
                 0x00
             }
         }
     }
 
-    pub fn write(&mut self, addr: u16, value: u8) {
-        match (addr & MASK_MSB) >> 12 {
-            0x0..=0x7 => self.mbc.write_rom(&mut self.core, addr, value),
-            0xA | 0xB => self.mbc.write_ram(&mut self.core, addr, value),
-            _ => println!("Writing to unknown Cartridge address 0x{:#X}", addr),
+    pub fn write(&mut self, address: u16, value: u8) {
+        match (address & MASK_MSB) >> 12 {
+            0x0..=0x7 => self.mbc.write_rom(&mut self.core, address, value),
+            0xA | 0xB => self.mbc.write_ram(&mut self.core, address, value),
+            _ => println!("Unknown address: {:#X} Can't write byte: {:#X}", address, value),
         }
     }
 }

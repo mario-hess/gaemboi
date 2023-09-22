@@ -112,6 +112,11 @@ impl Registers {
         self.e = value;
     }
 
+    pub fn get_f(&self) -> u8 {
+        let f: u8 = self.flags.into();
+        f
+    }
+
     pub fn get_h(&self) -> u8 {
         self.h
     }

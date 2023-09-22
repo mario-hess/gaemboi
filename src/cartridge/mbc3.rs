@@ -36,7 +36,8 @@ impl MemoryBankController for Mbc3 {
             // 0x2000 - 0x3FFF (ROM bank number)
             0x2 | 0x3 => {
                 let bank_number = if value == 0 { 1 } else { value };
-                core.rom_bank = (core.rom_bank & 0b0110_0000) | (bank_number & 0b0111_1111);
+                core.rom_bank = bank_number & 0b0111_1111;
+                //println!("Set Cartridge ROM bank to: {:#X}", bank_number & 0b0111_1111);
             }
             // 0x4000 - 0x5FFF (RAM bank number)
             0x4 | 0x5 => core.ram_bank = value & 0b0000_0011,
