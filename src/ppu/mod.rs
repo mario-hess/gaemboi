@@ -2,7 +2,7 @@
  * @file    ppu/mod.rs
  * @brief   Handles the Picture Processing Unit for graphics rendering.
  * @author  Mario Hess
- * @date    September 22, 2023
+ * @date    September 23, 2023
  */
 mod lcd_control;
 mod lcd_status;
@@ -15,14 +15,14 @@ use sdl2::rect::Point;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
 
+use crate::interrupt::{LCD_STAT_MASK, VBLANK_MASK};
 use crate::memory_bus::{OAM_END, OAM_START, VRAM_END, VRAM_START};
 use crate::ppu::lcd_control::LCD_control;
 use crate::ppu::lcd_status::LCD_status;
 use crate::ppu::oam::OAM;
 use crate::ppu::tile::{Tile, TILE_HEIGHT, TILE_WIDTH};
-use crate::interrupt::VBLANK_MASK;
 
-pub const VRAM_SIZE: usize = 8192;
+pub const VRAM_SIZE: usize = 8 * 1024;
 const OAM_SIZE: usize = 40; // 40 * 4 = 160 byte
 
 const TILE_DATA_START: u16 = VRAM_START;
@@ -64,6 +64,7 @@ pub const TILE_TABLE_WIDTH: usize = 16;
 pub const TILE_TABLE_HEIGHT: usize = 24;
 
 pub const TILE_MAP_WIDTH: usize = 32;
+pub const TILE_MAP_HEIGHT: usize = 32;
 
 #[allow(clippy::upper_case_acronyms, non_camel_case_types)]
 #[derive(Copy, Clone)]
@@ -71,7 +72,7 @@ pub enum Mode {
     HBlank = 0,
     VBlank = 1,
     OAM = 2,
-    VRam = 3,
+    Transfer = 3,
 }
 
 #[derive(Copy, Clone)]
@@ -82,7 +83,7 @@ pub struct Ppu {
     lcd_status: LCD_status,
     scroll_y: u8,
     scroll_x: u8,
-    line_y: u8,
+    pub line_y: u8,
     line_y_compare: u8,
     dma: u8,
     background_palette: u8,
@@ -117,7 +118,7 @@ impl Ppu {
     }
 
     pub fn tick(&mut self, m_cycles: u8) {
-        if !self.lcd_control.lcd_enable {
+        if !self.lcd_control.lcd_enabled {
             return;
         }
 
@@ -128,47 +129,44 @@ impl Ppu {
             Mode::HBlank => {
                 if self.counter >= CYCLES_HBLANK {
                     self.counter %= CYCLES_HBLANK;
-                    
+
                     if self.line_y >= LINES_Y {
-                        self.lcd_status.mode = Mode::VBlank;
+                        self.lcd_status.set_mode(Mode::VBlank, &mut self.interrupts);
                         // render viewport
                         self.interrupts |= VBLANK_MASK;
                         // clear viewport
                     } else {
                         self.line_y = self.line_y.wrapping_add(1);
-                        self.lcd_status.mode = Mode::OAM;
+                        self.lcd_status.set_mode(Mode::OAM, &mut self.interrupts);
                     }
                 }
-            },
+            }
             Mode::VBlank => {
                 if self.counter >= CYCLES_VBLANK {
                     self.line_y = self.line_y.wrapping_add(1);
                     self.counter %= CYCLES_VBLANK;
 
                     if self.line_y > MAX_LINES_Y {
-                        self.lcd_status.mode = Mode::OAM;
+                        self.lcd_status.set_mode(Mode::OAM, &mut self.interrupts);
                         self.line_y = 0;
                     }
                 }
-            },
+            }
             Mode::OAM => {
                 if self.counter >= CYCLES_OAM {
-                    self.lcd_status.mode = Mode::VRam;
+                    self.lcd_status
+                        .set_mode(Mode::Transfer, &mut self.interrupts);
                     self.counter %= CYCLES_OAM;
                 }
-            },
-            Mode::VRam => {
+            }
+            Mode::Transfer => {
                 if self.counter >= CYCLES_VRAM {
                     // render scanline to screen
-                    self.lcd_status.mode = Mode::HBlank;
+                    self.lcd_status.set_mode(Mode::HBlank, &mut self.interrupts);
                     self.counter %= CYCLES_VRAM;
                 }
             }
         }
-    }
-
-    pub fn reset_interrupt(&mut self, interrupt_mask: u8) {
-       self.interrupts ^= interrupt_mask; 
     }
 
     pub fn read_byte(&self, address: u16) -> u8 {
@@ -195,12 +193,12 @@ impl Ppu {
         match address {
             VRAM_START..=VRAM_END => self.video_ram[(address - VRAM_START) as usize] = value,
             OAM_START..=OAM_END => self.write_oam(address - OAM_START, value),
-            LCD_CONTROL => self.lcd_control.set(value),
+            LCD_CONTROL => self.set_lcd_control(value),
             LCD_STATUS => self.lcd_status.set(value),
             SCROLL_Y => self.scroll_y = value,
             SCROLL_X => self.scroll_x = value,
             LINE_Y => self.line_y = value,
-            LINE_Y_COMPARE => self.line_y_compare = value,
+            LINE_Y_COMPARE => self.set_line_y(value),
             DMA => self.dma = value,
             BACKGROUND_PALETTE => self.background_palette = value,
             OBJECT_PALETTE_0 => self.object_palette_0 = value,
@@ -240,6 +238,40 @@ impl Ppu {
         }
     }
 
+    fn set_line_y(&mut self, value: u8) {
+        self.line_y = value;
+        self.compare_line();
+    }
+
+    fn compare_line(&mut self) {
+        self.lcd_status.compare_flag = false;
+
+        if self.line_y_compare == self.line_y {
+            self.lcd_status.compare_flag = true;
+
+            if self.lcd_status.interrupt_stat {
+                self.interrupts |= LCD_STAT_MASK;
+            }
+        }
+    }
+
+    fn set_lcd_control(&mut self, value: u8) {
+        self.lcd_control.set(value);
+
+        if !self.lcd_control.lcd_enabled {
+            // TODO> clear screen
+
+            // Reset ppu
+            self.set_line_y(0);
+            self.lcd_status.mode = Mode::HBlank;
+            self.counter = 0;
+        }
+    }
+
+    pub fn reset_interrupts(&mut self) {
+        self.interrupts = 0;
+    }
+
     pub fn debug_draw_tile_map(
         &mut self,
         tile_map_canvas: &mut Canvas<Window>,
@@ -252,11 +284,18 @@ impl Ppu {
             tile_indexes.push(self.read_byte(i));
         }
 
-        let mut tile_data = Vec::<u8>::new();
+        let mut tile_addresses = Vec::<u16>::new();
 
         for tile_index in tile_indexes {
-            let address = self.lcd_control.get_address(tile_index);
-            tile_data.push(self.read_byte(address));
+            tile_addresses.push(self.lcd_control.get_address(tile_index));
+        }
+
+        let mut tile_data = Vec::<u8>::new();
+
+        for address in tile_addresses {
+            for i in 0..16 {
+                tile_data.push(self.read_byte(address + i));
+            }
         }
 
         let mut tile_map = Vec::<Tile>::new();
@@ -269,35 +308,33 @@ impl Ppu {
             tile_map.push(tile);
         }
 
-        for row in 0..TILE_MAP_WIDTH {
+        for row in 0..TILE_MAP_HEIGHT {
             for col in 0..TILE_MAP_WIDTH {
                 let tile_index = row * TILE_MAP_WIDTH + col;
 
-                if tile_index < tile_map.len() {
-                    let tile = &tile_map[tile_index];
+                let tile = &tile_map[tile_index];
 
-                    let x = col * TILE_WIDTH;
-                    let y = row * TILE_HEIGHT;
+                let x = col * TILE_WIDTH;
+                let y = row * TILE_HEIGHT;
 
-                    for (tile_row, row_pixels) in tile.data.iter().enumerate() {
-                        for (tile_col, pixel) in row_pixels.iter().enumerate() {
-                            let color = match *pixel {
-                                WHITE => WHITE,
-                                LIGHT => LIGHT,
-                                DARK => DARK,
-                                BLACK => BLACK,
-                                _ => unreachable!(),
-                            };
+                for (tile_row, row_pixels) in tile.data.iter().enumerate() {
+                    for (tile_col, pixel) in row_pixels.iter().enumerate() {
+                        let color = match *pixel {
+                            WHITE => WHITE,
+                            LIGHT => LIGHT,
+                            DARK => DARK,
+                            BLACK => BLACK,
+                            _ => unreachable!(),
+                        };
 
-                            tile_map_canvas.set_draw_color(color);
+                        tile_map_canvas.set_draw_color(color);
 
-                            tile_map_canvas
-                                .draw_point(Point::new(
-                                    x as i32 + tile_col as i32,
-                                    y as i32 + tile_row as i32,
-                                ))
-                                .unwrap();
-                        }
+                        tile_map_canvas
+                            .draw_point(Point::new(
+                                x as i32 + tile_col as i32,
+                                y as i32 + tile_row as i32,
+                            ))
+                            .unwrap();
                     }
                 }
             }
@@ -307,7 +344,6 @@ impl Ppu {
     pub fn debug_draw_tile_table(&mut self, tile_data_canvas: &mut Canvas<Window>) {
         let mut tile_data = Vec::<u8>::new();
 
-        // Tile data is stored in VRAM in the memory area at 0x8000-0x97FF.
         for i in TILE_DATA_START..=TILE_DATA_END {
             tile_data.push(self.read_byte(i));
         }
@@ -326,31 +362,29 @@ impl Ppu {
             for col in 0..TILE_TABLE_WIDTH {
                 let tile_index = row * TILE_TABLE_WIDTH + col;
 
-                if tile_index < tile_table.len() {
-                    let tile = &tile_table[tile_index];
+                let tile = &tile_table[tile_index];
 
-                    let x = col * TILE_WIDTH;
-                    let y = row * TILE_HEIGHT;
+                let x = col * TILE_WIDTH;
+                let y = row * TILE_HEIGHT;
 
-                    for (tile_row, row_pixels) in tile.data.iter().enumerate() {
-                        for (tile_col, pixel) in row_pixels.iter().enumerate() {
-                            let color = match *pixel {
-                                WHITE => WHITE,
-                                LIGHT => LIGHT,
-                                DARK => DARK,
-                                BLACK => BLACK,
-                                _ => unreachable!(),
-                            };
+                for (tile_row, row_pixels) in tile.data.iter().enumerate() {
+                    for (tile_col, pixel) in row_pixels.iter().enumerate() {
+                        let color = match *pixel {
+                            WHITE => WHITE,
+                            LIGHT => LIGHT,
+                            DARK => DARK,
+                            BLACK => BLACK,
+                            _ => unreachable!(),
+                        };
 
-                            tile_data_canvas.set_draw_color(color);
+                        tile_data_canvas.set_draw_color(color);
 
-                            tile_data_canvas
-                                .draw_point(Point::new(
-                                    x as i32 + tile_col as i32,
-                                    y as i32 + tile_row as i32,
-                                ))
-                                .unwrap();
-                        }
+                        tile_data_canvas
+                            .draw_point(Point::new(
+                                x as i32 + tile_col as i32,
+                                y as i32 + tile_row as i32,
+                            ))
+                            .unwrap();
                     }
                 }
             }

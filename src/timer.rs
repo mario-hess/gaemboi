@@ -2,7 +2,7 @@
  * @file    timer.rs
  * @brief   Handles the timer and divider registers.
  * @author  Mario Hess
- * @date    September 22, 2023
+ * @date    September 23, 2023
  */
 use crate::interrupt::TIMER_MASK;
 
@@ -11,14 +11,14 @@ const TIMA: u16 = 0xFF05;
 const TMA: u16 = 0xFF06;
 const TAC: u16 = 0xFF07;
 
-const DIV_CYCLES: u16 = 256;
 const TIMER_ENABLE_MASK: u8 = 0x04;
 const TIMER_CONTROL_MASK: u8 = 0x03;
 
-const TAC_CYCLES_0: u16 = 1024;
-const TAC_CYCLES_1: u16 = 16;
-const TAC_CYCLES_2: u16 = 64;
-const TAC_CYCLES_3: u16 = 256;
+const CYCLES_DIV: u16 = 256;
+const CYCLES_TAC_0: u16 = 1024;
+const CYCLES_TAC_1: u16 = 16;
+const CYCLES_TAC_2: u16 = 64;
+const CYCLES_TAC_3: u16 = 256;
 
 pub struct Timer {
     div: u8,
@@ -30,7 +30,7 @@ pub struct Timer {
     tima_overflowed: bool,
     tac_cycles: u16,
     enabled: bool,
-    pub interrupt_request: u8,
+    pub interrupt: u8,
 }
 
 impl Timer {
@@ -43,9 +43,9 @@ impl Timer {
             div_counter: 0,
             tima_counter: 0,
             tima_overflowed: false,
-            tac_cycles: TAC_CYCLES_0,
+            tac_cycles: CYCLES_TAC_0,
             enabled: false,
-            interrupt_request: 0,
+            interrupt: 0,
         }
     }
 
@@ -53,9 +53,9 @@ impl Timer {
         let t_cycles = (m_cycles * 4) as u16;
         self.div_counter += t_cycles;
 
-        while self.div_counter >= DIV_CYCLES {
+        while self.div_counter >= CYCLES_DIV {
             self.div = self.div.wrapping_add(1);
-            self.div_counter -= DIV_CYCLES;
+            self.div_counter -= CYCLES_DIV;
         }
 
         if !self.enabled {
@@ -63,7 +63,7 @@ impl Timer {
         }
 
         if self.tima_overflowed {
-            self.interrupt_request = TIMER_MASK;
+            self.interrupt = TIMER_MASK;
             self.tima = self.tma;
             self.tima_overflowed = false;
         }
@@ -83,7 +83,7 @@ impl Timer {
     }
 
     pub fn reset_interrupt(&mut self) {
-        self.interrupt_request = 0;
+        self.interrupt = 0;
     }
 
     pub fn read_byte(&self, address: u16) -> u8 {
@@ -109,10 +109,10 @@ impl Timer {
                 self.tac = value;
 
                 self.tac_cycles = match value & TIMER_CONTROL_MASK {
-                    0x00 => TAC_CYCLES_0,
-                    0x01 => TAC_CYCLES_1,
-                    0x02 => TAC_CYCLES_2,
-                    0x03 => TAC_CYCLES_3,
+                    0x00 => CYCLES_TAC_0,
+                    0x01 => CYCLES_TAC_1,
+                    0x02 => CYCLES_TAC_2,
+                    0x03 => CYCLES_TAC_3,
                     _ => panic!("Invalid TAC value: {:#X}", self.tac),
                 };
 

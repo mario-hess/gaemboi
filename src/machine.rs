@@ -2,7 +2,7 @@
  * @file    machine.rs
  * @brief   Orchestrates the emulation loop, utilizing SDL2 for rendering and input handling.
  * @author  Mario Hess
- * @date    September 21, 2023
+ * @date    September 23, 2023
  */
 use std::fs::File;
 use std::io::LineWriter;
@@ -16,7 +16,7 @@ use crate::cpu::Cpu;
 use crate::keyboard::Keyboard;
 use crate::ppu::screen::{SCALE, SCREEN_HEIGHT, SCREEN_WIDTH};
 use crate::ppu::{
-    TILE_MAP_END_0, TILE_MAP_END_1, TILE_MAP_START_0, TILE_MAP_START_1, TILE_MAP_WIDTH,
+    TILE_MAP_END_0, TILE_MAP_END_1, TILE_MAP_START_0, TILE_MAP_START_1, TILE_MAP_HEIGHT, TILE_MAP_WIDTH,
     TILE_TABLE_HEIGHT, TILE_TABLE_WIDTH, WHITE,
 };
 
@@ -50,8 +50,8 @@ impl Machine {
         let (
             mut viewport_canvas,
             mut tile_table_canvas,
-            //mut tile_map_0_canvas,
-            //mut tile_map_1_canvas,
+            mut tile_map_0_canvas,
+            mut tile_map_1_canvas,
         ) = self.create_windows(&video_subsystem);
 
         let mut event_pump = sdl_context.event_pump().unwrap();
@@ -63,8 +63,8 @@ impl Machine {
             self.clear_canvases([
                 &mut viewport_canvas,
                 &mut tile_table_canvas,
-                //&mut tile_map_0_canvas,
-                //&mut tile_map_1_canvas,
+                &mut tile_map_0_canvas,
+                &mut tile_map_1_canvas,
             ]);
 
             let frame_start_time = std::time::Instant::now();
@@ -81,15 +81,15 @@ impl Machine {
             // Draw debug windows (Tile Data & Tile Maps)
             self.debug_draw(
                 &mut tile_table_canvas,
-                //&mut tile_map_0_canvas,
-                //&mut tile_map_1_canvas,
+                &mut tile_map_0_canvas,
+                &mut tile_map_1_canvas,
             );
 
             self.present_canvases([
                 &mut viewport_canvas,
                 &mut tile_table_canvas,
-                //&mut tile_map_0_canvas,
-                //&mut tile_map_1_canvas,
+                &mut tile_map_0_canvas,
+                &mut tile_map_1_canvas,
             ]);
 
             // Tick at the CPU frequency rate
@@ -106,8 +106,8 @@ impl Machine {
     ) -> (
         Canvas<Window>,
         Canvas<Window>,
-        //Canvas<Window>,
-        //Canvas<Window>,
+        Canvas<Window>,
+        Canvas<Window>,
     ) {
         let viewport_canvas = self.create_canvas(
             video_subsystem,
@@ -125,11 +125,10 @@ impl Machine {
             "tile_table",
         );
 
-        /*
         let tile_map_0 = self.create_canvas(
             video_subsystem,
             TILE_MAP_WIDTH * 8,
-            TILE_MAP_WIDTH * 8,
+            TILE_MAP_HEIGHT * 8,
             SCALE,
             "tile_map_0",
         );
@@ -137,14 +136,12 @@ impl Machine {
         let tile_map_1 = self.create_canvas(
             video_subsystem,
             TILE_MAP_WIDTH * 8,
-            TILE_MAP_WIDTH * 8,
+            TILE_MAP_HEIGHT * 8,
             SCALE,
             "tile_map_1",
         );
-        */
 
-        //(viewport_canvas, tile_table_canvas, tile_map_0, tile_map_1)
-        (viewport_canvas, tile_table_canvas)
+        (viewport_canvas, tile_table_canvas, tile_map_0, tile_map_1)
     }
 
     fn create_canvas(
@@ -169,14 +166,14 @@ impl Machine {
         canvas
     }
 
-    fn clear_canvases(&mut self, canvases: [&mut Canvas<Window>; 2]) {
+    fn clear_canvases(&mut self, canvases: [&mut Canvas<Window>; 4]) {
         for canvas in canvases {
             canvas.set_draw_color(WHITE);
             canvas.clear();
         }
     }
 
-    fn present_canvases(&mut self, canvases: [&mut Canvas<Window>; 2]) {
+    fn present_canvases(&mut self, canvases: [&mut Canvas<Window>; 4]) {
         for canvas in canvases {
             canvas.present();
         }
@@ -185,15 +182,14 @@ impl Machine {
     fn debug_draw(
         &mut self,
         tile_table_canvas: &mut Canvas<Window>,
-        //tile_map_0_canvas: &mut Canvas<Window>,
-        //tile_map_1_canvas: &mut Canvas<Window>,
+        tile_map_0_canvas: &mut Canvas<Window>,
+        tile_map_1_canvas: &mut Canvas<Window>,
     ) {
         self.cpu
             .memory_bus
             .ppu
             .debug_draw_tile_table(tile_table_canvas);
 
-        /*
         self.cpu.memory_bus.ppu.debug_draw_tile_map(
             tile_map_0_canvas,
             TILE_MAP_START_0,
@@ -205,6 +201,5 @@ impl Machine {
             TILE_MAP_START_1,
             TILE_MAP_END_1,
         );
-        */
     }
 }

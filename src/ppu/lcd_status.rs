@@ -2,25 +2,25 @@
  * @file    ppu/lcd_status.rs
  * @brief   Handles the PPU's LCD Status register.
  * @author  Mario Hess
- * @date    September 22, 2023
+ * @date    September 23, 2023
  */
-use crate::ppu::Mode;
+use crate::ppu::{Mode, LCD_STAT_MASK};
 
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone)]
 pub struct LCD_status {
     pub mode: Mode,
-    compare_flag: bool,
-    interrupt_hblank: bool,
-    interrupt_vblank: bool,
-    interrupt_oam: bool,
-    interrupt_stat: bool,
+    pub compare_flag: bool,
+    pub interrupt_hblank: bool,
+    pub interrupt_vblank: bool,
+    pub interrupt_oam: bool,
+    pub interrupt_stat: bool,
 }
 
 impl LCD_status {
     pub fn new() -> Self {
         Self {
-            mode: Mode::VBlank,
+            mode: Mode::HBlank,
             compare_flag: true,
             interrupt_hblank: false,
             interrupt_vblank: false,
@@ -34,7 +34,7 @@ impl LCD_status {
             0x00 => Mode::HBlank,
             0x01 => Mode::VBlank,
             0x02 => Mode::OAM,
-            0x03 => Mode::VRam,
+            0x03 => Mode::Transfer,
             _ => unreachable!(),
         };
 
@@ -53,5 +53,31 @@ impl LCD_status {
         let interrupt_stat = if self.interrupt_stat { 0x40 } else { 0 };
 
         self.mode as u8 | compare_flag | interrupt_hblank | interrupt_vblank | interrupt_oam | interrupt_stat
+    }
+
+    pub fn set_mode(&mut self, mode: Mode, interrupts: &mut u8) {
+        self.mode = mode;
+        self.check_interrupts(interrupts);
+    }
+
+    fn check_interrupts(&mut self, interrupts: &mut u8) {
+        match self.mode {
+            Mode::HBlank => {
+                if self.interrupt_hblank {
+                    *interrupts |= LCD_STAT_MASK;
+                }
+            }
+            Mode::VBlank => {
+                if self.interrupt_vblank {
+                    *interrupts |= LCD_STAT_MASK;
+                }
+            }
+            Mode::OAM => {
+                if self.interrupt_oam {
+                    *interrupts |= LCD_STAT_MASK;
+                }
+            }
+            _ => {}
+        }
     }
 }

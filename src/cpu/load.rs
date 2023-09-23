@@ -2,7 +2,7 @@
  * @file    cpu/load.rs
  * @brief   Implementation of load instructions.
  * @author  Mario Hess
- * @date    September 20, 2023
+ * @date    September 23, 2023
  */
 use crate::cpu::Cpu;
 use crate::instruction::{CycleDuration, Target};
@@ -80,8 +80,8 @@ pub fn ld_hl_plus_a(cpu: &mut Cpu) -> CycleDuration {
 
     let hl = cpu.registers.get_hl();
     let a = cpu.registers.get_a();
-    cpu.memory_bus.write_byte(hl, a);
 
+    cpu.memory_bus.write_byte(hl, a);
     cpu.registers.set_hl(hl.wrapping_add(1));
 
     CycleDuration::Default
@@ -136,7 +136,7 @@ pub fn ld_a_hl_plus(cpu: &mut Cpu) -> CycleDuration {
     CycleDuration::Default
 }
 
-    pub fn ld_a_hl_minus(cpu: &mut Cpu) -> CycleDuration {
+pub fn ld_a_hl_minus(cpu: &mut Cpu) -> CycleDuration {
     // Load to the 8-bit A register, data from the absolute
     // address specified by the 16-bit register HL. The value
     // of HL is decremented after the memory read.
@@ -258,9 +258,9 @@ pub fn ld_nn_sp(cpu: &mut Cpu) -> CycleDuration {
 
 pub fn ld_c_a(cpu: &mut Cpu) -> CycleDuration {
     // Load to the address specified by the 8-bit C register, data
-    // from the 8-bit A register. The full 16-bit absolute 
+    // from the 8-bit A register. The full 16-bit absolute
     // address is obtained by setting the most significant byte to
-    // 0xFF and the least significant byte to the value of C, 
+    // 0xFF and the least significant byte to the value of C,
     // so the possible range is 0xFF00-0xFFFF.
 
     let c = cpu.registers.get_c();
@@ -298,6 +298,6 @@ pub fn pop_af(cpu: &mut Cpu) -> CycleDuration {
 
     let value = cpu.pop_stack();
     cpu.registers.set_af(value);
-    
+
     CycleDuration::Default
 }

@@ -2,7 +2,7 @@
  * @file    cpu/mod.rs
  * @brief   Overarching construct, facilitates instruction execution coordination.
  * @author  Mario Hess
- * @date    September 20, 2023
+ * @date    September 23, 2023
  */
 use std::fs::File;
 use std::io::{LineWriter, Write};
@@ -58,13 +58,12 @@ impl Cpu {
     }
 
     pub fn tick(&mut self, file: &mut LineWriter<File>) -> u8 {
-        //self.log(file);
+        //let pc = self.program_counter.get();
 
         let i_enable = self.memory_bus.get_interrupt_enable();
         let i_flag = self.memory_bus.get_interrupt_flag();
 
         if self.halted && self.interrupt.interrupt_enabled(i_enable, i_flag) {
-            // Exit halt if any interrupt is enabled.
             self.halted = false;
         } else if self.halted {
             // Halt consumes 1 m_cycle.
@@ -72,18 +71,28 @@ impl Cpu {
         }
 
         if self.interrupt_master && self.interrupt.interrupt_enabled(i_enable, i_flag) {
-            // Exit halt and handle interrupts if IME = 1.
             self.halted = false;
             if let Some(m_cycles) = self.interrupt.handle_interrupts(self) {
                 return m_cycles;
             }
         }
 
-        // IME is set after last instruction.
+        // interrupt_master is set after last instruction.
         self.interrupt_master = self.interrupt_master_state;
 
         let byte = self.memory_bus.read_byte(self.program_counter.next());
         self.instruction = Some(Instruction::from_byte(byte));
+
+        /*
+        let bc = self.registers.get_bc();
+        let de = self.registers.get_de();
+        let hl = self.registers.get_hl();
+        let af = self.registers.get_af();
+        let sp = self.stack_pointer;
+        let ly = self.memory_bus.ppu.line_y;
+        print!("BC={:04X} DE={:04X} HL={:04X} AF={:04X} SP={:04X} PC={:04X}   @rLY = ${:X}, Instr: {:?}\n", bc, de, hl, af, sp, pc, ly, self.instruction.unwrap().mnemonic);
+        self.log(file, pc);
+        */
 
         let m_cycles = match self.instruction.unwrap().mnemonic {
             Mnemonic::Prefix => self.prefix_step(),
@@ -149,12 +158,7 @@ impl Cpu {
                 self.halted = true;
                 CycleDuration::Default
             }
-            Mnemonic::RST(address) => {
-                if address == 0x0038 {
-                    //panic!("Encountered RST 38");
-                }
-                jump::rst(self, address)
-            }
+            Mnemonic::RST(address) => jump::rst(self, address),
             Mnemonic::JP_nn => jump::jp_nn(self),
             Mnemonic::JP_c_nn(flag) => jump::jp_c_nn(self, flag),
             Mnemonic::JP_nc_nn(flag) => jump::jp_nc_nn(self, flag),
@@ -269,13 +273,13 @@ impl Cpu {
         }
     }
 
-    fn log(&self, file: &mut LineWriter<File>) {
+    fn log(&self, file: &mut LineWriter<File>, pc: u16) {
         let bc = self.registers.get_bc();
         let de = self.registers.get_de();
         let hl = self.registers.get_hl();
         let af = self.registers.get_af();
         let sp = self.stack_pointer;
-        let pc = self.program_counter.get();
+        let _ly = self.memory_bus.ppu.line_y;
 
         let output = format!(
             "BC={:04X} DE={:04X} HL={:04X} AF={:04X} SP={:04X} PC={:04X}\n",

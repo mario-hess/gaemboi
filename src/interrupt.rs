@@ -9,7 +9,7 @@ use crate::cpu::Cpu;
 pub const VBLANK_MASK: u8 = 0x01;
 const VBLANK_ISR: u16 = 0x0040;
 
-const LCD_STAT_MASK: u8 = 0x02;
+pub const LCD_STAT_MASK: u8 = 0x02;
 const LCD_STAT_ISR: u16 = 0x0048;
 
 pub const TIMER_MASK: u8 = 0x04;
@@ -30,11 +30,11 @@ impl Interrupt {
     pub fn new() -> Self {
         Self {
             interrupts: [
-                (VBLANK_MASK, VBLANK_ISR),     // VBlank
-                (LCD_STAT_MASK, LCD_STAT_ISR), // LCDStat
-                (TIMER_MASK, TIMER_ISR),       // Timer
-                (SERIAL_MASK, SERIAL_ISR),     // Serial
-                (JOYPAD_MASK, JOYPAD_ISR),     // Joypad
+                (VBLANK_MASK, VBLANK_ISR),
+                (LCD_STAT_MASK, LCD_STAT_ISR),
+                (TIMER_MASK, TIMER_ISR),
+                (SERIAL_MASK, SERIAL_ISR),
+                (JOYPAD_MASK, JOYPAD_ISR),
             ],
         }
     }

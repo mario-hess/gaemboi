@@ -2,10 +2,9 @@
  * @file    memory_bus.rs
  * @brief   Manages memory access and address decoding.
  * @author  Mario Hess
- * @date    September 20, 2023
+ * @date    September 23, 2023
  */
 use crate::cartridge::Cartridge;
-use crate::interrupt::VBLANK_MASK;
 use crate::ppu::Ppu;
 use crate::timer::Timer;
 
@@ -93,12 +92,12 @@ impl MemoryBus {
 
     pub fn tick(&mut self, m_cycles: u8) {
         self.timer.tick(m_cycles);
-        self.interrupt_flag |= self.timer.interrupt_request;
+        self.interrupt_flag |= self.timer.interrupt;
         self.timer.reset_interrupt();
 
         self.ppu.tick(m_cycles);
         self.interrupt_flag |= self.ppu.interrupts;
-        self.ppu.reset_interrupt(VBLANK_MASK);
+        self.ppu.reset_interrupts();
     }
 
     pub fn get_interrupt_flag(&mut self) -> u8 {
@@ -169,11 +168,13 @@ impl MemoryBus {
             // 0xC000 - 0xDFFF (Work RAM)
             WRAM_START..=WRAM_END => self.wram[address as usize - WRAM_START as usize] = value,
             // 0xE000 - 0xFDFF (Echo Ram)
-            ECHO_RAM_START..=ECHO_RAM_END => self.wram[address as usize - ECHO_RAM_START as usize] = value,
+            ECHO_RAM_START..=ECHO_RAM_END => {
+                self.wram[address as usize - ECHO_RAM_START as usize] = value
+            }
             // 0xFE00 - 0xFE9F (Object Attribute Memory)
             OAM_START..=OAM_END => self.ppu.write_byte(address, value),
             // 0xFEA0 - 0xFEFF
-            NOT_USABLE_START..=NOT_USABLE_END => {},
+            NOT_USABLE_START..=NOT_USABLE_END => {}
             // 0xFF00 (Joypad)
             JOYPAD_INPUT => self.joypad_input = value,
             // 0xFF01 (Serial transfer data)
