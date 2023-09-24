@@ -8,52 +8,82 @@
  * - SDL2: Required for audio, input, and display handling.
  *      (https://docs.rs/sdl2/latest/sdl2/)
  */
+use std::env;
+use std::fs::File;
+use std::io::{Error, ErrorKind, Read};
+
 mod cartridge;
 mod clock;
 mod cpu;
+mod event_handler;
 mod instruction;
 mod interrupt;
-mod keyboard;
 mod machine;
 mod memory_bus;
 mod ppu;
 mod registers;
 mod timer;
-use std::env;
+mod window;
 
-use std::fs::File;
-use std::io::{Error, ErrorKind, Read};
-
+use crate::event_handler::EventHandler;
 use crate::machine::Machine;
-
-const ROM_FOLDER: &str = "roms/";
+use crate::machine::FPS;
+use sdl2::keyboard::Keycode;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let rom_path = parse_config(&args);
+    let sdl_context = sdl2::init().unwrap();
+    let video_subsystem = sdl_context.video().unwrap();
+    let mut windows = window::create_windows(&video_subsystem);
+    let mut event_pump = sdl_context.event_pump().unwrap();
+    let mut event_handler = EventHandler::new();
 
-    let rom_data = match create_rom(rom_path) {
-        Ok(value) => value,
-        Err(error) => match error.kind() {
-            ErrorKind::NotFound => panic!("File not found."),
-            ErrorKind::InvalidData => panic!("Invalid file."),
-            _ => panic!("Couldn't read ROM from provided file."),
-        },
-    };
-
-    let mut machine = Machine::new(rom_data);
-    machine.run();
-}
-
-fn parse_config(args: &[String]) -> String {
-    if args.len() < 2 {
-        panic!("No file path provided.");
+    if let Some(rom_path) = parse_config(&args) {
+        event_handler.event_file = Some(rom_path);
     }
 
-    ROM_FOLDER.to_owned() + &args[1]
+    let frame_duration = std::time::Duration::from_millis((1000.0 / FPS) as u64);
+
+    while event_handler.event_key != Some(Keycode::Escape) {
+        let frame_start_time = std::time::Instant::now();
+
+        event_handler.poll(&mut event_pump);
+        window::clear_canvases(&mut windows);
+
+        if let Some(file_path) = event_handler.event_file {
+            event_handler.event_file = None;
+
+            let rom_data = match read_file(file_path.to_owned()) {
+                Ok(value) => value,
+                Err(error) => match error.kind() {
+                    ErrorKind::NotFound => panic!("File not found."),
+                    ErrorKind::InvalidData => panic!("Invalid file."),
+                    _ => panic!("Couldn't read ROM from provided file."),
+                },
+            };
+
+            let mut machine = Machine::new(rom_data);
+            machine.run(&mut event_pump, &mut event_handler, &mut windows);
+        }
+
+        window::present_canvases(&mut windows);
+
+        let elapsed_time = frame_start_time.elapsed();
+        if elapsed_time < frame_duration {
+            std::thread::sleep(frame_duration - elapsed_time);
+        }
+    }
 }
 
-fn create_rom(rom_path: String) -> Result<Vec<u8>, Error> {
+fn parse_config(args: &[String]) -> Option<String> {
+    if args.len() < 2 {
+        return None;
+    }
+
+    Some("roms/".to_owned() + &args[1])
+}
+
+fn read_file(rom_path: String) -> Result<Vec<u8>, Error> {
     let mut file = File::open(rom_path)?;
     let mut rom_data = Vec::new();
     file.read_to_end(&mut rom_data)?;
