@@ -57,8 +57,7 @@ impl Cpu {
         }
     }
 
-    pub fn tick(&mut self, file: &mut LineWriter<File>) -> u8 {
-        //let pc = self.program_counter.get();
+    pub fn tick(&mut self) -> u8 {
 
         let i_enable = self.memory_bus.get_interrupt_enable();
         let i_flag = self.memory_bus.get_interrupt_flag();
@@ -82,17 +81,6 @@ impl Cpu {
 
         let byte = self.memory_bus.read_byte(self.program_counter.next());
         self.instruction = Some(Instruction::from_byte(byte));
-
-        /*
-        let bc = self.registers.get_bc();
-        let de = self.registers.get_de();
-        let hl = self.registers.get_hl();
-        let af = self.registers.get_af();
-        let sp = self.stack_pointer;
-        let ly = self.memory_bus.ppu.line_y;
-        print!("BC={:04X} DE={:04X} HL={:04X} AF={:04X} SP={:04X} PC={:04X}   @rLY = ${:X}, Instr: {:?}\n", bc, de, hl, af, sp, pc, ly, self.instruction.unwrap().mnemonic);
-        self.log(file, pc);
-        */
 
         let m_cycles = match self.instruction.unwrap().mnemonic {
             Mnemonic::Prefix => self.prefix_step(),

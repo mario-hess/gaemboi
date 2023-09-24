@@ -1,6 +1,12 @@
 # gemboi
 ## ˈʤɛmˌbɔɪ
 
+<div align="center">
+<a href="https://github.com/mario-hess/gemboi">
+<img src="https://i.imgur.com/aZ7hWv2.png" alt="Screenshot" width="640">
+</a>
+</div>
+
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 This is a Nintendo Game Boy emulator written in Rust. It aims to accurately emulate the functionality and behavior of the original Game Boy hardware.

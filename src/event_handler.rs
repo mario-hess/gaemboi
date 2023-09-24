@@ -8,35 +8,37 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::EventPump;
 
-pub struct Keyboard {
-    pub key: Option<u8>,
-    pub escape_pressed: bool,
+pub struct EventHandler {
+    pub event_key: Option<Keycode>,
+    pub event_file: Option<String>,
 }
 
-impl Keyboard {
+impl EventHandler {
     pub fn new() -> Self {
         Self {
-            key: None,
-            escape_pressed: false,
+            event_key: None,
+            event_file: None,
         }
     }
 
-    pub fn set_key(&mut self, event_pump: &mut EventPump) {
+    pub fn poll(&mut self, event_pump: &mut EventPump) {
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit { .. }
                 | Event::KeyDown {
                     keycode: Some(Keycode::Escape),
                     ..
-                } => self.escape_pressed = true,
+                } => self.event_key = Some(Keycode::Escape),
                 Event::KeyDown {
                     keycode: Some(Keycode::Num1),
                     ..
-                } => self.key = Some(1),
+                } => self.event_key = Some(Keycode::Num1),
                 Event::KeyUp {
                     keycode: Some(Keycode::Num1),
                     ..
-                } => self.key = None,
+                } => self.event_key = None,
+                Event::DropFile { filename, .. } => self.event_file = Some(filename),
+
                 _ => {}
             };
         }
