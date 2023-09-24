@@ -64,7 +64,7 @@ pub const TILE_TABLE_WIDTH: usize = 16;
 pub const TILE_TABLE_HEIGHT: usize = 24;
 
 pub const TILE_MAP_WIDTH: usize = 32;
-pub const TILE_MAP_HEIGHT: usize = 32;
+pub const TILE_MAP_HEIGHT: usize = TILE_MAP_WIDTH;
 
 #[allow(clippy::upper_case_acronyms, non_camel_case_types)]
 #[derive(Copy, Clone)]
@@ -273,103 +273,52 @@ impl Ppu {
     }
 
     pub fn debug_draw_tile_map(
-        &mut self,
-        tile_map_canvas: &mut Canvas<Window>,
+        self,
+        canvas: &mut Canvas<Window>,
         start_address: u16,
         end_address: u16,
     ) {
-        let mut tile_indexes = Vec::<u8>::new();
+        let mut tile_addr = Vec::<u16>::new();
 
         for i in start_address..=end_address {
-            tile_indexes.push(self.read_byte(i));
+            tile_addr.push(self.lcd_control.get_address(self.read_byte(i)));
         }
 
-        let mut tile_addresses = Vec::<u16>::new();
+        let tile_data: Vec<u8> = tile_addr
+            .iter()
+            .flat_map(|&address| (0..16).map(move |i| self.read_byte(address + i)))
+            .collect();
 
-        for tile_index in tile_indexes {
-            tile_addresses.push(self.lcd_control.get_address(tile_index));
-        }
+        let tiles = Tile::generate_tiles(tile_data);
 
-        let mut tile_data = Vec::<u8>::new();
-
-        for address in tile_addresses {
-            for i in 0..16 {
-                tile_data.push(self.read_byte(address + i));
-            }
-        }
-
-        let mut tile_map = Vec::<Tile>::new();
-
-        for chunk in tile_data.chunks(16) {
-            let mut tile_bytes = [0; 16];
-            tile_bytes.copy_from_slice(chunk);
-
-            let tile = Tile::new(tile_bytes);
-            tile_map.push(tile);
-        }
-
-        for row in 0..TILE_MAP_HEIGHT {
-            for col in 0..TILE_MAP_WIDTH {
-                let tile_index = row * TILE_MAP_WIDTH + col;
-
-                let tile = &tile_map[tile_index];
-
-                let x = col * TILE_WIDTH;
-                let y = row * TILE_HEIGHT;
-
-                for (tile_row, row_pixels) in tile.data.iter().enumerate() {
-                    for (tile_col, pixel) in row_pixels.iter().enumerate() {
-                        let color = match *pixel {
-                            WHITE => WHITE,
-                            LIGHT => LIGHT,
-                            DARK => DARK,
-                            BLACK => BLACK,
-                            _ => unreachable!(),
-                        };
-
-                        tile_map_canvas.set_draw_color(color);
-
-                        tile_map_canvas
-                            .draw_point(Point::new(
-                                x as i32 + tile_col as i32,
-                                y as i32 + tile_row as i32,
-                            ))
-                            .unwrap();
-                    }
-                }
-            }
-        }
+        self.draw(canvas, TILE_MAP_HEIGHT, TILE_MAP_WIDTH, tiles);
     }
 
-    pub fn debug_draw_tile_table(&mut self, tile_data_canvas: &mut Canvas<Window>) {
+    pub fn debug_draw_tile_table(&self, canvas: &mut Canvas<Window>) {
         let mut tile_data = Vec::<u8>::new();
 
         for i in TILE_DATA_START..=TILE_DATA_END {
             tile_data.push(self.read_byte(i));
         }
 
-        let mut tile_table = Vec::<Tile>::new();
+        let tiles = Tile::generate_tiles(tile_data);
 
-        for chunk in tile_data.chunks(16) {
-            let mut tile_bytes = [0; 16];
-            tile_bytes.copy_from_slice(chunk);
+        self.draw(canvas, TILE_TABLE_HEIGHT, TILE_TABLE_WIDTH, tiles);
+    }
 
-            let tile = Tile::new(tile_bytes);
-            tile_table.push(tile);
-        }
+    fn draw(&self, canvas: &mut Canvas<Window>, height: usize, width: usize, tiles: Vec<Tile>) {
+        for row in 0..height {
+            for col in 0..width {
+                let tile_index = row * width + col;
 
-        for row in 0..TILE_TABLE_HEIGHT {
-            for col in 0..TILE_TABLE_WIDTH {
-                let tile_index = row * TILE_TABLE_WIDTH + col;
-
-                let tile = &tile_table[tile_index];
+                let tile = &tiles[tile_index];
 
                 let x = col * TILE_WIDTH;
                 let y = row * TILE_HEIGHT;
 
-                for (tile_row, row_pixels) in tile.data.iter().enumerate() {
-                    for (tile_col, pixel) in row_pixels.iter().enumerate() {
-                        let color = match *pixel {
+                for (row_index, row_pixel) in tile.data.iter().enumerate() {
+                    for (col_index, col_pixel) in row_pixel.iter().enumerate() {
+                        let color = match *col_pixel {
                             WHITE => WHITE,
                             LIGHT => LIGHT,
                             DARK => DARK,
@@ -377,12 +326,12 @@ impl Ppu {
                             _ => unreachable!(),
                         };
 
-                        tile_data_canvas.set_draw_color(color);
+                        canvas.set_draw_color(color);
 
-                        tile_data_canvas
+                        canvas
                             .draw_point(Point::new(
-                                x as i32 + tile_col as i32,
-                                y as i32 + tile_row as i32,
+                                x as i32 + col_index as i32,
+                                y as i32 + row_index as i32,
                             ))
                             .unwrap();
                     }

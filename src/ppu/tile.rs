@@ -2,13 +2,13 @@
  * @file    ppu/tile.rs
  * @brief   Handles tile graphics in 2BPP format.
  * @author  Mario Hess
- * @date    September 20, 2023
+ * @date    September 23, 2023
  */
 use crate::ppu::{BLACK, DARK, LIGHT, WHITE};
 use sdl2::pixels::Color;
 
 pub const TILE_WIDTH: usize = 8;
-pub const TILE_HEIGHT: usize = 8;
+pub const TILE_HEIGHT: usize = TILE_WIDTH;
 
 #[derive(Debug)]
 pub struct Tile {
@@ -25,7 +25,7 @@ impl Tile {
 
             let mut row_data = [WHITE; TILE_WIDTH];
 
-            for (index, row_color) in row_data.iter_mut().enumerate().take(TILE_WIDTH) {
+            for (index, tile_color) in row_data.iter_mut().enumerate().take(TILE_WIDTH) {
                 let bit1 = (first_byte >> (7 - index)) & 0x01;
                 let bit2 = (second_byte >> (7 - index)) & 0x01;
 
@@ -39,12 +39,26 @@ impl Tile {
                     _ => unreachable!(),
                 };
 
-                *row_color = color;
+                *tile_color = color;
             }
 
             data[row] = row_data;
         }
 
         Self { data }
+    }
+
+    pub fn generate_tiles(bytes: Vec<u8>) -> Vec<Tile> {
+        let mut tile_data = Vec::<Tile>::new();
+
+        for chunk in bytes.chunks(16) {
+            let mut tile_bytes = [0; 16];
+            tile_bytes.copy_from_slice(chunk);
+
+            let tile = Tile::new(tile_bytes);
+            tile_data.push(tile);
+        }
+
+        tile_data
     }
 }
