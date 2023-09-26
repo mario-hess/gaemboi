@@ -57,7 +57,7 @@ git clone https://github.com/mario-hess/gemboi
 
 ### Usage
 
-Drop a `.gb` file into the Window or create a folder named 'roms' in the root directory, and place your rom in there.
+Drop a `.gb` file into the window or create a folder named 'roms' in the root directory, and place your rom in there.
 Run the emulator with a specified ROM file:
 ```
 cargo run --release -- <rom_file_name>
