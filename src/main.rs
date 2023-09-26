@@ -37,6 +37,7 @@ use crate::windows::Windows;
 fn main() {
     let args: Vec<String> = env::args().collect();
     let config = Config::build(&args);
+    println!("{:?}", args);
 
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();

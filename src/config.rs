@@ -15,7 +15,7 @@ impl Config {
         let mut file_path = None;
 
         for arg in args {
-            if !arg.starts_with('-') && !arg.contains('/') {
+            if !arg.starts_with('-') && !arg.contains("target/release/gemboi") {
                 file_path = Some("roms/".to_owned() + arg)
             }
         }
