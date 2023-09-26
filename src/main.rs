@@ -46,7 +46,9 @@ fn main() {
     let mut event_handler = EventHandler::new();
 
     if let Some(ref config) = config {
-        event_handler.event_file = Some(config.file_path.to_string());
+        if let Some(ref file_path) = config.file_path {
+            event_handler.event_file = Some(file_path.to_string());
+        }
     }
 
     let frame_duration = std::time::Duration::from_millis((1000.0 / FPS) as u64);
