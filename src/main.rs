@@ -12,6 +12,8 @@ use std::env;
 use std::fs::File;
 use std::io::{Error, ErrorKind, Read};
 
+use sdl2::keyboard::Keycode;
+
 mod cartridge;
 mod clock;
 mod config;
@@ -24,13 +26,13 @@ mod memory_bus;
 mod ppu;
 mod registers;
 mod timer;
-mod window;
+mod windows;
 
+use crate::config::Config;
 use crate::event_handler::EventHandler;
 use crate::machine::Machine;
 use crate::machine::FPS;
-use crate::config::Config;
-use sdl2::keyboard::Keycode;
+use crate::windows::Windows;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -39,7 +41,7 @@ fn main() {
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
-    let mut windows = window::create_windows(&config, &video_subsystem);
+    let mut windows = Windows::build(&config, &video_subsystem);
     let mut event_pump = sdl_context.event_pump().unwrap();
     let mut event_handler = EventHandler::new();
 
@@ -53,7 +55,7 @@ fn main() {
         let frame_start_time = std::time::Instant::now();
 
         event_handler.poll(&mut event_pump);
-        window::clear_canvases(&mut windows);
+        Windows::clear(&mut windows);
 
         if let Some(file_path) = event_handler.event_file {
             event_handler.event_file = None;
@@ -67,11 +69,11 @@ fn main() {
                 },
             };
 
-            let mut machine = Machine::new(&config, rom_data);
+            let mut machine = Machine::new(rom_data);
             machine.run(&mut event_pump, &mut event_handler, &mut windows);
         }
 
-        window::present_canvases(&mut windows);
+        Windows::present(&mut windows);
 
         let elapsed_time = frame_start_time.elapsed();
         if elapsed_time < frame_duration {
