@@ -57,12 +57,21 @@ git clone https://github.com/mario-hess/gemboi
 
 ### Usage
 
-Create a folder named 'roms' in the root directory, and place your rom in there.
+Drop a .gb file into the Window or create a folder named 'roms' in the root directory, and place your rom in there.
 Run the emulator with a specified ROM file:
 ```
 cargo run --release -- <rom_file_name>
 ```
 Replace <rom_file_name> with the name of your Game Boy ROM file (.gb).
+
+### Additional flags
+
+You can use additional flags to customize the emulator's behavior:
+
+- `-t`:     Display the tile data table.
+- `-m`:     Display both tilemaps.
+- `-m1`:    Display tilemap 0x9800 - 0x9BFF.
+- `-m2`:    Display tilemap 0x9C00 - 0x9FFF.
 
 ## License
 
