@@ -23,7 +23,7 @@ use crate::ppu::oam::OAM;
 use crate::ppu::tile::{Tile, TILE_HEIGHT, TILE_WIDTH};
 
 pub const VRAM_SIZE: usize = 8 * 1024;
-const OAM_SIZE: usize = 40; // 40 * 4 = 160 byte
+const OAM_SIZE: usize = 40;
 
 const TILE_DATA_START: u16 = VRAM_START;
 const TILE_DATA_END: u16 = 0x97FF;
@@ -60,11 +60,16 @@ const CYCLES_VBLANK: u16 = 456;
 const LINES_Y: u8 = 143;
 const MAX_LINES_Y: u8 = 153;
 
+pub const VIEWPORT_WIDTH: usize = 20;
+pub const VIEWPORT_HEIGHT: usize = 18;
+
 pub const TILE_TABLE_WIDTH: usize = 16;
 pub const TILE_TABLE_HEIGHT: usize = 24;
 
 pub const TILE_MAP_WIDTH: usize = 32;
 pub const TILE_MAP_HEIGHT: usize = TILE_MAP_WIDTH;
+
+pub const SCALE: usize = 2;
 
 #[allow(clippy::upper_case_acronyms, non_camel_case_types)]
 #[derive(Copy, Clone)]
@@ -132,9 +137,9 @@ impl Ppu {
 
                     if self.line_y >= LINES_Y {
                         self.lcd_status.set_mode(Mode::VBlank, &mut self.interrupts);
-                        // render viewport
+                        // TODO: render viewport
                         self.interrupts |= VBLANK_MASK;
-                        // clear viewport
+                        // TODO: lear viewport
                     } else {
                         self.line_y = self.line_y.wrapping_add(1);
                         self.lcd_status.set_mode(Mode::OAM, &mut self.interrupts);
@@ -161,7 +166,7 @@ impl Ppu {
             }
             Mode::Transfer => {
                 if self.counter >= CYCLES_VRAM {
-                    // render scanline to screen
+                    // TODO: render scanline to screen
                     self.lcd_status.set_mode(Mode::HBlank, &mut self.interrupts);
                     self.counter %= CYCLES_VRAM;
                 }
@@ -259,9 +264,8 @@ impl Ppu {
         self.lcd_control.set(value);
 
         if !self.lcd_control.lcd_enabled {
-            // TODO> clear screen
+            // TODO: clear screen
 
-            // Reset ppu
             self.set_line_y(0);
             self.lcd_status.mode = Mode::HBlank;
             self.counter = 0;

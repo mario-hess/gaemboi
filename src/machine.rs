@@ -2,7 +2,7 @@
  * @file    machine.rs
  * @brief   Orchestrates the emulation loop, utilizing SDL2 for rendering and input handling.
  * @author  Mario Hess
- * @date    September 23, 2023
+ * @date    September 26, 2023
  */
 use sdl2::keyboard::Keycode;
 use sdl2::EventPump;
@@ -44,8 +44,8 @@ impl Machine {
 
             let frame_start_time = std::time::Instant::now();
 
-            event_handler.poll(event_pump);
             Windows::clear(windows);
+            event_handler.poll(event_pump);
 
             // Component tick
             while self.clock.cycles_passed <= self.clock.cycles_per_frame {

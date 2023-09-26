@@ -1,19 +1,25 @@
-use sdl2::render::Canvas;
-use sdl2::video::Window as SDL_Window;
+/**
+ * @file    windows.rs
+ * @brief   Handles windows for rendering graphics based on the configuration.
+ * @author  Mario Hess
+ * @date    September 26, 2023
+ */
+use sdl2::render::{Canvas, CanvasBuilder};
+use sdl2::video::Window;
 use sdl2::VideoSubsystem;
 
 use crate::config::Config;
-use crate::ppu::{TILE_MAP_HEIGHT, TILE_MAP_WIDTH, TILE_TABLE_HEIGHT, TILE_TABLE_WIDTH, WHITE};
-
-pub const VIEWPORT_WIDTH: u16 = 160;
-pub const VIEWPORT_HEIGHT: u16 = 144;
-pub const SCALE: u8 = 4;
+use crate::ppu::tile::{TILE_HEIGHT, TILE_WIDTH};
+use crate::ppu::{
+    SCALE, TILE_MAP_HEIGHT, TILE_MAP_WIDTH, TILE_TABLE_HEIGHT, TILE_TABLE_WIDTH, VIEWPORT_HEIGHT,
+    VIEWPORT_WIDTH, WHITE,
+};
 
 pub struct Windows {
-    viewport: Canvas<SDL_Window>,
-    pub tiletable: Option<Canvas<SDL_Window>>,
-    pub tilemap_9800: Option<Canvas<SDL_Window>>,
-    pub tilemap_9c00: Option<Canvas<SDL_Window>>,
+    viewport: Canvas<Window>,
+    pub tiletable: Option<Canvas<Window>>,
+    pub tilemap_9800: Option<Canvas<Window>>,
+    pub tilemap_9c00: Option<Canvas<Window>>,
 }
 
 impl Windows {
@@ -21,8 +27,8 @@ impl Windows {
         let viewport = create_canvas(
             video_subsystem,
             "Viewport",
-            VIEWPORT_WIDTH,
-            VIEWPORT_HEIGHT,
+            VIEWPORT_WIDTH * TILE_WIDTH,
+            VIEWPORT_HEIGHT * TILE_HEIGHT,
             SCALE,
         );
 
@@ -32,8 +38,8 @@ impl Windows {
                     Some(create_canvas(
                         video_subsystem,
                         "Tile Table",
-                        TILE_TABLE_WIDTH as u16 * 8,
-                        TILE_TABLE_HEIGHT as u16 * 8,
+                        TILE_TABLE_WIDTH * TILE_WIDTH,
+                        TILE_TABLE_HEIGHT * TILE_HEIGHT,
                         SCALE,
                     ))
                 } else {
@@ -43,8 +49,8 @@ impl Windows {
                     Some(create_canvas(
                         video_subsystem,
                         "Tilemap 9800",
-                        TILE_MAP_WIDTH as u16 * 8,
-                        TILE_MAP_HEIGHT as u16 * 8,
+                        TILE_MAP_WIDTH * TILE_WIDTH,
+                        TILE_MAP_HEIGHT * TILE_HEIGHT,
                         SCALE,
                     ))
                 } else {
@@ -54,8 +60,8 @@ impl Windows {
                     Some(create_canvas(
                         video_subsystem,
                         "Tilemap 9C00",
-                        TILE_MAP_WIDTH as u16 * 8,
-                        TILE_MAP_HEIGHT as u16 * 8,
+                        TILE_MAP_WIDTH * TILE_WIDTH,
+                        TILE_MAP_HEIGHT * TILE_HEIGHT,
                         SCALE,
                     ))
                 } else {
@@ -77,7 +83,7 @@ impl Windows {
         self.viewport.set_draw_color(WHITE);
         self.viewport.clear();
 
-        let canvases: Vec<&mut Option<Canvas<SDL_Window>>> = vec![
+        let canvases: Vec<&mut Option<Canvas<Window>>> = vec![
             &mut self.tiletable,
             &mut self.tilemap_9800,
             &mut self.tilemap_9c00,
@@ -92,7 +98,7 @@ impl Windows {
     pub fn present(&mut self) {
         self.viewport.present();
 
-        let canvases: Vec<&mut Option<Canvas<SDL_Window>>> = vec![
+        let canvases: Vec<&mut Option<Canvas<Window>>> = vec![
             &mut self.tiletable,
             &mut self.tilemap_9800,
             &mut self.tilemap_9c00,
@@ -107,10 +113,10 @@ impl Windows {
 fn create_canvas(
     video_subsystem: &VideoSubsystem,
     title: &str,
-    width: u16,
-    height: u16,
-    scale: u8,
-) -> Canvas<SDL_Window> {
+    width: usize,
+    height: usize,
+    scale: usize,
+) -> Canvas<Window> {
     let window = video_subsystem
         .window(
             title,
@@ -121,7 +127,8 @@ fn create_canvas(
         .build()
         .unwrap();
 
-    let mut canvas = window.into_canvas().build().unwrap();
+    let mut canvas = CanvasBuilder::new(window).accelerated().build().unwrap();
+
     canvas
         .set_logical_size(width as u32, height as u32)
         .unwrap();

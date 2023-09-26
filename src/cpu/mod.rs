@@ -4,9 +4,6 @@
  * @author  Mario Hess
  * @date    September 23, 2023
  */
-use std::fs::File;
-use std::io::{LineWriter, Write};
-
 mod arithmetic;
 mod bit_ops;
 mod control;
@@ -69,7 +66,7 @@ impl Cpu {
             return 1;
         }
 
-        if self.interrupt_master && self.interrupt.interrupt_enabled(i_enable, i_flag) {
+        if self.interrupt_master {
             self.halted = false;
             if let Some(m_cycles) = self.interrupt.handle_interrupts(self) {
                 return m_cycles;
@@ -259,20 +256,5 @@ impl Cpu {
             Mnemonic::SET_hl(position) => bit_ops::set_hl(self, position),
             _ => panic!("Unknown prefix mnemonic: {:?}.", instruction.mnemonic),
         }
-    }
-
-    fn log(&self, file: &mut LineWriter<File>, pc: u16) {
-        let bc = self.registers.get_bc();
-        let de = self.registers.get_de();
-        let hl = self.registers.get_hl();
-        let af = self.registers.get_af();
-        let sp = self.stack_pointer;
-        let _ly = self.memory_bus.ppu.line_y;
-
-        let output = format!(
-            "BC={:04X} DE={:04X} HL={:04X} AF={:04X} SP={:04X} PC={:04X}\n",
-            bc, de, hl, af, sp, pc
-        );
-        file.write_all(output.as_bytes()).unwrap();
     }
 }

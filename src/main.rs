@@ -75,6 +75,7 @@ fn main() {
             machine.run(&mut event_pump, &mut event_handler, &mut windows);
         }
 
+        // TODO: Boot up sequence
         Windows::present(&mut windows);
 
         let elapsed_time = frame_start_time.elapsed();
