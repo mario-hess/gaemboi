@@ -10,6 +10,7 @@ use sdl2::video::Window;
 use sdl2::EventPump;
 
 use crate::clock::Clock;
+use crate::config::Config;
 use crate::cpu::Cpu;
 use crate::event_handler::EventHandler;
 use crate::ppu::{TILE_MAP_END_0, TILE_MAP_END_1, TILE_MAP_START_0, TILE_MAP_START_1};
@@ -17,14 +18,16 @@ use crate::window;
 
 pub const FPS: f32 = 60.0;
 
-pub struct Machine {
+pub struct Machine<'a> {
     cpu: Cpu,
     clock: Clock,
+    config: &'a Option<Config>,
 }
 
-impl Machine {
-    pub fn new(rom_data: Vec<u8>) -> Self {
+impl<'a> Machine<'a> {
+    pub fn new(config: &'a Option<Config>, rom_data: Vec<u8>) -> Self {
         Self {
+            config,
             cpu: Cpu::new(rom_data),
             clock: Clock::new(),
         }
@@ -34,7 +37,7 @@ impl Machine {
         &mut self,
         event_pump: &mut EventPump,
         event_handler: &mut EventHandler,
-        windows: &mut [Canvas<Window>; 4],
+        windows: &mut Vec<Canvas<Window>>,
     ) {
         let frame_duration = std::time::Duration::from_millis((1000.0 / FPS) as u64);
 
@@ -68,22 +71,32 @@ impl Machine {
         }
     }
 
-    fn debug_draw(&mut self, windows: &mut [Canvas<Window>; 4]) {
-        self.cpu
-            .memory_bus
-            .ppu
-            .debug_draw_tile_table(&mut windows[1]);
+    fn debug_draw(&mut self, windows: &mut [Canvas<Window>]) {
+        let mut counter = 1;
 
-        self.cpu.memory_bus.ppu.debug_draw_tile_map(
-            &mut windows[2],
-            TILE_MAP_START_0,
-            TILE_MAP_END_0,
-        );
+        if let Some(config) = self.config {
+            if config.tiletable_enable {
+                self.cpu
+                    .memory_bus
+                    .ppu
+                    .debug_draw_tile_table(&mut windows[counter]);
+                counter += 1;
+            }
 
-        self.cpu.memory_bus.ppu.debug_draw_tile_map(
-            &mut windows[3],
-            TILE_MAP_START_1,
-            TILE_MAP_END_1,
-        );
+            if config.tilemaps_enable {
+                self.cpu.memory_bus.ppu.debug_draw_tile_map(
+                    &mut windows[counter],
+                    TILE_MAP_START_0,
+                    TILE_MAP_END_0,
+                );
+                counter += 1;
+
+                self.cpu.memory_bus.ppu.debug_draw_tile_map(
+                    &mut windows[counter],
+                    TILE_MAP_START_1,
+                    TILE_MAP_END_1,
+                );
+            }
+        }
     }
 }

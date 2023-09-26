@@ -14,6 +14,7 @@ use std::io::{Error, ErrorKind, Read};
 
 mod cartridge;
 mod clock;
+mod config;
 mod cpu;
 mod event_handler;
 mod instruction;
@@ -28,18 +29,22 @@ mod window;
 use crate::event_handler::EventHandler;
 use crate::machine::Machine;
 use crate::machine::FPS;
+use crate::config::Config;
 use sdl2::keyboard::Keycode;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
+    let config = Config::build(&args);
+
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
-    let mut windows = window::create_windows(&video_subsystem);
+
+    let mut windows = window::create_windows(&config, &video_subsystem);
     let mut event_pump = sdl_context.event_pump().unwrap();
     let mut event_handler = EventHandler::new();
 
-    if let Some(rom_path) = parse_config(&args) {
-        event_handler.event_file = Some(rom_path);
+    if let Some(ref config) = config {
+        event_handler.event_file = Some(config.file_path.to_string());
     }
 
     let frame_duration = std::time::Duration::from_millis((1000.0 / FPS) as u64);
@@ -62,7 +67,7 @@ fn main() {
                 },
             };
 
-            let mut machine = Machine::new(rom_data);
+            let mut machine = Machine::new(&config, rom_data);
             machine.run(&mut event_pump, &mut event_handler, &mut windows);
         }
 
@@ -73,14 +78,6 @@ fn main() {
             std::thread::sleep(frame_duration - elapsed_time);
         }
     }
-}
-
-fn parse_config(args: &[String]) -> Option<String> {
-    if args.len() < 2 {
-        return None;
-    }
-
-    Some("roms/".to_owned() + &args[1])
 }
 
 fn read_file(rom_path: String) -> Result<Vec<u8>, Error> {
