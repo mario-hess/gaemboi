@@ -2,7 +2,7 @@
  * @file    ppu/mod.rs
  * @brief   Handles the Picture Processing Unit for graphics rendering.
  * @author  Mario Hess
- * @date    September 23, 2023
+ * @date    September 27, 2023
  */
 mod lcd_control;
 mod lcd_status;
@@ -28,11 +28,11 @@ const OAM_SIZE: usize = 40;
 const TILE_DATA_START: u16 = VRAM_START;
 const TILE_DATA_END: u16 = 0x97FF;
 
-pub const TILE_MAP_START_0: u16 = 0x9800;
-pub const TILE_MAP_END_0: u16 = 0x9BFF;
+pub const TILEMAP_START_0: u16 = 0x9800;
+pub const TILEMAP_END_0: u16 = 0x9BFF;
 
-pub const TILE_MAP_START_1: u16 = 0x9C00;
-pub const TILE_MAP_END_1: u16 = VRAM_END;
+pub const TILEMAP_START_1: u16 = 0x9C00;
+pub const TILEMAP_END_1: u16 = VRAM_END;
 
 const LCD_CONTROL: u16 = 0xFF40;
 const LCD_STATUS: u16 = 0xFF41;
@@ -63,11 +63,11 @@ const MAX_LINES_Y: u8 = 153;
 pub const VIEWPORT_WIDTH: usize = 20;
 pub const VIEWPORT_HEIGHT: usize = 18;
 
-pub const TILE_TABLE_WIDTH: usize = 16;
-pub const TILE_TABLE_HEIGHT: usize = 24;
+pub const TILETABLE_WIDTH: usize = 16;
+pub const TILETABLE_HEIGHT: usize = 24;
 
-pub const TILE_MAP_WIDTH: usize = 32;
-pub const TILE_MAP_HEIGHT: usize = TILE_MAP_WIDTH;
+pub const TILEMAP_WIDTH: usize = 32;
+pub const TILEMAP_HEIGHT: usize = TILEMAP_WIDTH;
 
 pub const SCALE: usize = 2;
 
@@ -80,7 +80,6 @@ pub enum Mode {
     Transfer = 3,
 }
 
-#[derive(Copy, Clone)]
 pub struct Ppu {
     video_ram: [u8; VRAM_SIZE],
     oam: [OAM; OAM_SIZE],
@@ -277,51 +276,43 @@ impl Ppu {
     }
 
     pub fn debug_draw_tile_map(
-        self,
+        &self,
         canvas: &mut Canvas<Window>,
         start_address: u16,
         end_address: u16,
     ) {
-        let mut tile_addr = Vec::<u16>::new();
+        let tiles = (start_address..=end_address)
+            .map(|i| self.lcd_control.get_address(self.read_byte(i)))
+            .flat_map(|address| (0..16).map(move |j| self.read_byte(address + j)))
+            .collect::<Vec<u8>>()
+            .chunks(16)
+            .map(Tile::new)
+            .collect::<Vec<Tile>>();
 
-        for i in start_address..=end_address {
-            tile_addr.push(self.lcd_control.get_address(self.read_byte(i)));
-        }
-
-        let tile_data: Vec<u8> = tile_addr
-            .iter()
-            .flat_map(|&address| (0..16).map(move |i| self.read_byte(address + i)))
-            .collect();
-
-        let tiles = Tile::generate_tiles(tile_data);
-
-        self.draw(canvas, TILE_MAP_HEIGHT, TILE_MAP_WIDTH, tiles);
+        self.draw(canvas, TILEMAP_WIDTH, &tiles);
     }
 
     pub fn debug_draw_tile_table(&self, canvas: &mut Canvas<Window>) {
-        let mut tile_data = Vec::<u8>::new();
+        let tiles = (TILE_DATA_START..=TILE_DATA_END)
+            .map(|i| self.read_byte(i))
+            .collect::<Vec<u8>>()
+            .chunks(16)
+            .map(Tile::new)
+            .collect::<Vec<Tile>>();
 
-        for i in TILE_DATA_START..=TILE_DATA_END {
-            tile_data.push(self.read_byte(i));
-        }
-
-        let tiles = Tile::generate_tiles(tile_data);
-
-        self.draw(canvas, TILE_TABLE_HEIGHT, TILE_TABLE_WIDTH, tiles);
+        self.draw(canvas, TILETABLE_WIDTH, &tiles);
     }
 
-    fn draw(&self, canvas: &mut Canvas<Window>, height: usize, width: usize, tiles: Vec<Tile>) {
-        for row in 0..height {
-            for col in 0..width {
-                let tile_index = row * width + col;
+    fn draw(&self, canvas: &mut Canvas<Window>, width: usize, tiles: &[Tile]) {
+        for (row, tile) in tiles.chunks(width).enumerate() {
+            for (col, tile_row) in tile.iter().enumerate() {
+                let x = col as i32 * TILE_WIDTH as i32;
+                let y = row as i32 * TILE_HEIGHT as i32;
 
-                let tile = &tiles[tile_index];
-
-                let x = col * TILE_WIDTH;
-                let y = row * TILE_HEIGHT;
-
-                for (row_index, row_pixel) in tile.data.iter().enumerate() {
+                for (row_index, row_pixel) in tile_row.data.iter().enumerate() {
+                    let y_offset = y + row_index as i32;
                     for (col_index, col_pixel) in row_pixel.iter().enumerate() {
+                        let x_offset = x + col_index as i32;
                         let color = match *col_pixel {
                             WHITE => WHITE,
                             LIGHT => LIGHT,
@@ -331,13 +322,7 @@ impl Ppu {
                         };
 
                         canvas.set_draw_color(color);
-
-                        canvas
-                            .draw_point(Point::new(
-                                x as i32 + col_index as i32,
-                                y as i32 + row_index as i32,
-                            ))
-                            .unwrap();
+                        canvas.draw_point(Point::new(x_offset, y_offset)).unwrap();
                     }
                 }
             }

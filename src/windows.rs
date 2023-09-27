@@ -2,7 +2,7 @@
  * @file    windows.rs
  * @brief   Handles windows for rendering graphics based on the configuration.
  * @author  Mario Hess
- * @date    September 26, 2023
+ * @date    September 27, 2023
  */
 use sdl2::render::{Canvas, CanvasBuilder};
 use sdl2::video::Window;
@@ -11,7 +11,7 @@ use sdl2::VideoSubsystem;
 use crate::config::Config;
 use crate::ppu::tile::{TILE_HEIGHT, TILE_WIDTH};
 use crate::ppu::{
-    SCALE, TILE_MAP_HEIGHT, TILE_MAP_WIDTH, TILE_TABLE_HEIGHT, TILE_TABLE_WIDTH, VIEWPORT_HEIGHT,
+    SCALE, TILETABLE_HEIGHT, TILETABLE_WIDTH, TILEMAP_HEIGHT, TILEMAP_WIDTH, VIEWPORT_HEIGHT,
     VIEWPORT_WIDTH, WHITE,
 };
 
@@ -38,8 +38,8 @@ impl Windows {
                     Some(create_canvas(
                         video_subsystem,
                         "Tile Table",
-                        TILE_TABLE_WIDTH * TILE_WIDTH,
-                        TILE_TABLE_HEIGHT * TILE_HEIGHT,
+                        TILETABLE_WIDTH * TILE_WIDTH,
+                        TILETABLE_HEIGHT * TILE_HEIGHT,
                         SCALE,
                     ))
                 } else {
@@ -49,8 +49,8 @@ impl Windows {
                     Some(create_canvas(
                         video_subsystem,
                         "Tilemap 9800",
-                        TILE_MAP_WIDTH * TILE_WIDTH,
-                        TILE_MAP_HEIGHT * TILE_HEIGHT,
+                        TILEMAP_WIDTH * TILE_WIDTH,
+                        TILEMAP_HEIGHT * TILE_HEIGHT,
                         SCALE,
                     ))
                 } else {
@@ -60,8 +60,8 @@ impl Windows {
                     Some(create_canvas(
                         video_subsystem,
                         "Tilemap 9C00",
-                        TILE_MAP_WIDTH * TILE_WIDTH,
-                        TILE_MAP_HEIGHT * TILE_HEIGHT,
+                        TILEMAP_WIDTH * TILE_WIDTH,
+                        TILEMAP_HEIGHT * TILE_HEIGHT,
                         SCALE,
                     ))
                 } else {

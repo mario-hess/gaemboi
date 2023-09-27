@@ -2,9 +2,9 @@
  * @file    ppu/lcd_control.rs
  * @brief   Handles the PPU's LCD Control register.
  * @author  Mario Hess
- * @date    September 23, 2023
+ * @date    September 27, 2023
  */
-use crate::ppu::{TILE_MAP_START_0, TILE_MAP_START_1};
+use crate::ppu::{TILEMAP_START_0, TILEMAP_START_1};
 
 const TILE_BLOCK_0: u16 = 0x8000;
 const TILE_BLOCK_1: u16 = 0x8800;
@@ -72,17 +72,17 @@ impl LCD_control {
 
     pub fn get_bg_tilemap_address(self) -> u16 {
         if !self.bg_tilemap {
-            TILE_MAP_START_0
+            TILEMAP_START_0
         } else {
-            TILE_MAP_START_1
+            TILEMAP_START_1
         }
     }
 
     pub fn get_window_tilemap_address(self) -> u16 {
         if !self.window_tilemap {
-            TILE_MAP_START_0
+            TILEMAP_START_0
         } else {
-            TILE_MAP_START_1
+            TILEMAP_START_1
         }
     }
 

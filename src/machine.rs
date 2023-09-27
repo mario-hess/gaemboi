@@ -2,7 +2,7 @@
  * @file    machine.rs
  * @brief   Orchestrates the emulation loop, utilizing SDL2 for rendering and input handling.
  * @author  Mario Hess
- * @date    September 26, 2023
+ * @date    September 27, 2023
  */
 use sdl2::keyboard::Keycode;
 use sdl2::EventPump;
@@ -10,7 +10,7 @@ use sdl2::EventPump;
 use crate::clock::Clock;
 use crate::cpu::Cpu;
 use crate::event_handler::EventHandler;
-use crate::ppu::{TILE_MAP_END_0, TILE_MAP_END_1, TILE_MAP_START_0, TILE_MAP_START_1};
+use crate::ppu::{TILEMAP_END_0, TILEMAP_END_1, TILEMAP_START_0, TILEMAP_START_1};
 use crate::windows::Windows;
 
 pub const FPS: f32 = 60.0;
@@ -74,16 +74,16 @@ impl Machine {
         if let Some(ref mut tilemap_9800) = windows.tilemap_9800 {
             self.cpu.memory_bus.ppu.debug_draw_tile_map(
                 tilemap_9800,
-                TILE_MAP_START_0,
-                TILE_MAP_END_0,
+                TILEMAP_START_0,
+                TILEMAP_END_0,
             );
         }
 
         if let Some(ref mut tilemap_9c00) = windows.tilemap_9c00 {
             self.cpu.memory_bus.ppu.debug_draw_tile_map(
                 tilemap_9c00,
-                TILE_MAP_START_1,
-                TILE_MAP_END_1,
+                TILEMAP_START_1,
+                TILEMAP_END_1,
             );
         }
     }

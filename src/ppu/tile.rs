@@ -2,7 +2,7 @@
  * @file    ppu/tile.rs
  * @brief   Handles tile graphics in 2BPP format.
  * @author  Mario Hess
- * @date    September 23, 2023
+ * @date    September 27, 2023
  */
 use crate::ppu::{BLACK, DARK, LIGHT, WHITE};
 use sdl2::pixels::Color;
@@ -16,49 +16,27 @@ pub struct Tile {
 }
 
 impl Tile {
-    pub fn new(bytes: [u8; 16]) -> Self {
+    pub fn new(bytes: &[u8]) -> Self {
         let mut data = [[WHITE; TILE_WIDTH]; TILE_HEIGHT];
 
         for row in 0..TILE_HEIGHT {
             let first_byte = bytes[row * 2];
             let second_byte = bytes[row * 2 + 1];
 
-            let mut row_data = [WHITE; TILE_WIDTH];
+            for col in 0..TILE_WIDTH {
+                let bit1 = (first_byte >> (7 - col)) & 0x01;
+                let bit2 = (second_byte >> (7 - col)) & 0x01;
 
-            for (index, tile_color) in row_data.iter_mut().enumerate().take(TILE_WIDTH) {
-                let bit1 = (first_byte >> (7 - index)) & 0x01;
-                let bit2 = (second_byte >> (7 - index)) & 0x01;
-
-                // The first byte specifies the least significant bit of the color ID of
-                // each pixel, and the second byte specifies the most significant bit.
-                let color = match (bit2, bit1) {
+                data[row][col] = match (bit2, bit1) {
                     (0, 0) => WHITE,
                     (0, 1) => LIGHT,
                     (1, 0) => DARK,
                     (1, 1) => BLACK,
                     _ => unreachable!(),
                 };
-
-                *tile_color = color;
             }
-
-            data[row] = row_data;
         }
 
         Self { data }
-    }
-
-    pub fn generate_tiles(bytes: Vec<u8>) -> Vec<Tile> {
-        let mut tile_data = Vec::<Tile>::new();
-
-        for chunk in bytes.chunks(16) {
-            let mut tile_bytes = [0; 16];
-            tile_bytes.copy_from_slice(chunk);
-
-            let tile = Tile::new(tile_bytes);
-            tile_data.push(tile);
-        }
-
-        tile_data
     }
 }
