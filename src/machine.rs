@@ -2,16 +2,19 @@
  * @file    machine.rs
  * @brief   Orchestrates the emulation loop, utilizing SDL2 for rendering and input handling.
  * @author  Mario Hess
- * @date    September 27, 2023
+ * @date    October 04, 2023
  */
 use sdl2::keyboard::Keycode;
-use sdl2::EventPump;
+use sdl2::ttf::Sdl2TtfContext;
+use sdl2::{EventPump, VideoSubsystem};
 
 use crate::clock::Clock;
+use crate::config::Config;
 use crate::cpu::Cpu;
+use crate::debug_windows::DebugWindows;
 use crate::event_handler::EventHandler;
-use crate::ppu::{TILEMAP_END_0, TILEMAP_END_1, TILEMAP_START_0, TILEMAP_START_1};
-use crate::windows::Windows;
+use crate::ppu::{TILEMAP_END_0, TILEMAP_END_1, TILEMAP_START_0, TILEMAP_START_1, WHITE};
+use crate::window::Window;
 
 pub const FPS: f32 = 60.0;
 
@@ -30,22 +33,31 @@ impl Machine {
 
     pub fn run(
         &mut self,
+        config: &mut Config,
         event_pump: &mut EventPump,
         event_handler: &mut EventHandler,
-        windows: &mut Windows,
+        video_subsystem: &VideoSubsystem,
+        ttf_context: &Sdl2TtfContext,
+        viewport: &mut Window,
     ) {
         let frame_duration = std::time::Duration::from_millis((1000.0 / FPS) as u64);
 
+        // Debug Windows
+        let mut windows = DebugWindows::build(video_subsystem, ttf_context, config);
+
         // Core emulation loop
-        while event_handler.event_key != Some(Keycode::Escape) {
-            if event_handler.event_file.is_some() {
+        while event_handler.key_pressed != Some(Keycode::Escape) {
+            event_handler.poll(event_pump);
+            if event_handler.file_dropped.is_some() {
+                config.boot_sequence_enabled = true;
                 break;
             }
 
             let frame_start_time = std::time::Instant::now();
 
-            Windows::clear(windows);
-            event_handler.poll(event_pump);
+            viewport.canvas.set_draw_color(WHITE);
+            viewport.canvas.clear();
+            windows.clear();
 
             // Component tick
             while self.clock.cycles_passed <= self.clock.cycles_per_frame {
@@ -55,8 +67,10 @@ impl Machine {
             }
 
             self.clock.reset();
-            self.debug_draw(windows);
-            Windows::present(windows);
+            self.debug_draw(&mut windows);
+
+            viewport.canvas.present();
+            windows.present();
 
             // Tick at the CPU frequency rate
             let elapsed_time = frame_start_time.elapsed();
@@ -66,14 +80,17 @@ impl Machine {
         }
     }
 
-    fn debug_draw(&mut self, windows: &mut Windows) {
+    fn debug_draw(&mut self, windows: &mut DebugWindows) {
         if let Some(ref mut tiletable) = windows.tiletable {
-            self.cpu.memory_bus.ppu.debug_draw_tile_table(tiletable);
+            self.cpu
+                .memory_bus
+                .ppu
+                .debug_draw_tile_table(&mut tiletable.canvas);
         }
 
         if let Some(ref mut tilemap_9800) = windows.tilemap_9800 {
             self.cpu.memory_bus.ppu.debug_draw_tile_map(
-                tilemap_9800,
+                &mut tilemap_9800.canvas,
                 TILEMAP_START_0,
                 TILEMAP_END_0,
             );
@@ -81,7 +98,7 @@ impl Machine {
 
         if let Some(ref mut tilemap_9c00) = windows.tilemap_9c00 {
             self.cpu.memory_bus.ppu.debug_draw_tile_map(
-                tilemap_9c00,
+                &mut tilemap_9c00.canvas,
                 TILEMAP_START_1,
                 TILEMAP_END_1,
             );
