@@ -62,31 +62,7 @@ pub fn run(
             )
             .unwrap();
 
-        let text_surface = viewport
-            .font
-            .render("booting...")
-            .blended(Color::RGB(0, 255, 0))
-            .unwrap();
-        let text_texture = viewport
-            .texture_creator
-            .create_texture_from_surface(&text_surface)
-            .unwrap();
-
-        let position = Point::new(0, 0);
-
-        let texture_query = text_texture.query();
-        let target_rect = Rect::new(
-            position.x(),
-            position.y(),
-            texture_query.width,
-            texture_query.height,
-        );
-
-        viewport
-            .canvas
-            .copy(&text_texture, None, target_rect)
-            .unwrap();
-
+        viewport.render_text("booting...", Color::RGB(0, 255, 0));
         viewport.canvas.present();
 
         let elapsed_time = frame_start_time.elapsed();
