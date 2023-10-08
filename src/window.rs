@@ -1,5 +1,3 @@
-use sdl2::pixels::Color;
-use sdl2::rect::{Point, Rect};
 /**
  * @file    window.rs
  * @brief   Handles window management.
@@ -7,7 +5,9 @@ use sdl2::rect::{Point, Rect};
  * @date    October 04, 2023
  */
 use sdl2::render::{Canvas, CanvasBuilder, TextureCreator};
+use sdl2::pixels::Color;
 use sdl2::ttf::{Font, Sdl2TtfContext};
+use sdl2::rect::{Point, Rect};
 use sdl2::video::{Window as SDL_Window, WindowContext};
 use sdl2::VideoSubsystem;
 

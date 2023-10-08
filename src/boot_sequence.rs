@@ -6,7 +6,6 @@
  */
 use sdl2::image::LoadTexture;
 use sdl2::keyboard::Keycode;
-use sdl2::pixels::Color;
 use sdl2::rect::{Point, Rect};
 use sdl2::EventPump;
 
@@ -62,7 +61,6 @@ pub fn run(
             )
             .unwrap();
 
-        viewport.render_text("booting...", Color::RGB(0, 255, 0));
         viewport.canvas.present();
 
         let elapsed_time = frame_start_time.elapsed();
