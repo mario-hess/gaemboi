@@ -5,6 +5,7 @@
  * @date    October 04, 2023
  */
 use sdl2::keyboard::Keycode;
+use sdl2::pixels::Color;
 use sdl2::ttf::Sdl2TtfContext;
 use sdl2::{EventPump, VideoSubsystem};
 
@@ -86,6 +87,7 @@ impl Machine {
                 .memory_bus
                 .ppu
                 .debug_draw_tile_table(&mut tiletable.canvas);
+            tiletable.render_text("tile table", Color::RGB(0, 255, 0));
         }
 
         if let Some(ref mut tilemap_9800) = windows.tilemap_9800 {
@@ -94,6 +96,7 @@ impl Machine {
                 TILEMAP_START_0,
                 TILEMAP_END_0,
             );
+            tilemap_9800.render_text("tilemap 9800", Color::RGB(0, 255, 0));
         }
 
         if let Some(ref mut tilemap_9c00) = windows.tilemap_9c00 {
@@ -102,6 +105,7 @@ impl Machine {
                 TILEMAP_START_1,
                 TILEMAP_END_1,
             );
+            tilemap_9c00.render_text("tilemap 9C00", Color::RGB(0, 255, 0));
         }
     }
 }

@@ -29,6 +29,7 @@ use std::fs::File;
 use std::io::{Error, ErrorKind, Read};
 
 use sdl2::keyboard::Keycode;
+use sdl2::pixels::Color;
 use sdl2::ttf::init;
 
 use crate::config::Config;

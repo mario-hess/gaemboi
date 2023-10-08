@@ -5,7 +5,9 @@
  * @date    October 04, 2023
  */
 use sdl2::render::{Canvas, CanvasBuilder, TextureCreator};
+use sdl2::pixels::Color;
 use sdl2::ttf::{Font, Sdl2TtfContext};
+use sdl2::rect::{Point, Rect};
 use sdl2::video::{Window as SDL_Window, WindowContext};
 use sdl2::VideoSubsystem;
 
@@ -56,5 +58,26 @@ impl<'a> Window<'a> {
             texture_creator,
             font,
         }
+    }
+
+    pub fn render_text(&mut self, text: &str, color: Color) {
+        let text_surface = self.font.render(text).blended(color).unwrap();
+
+        let text_texture = self
+            .texture_creator
+            .create_texture_from_surface(&text_surface)
+            .unwrap();
+
+        let position = Point::new(0, 0);
+
+        let texture_query = text_texture.query();
+        let target_rect = Rect::new(
+            position.x(),
+            position.y(),
+            texture_query.width,
+            texture_query.height,
+        );
+
+        self.canvas.copy(&text_texture, None, target_rect).unwrap();
     }
 }
