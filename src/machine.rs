@@ -11,7 +11,7 @@ use crate::config::Config;
 use crate::cpu::Cpu;
 use crate::debug_windows::DebugWindows;
 use crate::event_handler::EventHandler;
-use crate::ppu::{TILEMAP_END_0, TILEMAP_END_1, TILEMAP_START_0, TILEMAP_START_1, WHITE};
+use crate::ppu::{TILEMAP_END_0, TILEMAP_END_1, TILEMAP_START_0, TILEMAP_START_1};
 use crate::window::{Window, clear_canvas};
 use crate::Mode;
 
