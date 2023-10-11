@@ -3,7 +3,7 @@
 
 <div align="center">
 <a href="https://github.com/mario-hess/gemboi">
-<img src="https://i.imgur.com/aZ7hWv2.png" alt="Screenshot" width="640">
+<img src="https://i.imgur.com/aZ7hWv2.png" alt="Screenshot" width="480">
 </a>
 </div>
 
