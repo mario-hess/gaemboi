@@ -13,8 +13,7 @@ use sdl2::{
 
 use crate::config::Config;
 use crate::event_handler::EventHandler;
-use crate::ppu::WHITE;
-use crate::window::Window;
+use crate::window::{Window, clear_canvas};
 use crate::Mode;
 
 pub fn run(
@@ -43,8 +42,7 @@ pub fn run(
             Mode::Boot => {
                 let frame_start_time = std::time::Instant::now();
 
-                viewport.canvas.set_draw_color(WHITE);
-                viewport.canvas.clear();
+                clear_canvas(&mut viewport.canvas);
 
                 logo_position.y += scroll_speed;
 

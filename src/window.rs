@@ -1,17 +1,18 @@
+use sdl2::pixels::Color;
+use sdl2::rect::{Point, Rect};
 /**
  * @file    window.rs
  * @brief   Handles window management.
  * @author  Mario Hess
- * @date    October 04, 2023
+ * @date    October 11, 2023
  */
 use sdl2::render::{Canvas, CanvasBuilder, TextureCreator};
-use sdl2::pixels::Color;
 use sdl2::ttf::{Font, Sdl2TtfContext};
-use sdl2::rect::{Point, Rect};
 use sdl2::video::{Window as SDL_Window, WindowContext};
 use sdl2::VideoSubsystem;
 
 use crate::ppu::tile::{TILE_HEIGHT, TILE_WIDTH};
+use crate::ppu::WHITE;
 
 pub struct Window<'a> {
     pub canvas: Canvas<SDL_Window>,
@@ -80,4 +81,9 @@ impl<'a> Window<'a> {
 
         self.canvas.copy(&text_texture, None, target_rect).unwrap();
     }
+}
+
+pub fn clear_canvas(canvas: &mut Canvas<SDL_Window>) {
+    canvas.set_draw_color(WHITE);
+    canvas.clear();
 }

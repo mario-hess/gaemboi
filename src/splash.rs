@@ -9,7 +9,7 @@ use sdl2::{
     rect::{Point, Rect},
 };
 
-use crate::{ppu::WHITE, window::Window};
+use crate::window::{Window, clear_canvas};
 
 pub fn run(viewport: &mut Window) {
     let texture = viewport
@@ -22,8 +22,7 @@ pub fn run(viewport: &mut Window) {
 
     let splash_position = Point::new(splash_width as i32 / 2, splash_height as i32 / 2);
 
-    viewport.canvas.set_draw_color(WHITE);
-    viewport.canvas.clear();
+    clear_canvas(&mut viewport.canvas);
 
     viewport
         .canvas
