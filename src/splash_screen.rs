@@ -1,5 +1,5 @@
 /**
- * @file    splash.rs
+ * @file    splash_screen.rs
  * @brief   Display splash screen.
  * @author  Mario Hess
  * @date    October 11, 2023

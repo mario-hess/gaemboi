@@ -21,7 +21,7 @@ mod machine;
 mod memory_bus;
 mod ppu;
 mod registers;
-mod splash;
+mod splash_screen;
 mod timer;
 mod window;
 
@@ -75,7 +75,7 @@ fn main() -> Result<(), Error> {
 
         match config.mode {
             Mode::Splash => {
-                splash::run(&mut viewport);
+                splash_screen::run(&mut viewport);
 
                 if let Some(_file_path) = &event_handler.file_dropped {
                     config.mode = Mode::Boot;
