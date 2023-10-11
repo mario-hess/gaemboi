@@ -2,17 +2,20 @@
  * @file    boot_sequence.rs
  * @brief   Custom boot sequence.
  * @author  Mario Hess
- * @date    October 04, 2023
+ * @date    October 11, 2023
  */
-use sdl2::image::LoadTexture;
-use sdl2::keyboard::Keycode;
-use sdl2::rect::{Point, Rect};
-use sdl2::EventPump;
+use sdl2::{
+    image::LoadTexture,
+    keyboard::Keycode,
+    rect::{Point, Rect},
+    EventPump,
+};
 
 use crate::config::Config;
 use crate::event_handler::EventHandler;
 use crate::ppu::WHITE;
 use crate::window::Window;
+use crate::Mode;
 
 pub fn run(
     viewport: &mut Window,
@@ -20,6 +23,8 @@ pub fn run(
     event_pump: &mut EventPump,
     config: &mut Config,
 ) {
+    let frame_duration = std::time::Duration::from_millis((1000.0 / 30.0) as u64);
+
     let texture = viewport
         .texture_creator
         .load_texture("images/logo.png")
@@ -31,41 +36,44 @@ pub fn run(
 
     let mut logo_position = Point::new(logo_width as i32 / 2, 0);
 
-    let frame_duration = std::time::Duration::from_millis((1000.0 / 30.0) as u64);
-
     while event_handler.key_pressed != Some(Keycode::Escape) {
-        let frame_start_time = std::time::Instant::now();
-
         event_handler.poll(event_pump);
-        if !config.boot_sequence_enabled {
-            break;
-        }
 
-        viewport.canvas.set_draw_color(WHITE);
-        viewport.canvas.clear();
+        match config.mode {
+            Mode::Boot => {
+                let frame_start_time = std::time::Instant::now();
 
-        logo_position.y += scroll_speed;
+                viewport.canvas.set_draw_color(WHITE);
+                viewport.canvas.clear();
 
-        if logo_position.y > logo_height as i32 / 2 && config.boot_sequence_enabled {
-            logo_position.y = logo_height as i32 / 2;
-            config.boot_sequence_enabled = false;
-            std::thread::sleep(std::time::Duration::from_millis(3000));
-        }
+                logo_position.y += scroll_speed;
 
-        viewport
-            .canvas
-            .copy(
-                &texture,
-                None,
-                Rect::from_center(logo_position, logo_width, logo_height),
-            )
-            .unwrap();
+                if logo_position.y > logo_height as i32 / 2 {
+                    logo_position.y = logo_height as i32 / 2;
+                    config.mode = Mode::Play;
 
-        viewport.canvas.present();
+                    std::thread::sleep(std::time::Duration::from_millis(3000));
+                }
 
-        let elapsed_time = frame_start_time.elapsed();
-        if elapsed_time < frame_duration {
-            std::thread::sleep(frame_duration - elapsed_time);
+                viewport
+                    .canvas
+                    .copy(
+                        &texture,
+                        None,
+                        Rect::from_center(logo_position, logo_width, logo_height),
+                    )
+                    .unwrap();
+
+                viewport.canvas.present();
+
+                let elapsed_time = frame_start_time.elapsed();
+                if elapsed_time < frame_duration {
+                    std::thread::sleep(frame_duration - elapsed_time);
+                }
+            }
+            _ => {
+                break;
+            }
         }
     }
 }

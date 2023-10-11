@@ -2,7 +2,7 @@
  * @file    main.rs
  * @brief   Initializes the emulator by loading the ROM and delegating control to the core emulation loop.
  * @author  Mario Hess
- * @date    October 04, 2023
+ * @date    October 11, 2023
  *
  * Program Dependencies:
  * - SDL2: Required for audio, input, and display handling.
@@ -21,6 +21,7 @@ mod machine;
 mod memory_bus;
 mod ppu;
 mod registers;
+mod splash;
 mod timer;
 mod window;
 
@@ -28,23 +29,31 @@ use std::env;
 use std::fs::File;
 use std::io::{Error, ErrorKind, Read};
 
-use sdl2::keyboard::Keycode;
-use sdl2::pixels::Color;
-use sdl2::ttf::init;
+use sdl2::{keyboard::Keycode, ttf::init};
 
 use crate::config::Config;
 use crate::event_handler::EventHandler;
 use crate::machine::Machine;
-use crate::ppu::{SCALE, VIEWPORT_HEIGHT, VIEWPORT_WIDTH, WHITE};
+use crate::ppu::{SCALE, VIEWPORT_HEIGHT, VIEWPORT_WIDTH};
 use crate::window::Window;
 
-fn main() {
+pub enum Mode {
+    Splash,
+    Boot,
+    Play,
+}
+
+fn main() -> Result<(), Error> {
+    // Build config
     let args: Vec<String> = env::args().collect();
     let mut config = Config::build(&args);
 
+    // Initialize SDL2
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
     let ttf_context = init().map_err(|e| e.to_string()).unwrap();
+    let mut event_pump = sdl_context.event_pump().unwrap();
+    let mut event_handler = EventHandler::new();
 
     let mut viewport = Window::build(
         &video_subsystem,
@@ -55,53 +64,59 @@ fn main() {
         SCALE,
     );
 
-    let mut event_pump = sdl_context.event_pump().unwrap();
-    let mut event_handler = EventHandler::new();
-
+    // Set file_path if passed through args
     if let Some(ref file_path) = config.file_path {
         event_handler.file_dropped = Some(file_path.to_string());
+        config.mode = Mode::Boot;
     }
 
     while event_handler.key_pressed != Some(Keycode::Escape) {
         event_handler.poll(&mut event_pump);
 
-        viewport.canvas.set_draw_color(WHITE);
-        viewport.canvas.clear();
+        match config.mode {
+            Mode::Splash => {
+                splash::run(&mut viewport);
 
-        if config.boot_sequence_enabled {
-            boot_sequence::run(
-                &mut viewport,
-                &mut event_handler,
-                &mut event_pump,
-                &mut config,
-            );
+                if let Some(_file_path) = &event_handler.file_dropped {
+                    config.mode = Mode::Boot;
+                }
+            }
+            Mode::Boot => {
+                boot_sequence::run(
+                    &mut viewport,
+                    &mut event_handler,
+                    &mut event_pump,
+                    &mut config,
+                );
+            }
+            Mode::Play => {
+                let file_path = event_handler.file_dropped.as_ref().unwrap();
+
+                let rom_data = match read_file(file_path.to_owned()) {
+                    Ok(value) => value,
+                    Err(error) => match error.kind() {
+                        ErrorKind::NotFound => panic!("File not found."),
+                        ErrorKind::InvalidData => panic!("Invalid file."),
+                        _ => panic!("Couldn't read ROM from provided file."),
+                    },
+                };
+
+                event_handler.file_dropped = None;
+
+                let mut machine = Machine::new(rom_data);
+                machine.run(
+                    &mut config,
+                    &mut event_pump,
+                    &mut event_handler,
+                    &video_subsystem,
+                    &ttf_context,
+                    &mut viewport,
+                );
+            }
         }
-
-        if let Some(file_path) = event_handler.file_dropped {
-            event_handler.file_dropped = None;
-
-            let rom_data = match read_file(file_path.to_owned()) {
-                Ok(value) => value,
-                Err(error) => match error.kind() {
-                    ErrorKind::NotFound => panic!("File not found."),
-                    ErrorKind::InvalidData => panic!("Invalid file."),
-                    _ => panic!("Couldn't read ROM from provided file."),
-                },
-            };
-
-            let mut machine = Machine::new(rom_data);
-            machine.run(
-                &mut config,
-                &mut event_pump,
-                &mut event_handler,
-                &video_subsystem,
-                &ttf_context,
-                &mut viewport,
-            );
-        }
-
-        viewport.canvas.present();
     }
+
+    Ok(())
 }
 
 fn read_file(rom_path: String) -> Result<Vec<u8>, Error> {
