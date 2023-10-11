@@ -138,7 +138,7 @@ impl Ppu {
                         self.lcd_status.set_mode(Mode::VBlank, &mut self.interrupts);
                         // TODO: render viewport
                         self.interrupts |= VBLANK_MASK;
-                        // TODO: lear viewport
+                        // TODO: clear viewport
                     } else {
                         self.line_y = self.line_y.wrapping_add(1);
                         self.lcd_status.set_mode(Mode::OAM, &mut self.interrupts);
