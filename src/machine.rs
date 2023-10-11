@@ -12,7 +12,7 @@ use crate::cpu::Cpu;
 use crate::debug_windows::DebugWindows;
 use crate::event_handler::EventHandler;
 use crate::ppu::{TILEMAP_END_0, TILEMAP_END_1, TILEMAP_START_0, TILEMAP_START_1, WHITE};
-use crate::window::Window;
+use crate::window::{Window, clear_canvas};
 use crate::Mode;
 
 pub const FPS: f32 = 60.0;
@@ -53,8 +53,8 @@ impl Machine {
 
             let frame_start_time = std::time::Instant::now();
 
-            viewport.canvas.set_draw_color(WHITE);
-            viewport.canvas.clear();
+            
+            clear_canvas(&mut viewport.canvas);
             debug_windows.clear();
 
             // Component tick
