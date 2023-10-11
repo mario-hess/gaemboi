@@ -28,8 +28,8 @@ impl<'a> Window<'a> {
         height: usize,
         scale: usize,
     ) -> Self {
-        let font_path = "fonts/Early GameBoy.ttf".to_string();
-        let font_size = 8;
+        let font_path = "fonts/OpenSans-Regular.ttf".to_string();
+        let font_size = 16;
 
         let window = video_subsystem
             .window(
