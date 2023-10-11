@@ -4,7 +4,7 @@
  * @author  Mario Hess
  * @date    October 11, 2023
  *
- * Program Dependencies:
+ * Dependencies:
  * - SDL2: Required for audio, input, and display handling.
  *      (https://docs.rs/sdl2/latest/sdl2/)
  */
