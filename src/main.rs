@@ -27,7 +27,7 @@ mod window;
 
 use std::env;
 use std::fs::File;
-use std::io::{Error, ErrorKind, Read};
+use std::io::{Error, Read};
 
 use sdl2::{keyboard::Keycode, ttf::init};
 
@@ -91,15 +91,7 @@ fn main() -> Result<(), Error> {
             }
             Mode::Play => {
                 let file_path = event_handler.file_dropped.as_ref().unwrap();
-
-                let rom_data = match read_file(file_path.to_owned()) {
-                    Ok(value) => value,
-                    Err(error) => match error.kind() {
-                        ErrorKind::NotFound => panic!("File not found."),
-                        ErrorKind::InvalidData => panic!("Invalid file."),
-                        _ => panic!("Couldn't read ROM from provided file."),
-                    },
-                };
+                let rom_data = read_file(file_path.to_owned())?;
 
                 event_handler.file_dropped = None;
 
