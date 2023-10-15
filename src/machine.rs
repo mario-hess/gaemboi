@@ -2,9 +2,11 @@
  * @file    machine.rs
  * @brief   Orchestrates the emulation loop, utilizing SDL2 for rendering and input handling.
  * @author  Mario Hess
- * @date    October 11, 2023
+ * @date    October 15, 2023
  */
-use sdl2::{keyboard::Keycode, pixels::Color, ttf::Sdl2TtfContext, EventPump, VideoSubsystem};
+use sdl2::{
+    keyboard::Keycode, pixels::Color, ttf::Sdl2TtfContext, EventPump, VideoSubsystem,
+};
 
 use crate::clock::Clock;
 use crate::config::Config;
@@ -12,7 +14,7 @@ use crate::cpu::Cpu;
 use crate::debug_windows::DebugWindows;
 use crate::event_handler::EventHandler;
 use crate::ppu::{TILEMAP_END_0, TILEMAP_END_1, TILEMAP_START_0, TILEMAP_START_1};
-use crate::window::{Window, clear_canvas};
+use crate::window::{clear_canvas, Window};
 use crate::Mode;
 
 pub const FPS: f32 = 60.0;
@@ -53,7 +55,6 @@ impl Machine {
 
             let frame_start_time = std::time::Instant::now();
 
-            
             clear_canvas(&mut viewport.canvas);
             debug_windows.clear();
 
@@ -66,6 +67,7 @@ impl Machine {
 
             self.clock.reset();
             self.debug_draw(&mut debug_windows);
+            self.cpu.memory_bus.ppu.draw_viewport(&mut viewport.canvas);
 
             viewport.canvas.present();
             debug_windows.present();

@@ -4,14 +4,13 @@ use sdl2::rect::{Point, Rect};
  * @file    window.rs
  * @brief   Handles window management.
  * @author  Mario Hess
- * @date    October 11, 2023
+ * @date    October 15, 2023
  */
 use sdl2::render::{Canvas, CanvasBuilder, TextureCreator};
 use sdl2::ttf::{Font, Sdl2TtfContext};
 use sdl2::video::{Window as SDL_Window, WindowContext};
 use sdl2::VideoSubsystem;
 
-use crate::ppu::tile::{TILE_HEIGHT, TILE_WIDTH};
 use crate::ppu::WHITE;
 
 pub struct Window<'a> {
@@ -35,8 +34,8 @@ impl<'a> Window<'a> {
         let window = video_subsystem
             .window(
                 title,
-                (width as u32 * TILE_WIDTH as u32) * scale as u32,
-                (height as u32 * TILE_HEIGHT as u32) * scale as u32,
+                width as u32 * scale as u32,
+                height as u32 * scale as u32,
             )
             .position_centered()
             .build()
@@ -46,8 +45,8 @@ impl<'a> Window<'a> {
 
         canvas
             .set_logical_size(
-                width as u32 * TILE_WIDTH as u32,
-                height as u32 * TILE_HEIGHT as u32,
+                width as u32,
+                height as u32,
             )
             .unwrap();
 
