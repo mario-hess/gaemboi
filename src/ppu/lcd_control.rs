@@ -2,7 +2,7 @@
  * @file    ppu/lcd_control.rs
  * @brief   Handles the PPU's LCD Control register.
  * @author  Mario Hess
- * @date    October 15, 2023
+ * @date    October 16, 2023
  */
 use crate::ppu::{TILEMAP_START_0, TILEMAP_START_1};
 
@@ -16,8 +16,8 @@ const TILE_OFFSET: u16 = 16;
 #[derive(Copy, Clone)]
 pub struct LCD_control {
     pub bg_enabled: bool,
-    pub obj_enabled: bool,
-    pub obj_size: bool,
+    pub object_enabled: bool,
+    pub object_size: bool,
     pub bg_tilemap: bool,
     pub addressing_mode: bool,
     pub window_enabled: bool,
@@ -29,8 +29,8 @@ impl LCD_control {
     pub fn new() -> Self {
         Self {
             bg_enabled: true,
-            obj_enabled: false,
-            obj_size: false,
+            object_enabled: false,
+            object_size: false,
             bg_tilemap: false,
             addressing_mode: true,
             window_enabled: false,
@@ -41,8 +41,8 @@ impl LCD_control {
 
     pub fn get(self) -> u8 {
         let bg_enabled: u8 = if self.bg_enabled { 0x01 } else { 0 };
-        let obj_enabled: u8 = if self.obj_enabled { 0x02 } else { 0 };
-        let obj_size: u8 = if self.obj_size { 0x04 } else { 0 };
+        let object_enabled: u8 = if self.object_enabled { 0x02 } else { 0 };
+        let object_size: u8 = if self.object_size { 0x04 } else { 0 };
         let bg_tilemap: u8 = if self.bg_tilemap { 0x08 } else { 0 };
         let addressing_mode: u8 = if self.addressing_mode { 0x010 } else { 0 };
         let window_enabled: u8 = if self.window_enabled { 0x20 } else { 0 };
@@ -50,8 +50,8 @@ impl LCD_control {
         let lcd_enable: u8 = if self.lcd_enabled { 0x80 } else { 0 };
 
         bg_enabled
-            | obj_enabled
-            | obj_size
+            | object_enabled
+            | object_size
             | bg_tilemap
             | addressing_mode
             | window_enabled
@@ -61,8 +61,8 @@ impl LCD_control {
 
     pub fn set(&mut self, value: u8) {
         self.bg_enabled = value & 0x01 == 0x01;
-        self.obj_enabled = value & 0x02 == 0x02;
-        self.obj_size = value & 0x04 == 0x04;
+        self.object_enabled = value & 0x02 == 0x02;
+        self.object_size = value & 0x04 == 0x04;
         self.bg_tilemap = value & 0x08 == 0x08;
         self.addressing_mode = value & 0x10 == 0x10;
         self.window_enabled = value & 0x20 == 0x20;

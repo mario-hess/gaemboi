@@ -23,28 +23,4 @@ impl OAM {
             attributes: 0,
         }
     }
-
-    pub fn get_cgb_palette(&self) -> u8 {
-        self.attributes & 0x07
-    }
-
-    pub fn get_cgb_vram_bank(&self) -> bool {
-        self.attributes & 0x08 != 0
-    }
-
-    pub fn get_palette(&self) -> bool {
-        self.attributes & 0x10 != 0
-    }
-
-    pub fn get_x_flip(&self) -> bool {
-        self.attributes & 0x20 != 0
-    }
-
-    pub fn get_y_flip(&self) -> bool {
-        self.attributes & 0x40 != 0
-    }
-
-    pub fn get_overlap(&self) -> bool {
-        self.attributes & 0x80 != 0
-    }
 }

@@ -1,9 +1,10 @@
 /**
- * @file    ppu/lcd_status.rs
- * @brief   Handles the PPU's LCD Status register.
- * @author  Mario Hess
- * @date    September 23, 2023
- */
+                   return;
+* @file    ppu/lcd_status.rs
+* @brief   Handles the PPU's LCD Status register.
+* @author  Mario Hess
+* @date    October 16, 2023
+*/
 use crate::ppu::{Mode, LCD_STAT_MASK};
 
 #[allow(non_camel_case_types)]
@@ -52,7 +53,12 @@ impl LCD_status {
         let interrupt_oam = if self.interrupt_oam { 0x20 } else { 0 };
         let interrupt_stat = if self.interrupt_stat { 0x40 } else { 0 };
 
-        self.mode as u8 | compare_flag | interrupt_hblank | interrupt_vblank | interrupt_oam | interrupt_stat
+        self.mode as u8
+            | compare_flag
+            | interrupt_hblank
+            | interrupt_vblank
+            | interrupt_oam
+            | interrupt_stat
     }
 
     pub fn set_mode(&mut self, mode: Mode, interrupts: &mut u8) {

@@ -23,7 +23,7 @@ use crate::ppu::tile::{Tile, TILE_HEIGHT, TILE_WIDTH};
 
 pub const VRAM_SIZE: usize = 8 * 1024;
 const OAM_SIZE: usize = 40;
-const PRIORITY_MAP_SIZE: usize = 256 * 256 + 256;
+const PRIORITY_MAP_SIZE: usize = 65792;
 
 const TILE_DATA_START: u16 = VRAM_START;
 const TILE_DATA_END: u16 = 0x97FF;
@@ -41,8 +41,8 @@ const SCROLL_X: u16 = 0xFF43;
 const LINE_Y: u16 = 0xFF44;
 const LINE_Y_COMPARE: u16 = 0xFF45;
 const BG_PALETTE: u16 = 0xFF47;
-const TILE_PALETTE_0: u16 = 0xFF48;
-const TILE_PALETTE_1: u16 = 0xFF49;
+const OBJ_PALETTE_0: u16 = 0xFF48;
+const OBJ_PALETTE_1: u16 = 0xFF49;
 const WINDOW_Y: u16 = 0xFF4A;
 const WINDOW_X: u16 = 0xFF4B;
 
@@ -95,11 +95,11 @@ pub struct Ppu {
     lcd_status: LCD_status,
     scroll_y: u8,
     scroll_x: u8,
-    line_y: u8,
+    pub line_y: u8,
     line_y_compare: u8,
-    bg_palette: [u8; 4],
-    tile_palette0: [u8; 4],
-    tile_palette1: [u8; 4],
+    bg_palette: u8,
+    tile_palette0: u8,
+    tile_palette1: u8,
     window_y: u8,
     window_x: u8,
     counter: u16,
@@ -120,9 +120,9 @@ impl Ppu {
             scroll_x: 0,
             line_y: 0,
             line_y_compare: 0,
-            bg_palette: [0, 1, 2, 3],
-            tile_palette0: [0, 1, 2, 3],
-            tile_palette1: [0, 1, 2, 3],
+            bg_palette: 0,
+            tile_palette0: 0,
+            tile_palette1: 0,
             window_y: 0,
             window_x: 0,
             counter: 0,
@@ -150,7 +150,7 @@ impl Ppu {
                         self.lcd_status.set_mode(Mode::VBlank, &mut self.interrupts);
                         //self.render_screen();
                         self.interrupts |= VBLANK_MASK;
-                        self.clear_screen();
+                        //self.clear_screen();
                     } else {
                         self.line_y = self.line_y.wrapping_add(1);
                         self.lcd_status.set_mode(Mode::OAM, &mut self.interrupts);
@@ -195,9 +195,9 @@ impl Ppu {
             SCROLL_X => self.scroll_x,
             LINE_Y => self.line_y,
             LINE_Y_COMPARE => self.line_y_compare,
-            BG_PALETTE => get_palette(&self.bg_palette),
-            TILE_PALETTE_0 => get_palette(&self.tile_palette0),
-            TILE_PALETTE_1 => get_palette(&self.tile_palette1),
+            BG_PALETTE => self.bg_palette,
+            OBJ_PALETTE_0 => self.tile_palette0,
+            OBJ_PALETTE_1 => self.tile_palette1,
             WINDOW_Y => self.window_y,
             WINDOW_X => self.window_x,
             _ => panic!("Unknown address: {:#X}. Can't read byte.", address),
@@ -214,9 +214,9 @@ impl Ppu {
             SCROLL_X => self.scroll_x = value,
             LINE_Y => self.line_y = value,
             LINE_Y_COMPARE => self.set_line_y(value),
-            BG_PALETTE => set_palette(&mut self.bg_palette, value),
-            TILE_PALETTE_0 => set_palette(&mut self.tile_palette0, value),
-            TILE_PALETTE_1 => set_palette(&mut self.tile_palette1, value),
+            BG_PALETTE => self.bg_palette = value,
+            OBJ_PALETTE_0 => self.tile_palette0 = value,
+            OBJ_PALETTE_1 => self.tile_palette1 = value,
             WINDOW_Y => self.window_y = value,
             WINDOW_X => self.window_x = value,
             _ => panic!(
@@ -273,7 +273,7 @@ impl Ppu {
         self.lcd_control.set(value);
 
         if !self.lcd_control.lcd_enabled {
-            self.clear_screen();
+            //self.clear_screen();
             self.set_line_y(0);
             self.lcd_status.mode = Mode::HBlank;
             self.counter = 0;
@@ -322,11 +322,11 @@ impl Ppu {
                 bg_offset_y % TILE_HEIGHT as u8 * 2
             } as u16;
 
-            let tile_data_address = tile_address + y_tile_address_offset;
-            let tile_color_address = tile_data_address + 1;
+            let first_byte_address = tile_address + y_tile_address_offset;
+            let second_byte_address = first_byte_address + 1;
 
-            let tile_data = self.read_byte(tile_data_address);
-            let tile_color = self.read_byte(tile_color_address);
+            let first_byte = self.read_byte(first_byte_address);
+            let second_byte = self.read_byte(second_byte_address);
 
             let pixel_index = if col_is_window && row_is_window {
                 self.window_x.wrapping_sub(x as u8) % 8
@@ -334,20 +334,21 @@ impl Ppu {
                 7 - (bg_offset_x % 8) as u8
             };
 
-            let color_index = get_color_index(tile_data, tile_color, pixel_index);
+            let bit1 = (first_byte >> pixel_index) & 1;
+            let bit2 = (second_byte >> pixel_index) & 1;
+            let pixel = match (bit2, bit1) {
+                (0, 0) => WHITE,
+                (0, 1) => LIGHT,
+                (1, 0) => DARK,
+                (1, 1) => BLACK,
+                _ => unreachable!(),
+            };
+
             let priority_offset = self.line_y as usize + FULL_WIDTH * x;
 
-            if color_index == 0 {
+            if pixel == WHITE {
                 self.priority_map[priority_offset] = Priority::Overlap
             }
-
-            let pixel = match self.bg_palette[color_index as usize] {
-                0 => WHITE,
-                1 => LIGHT,
-                2 => DARK,
-                3 => BLACK,
-                _ => BLACK,
-            };
 
             let offset = x + self.line_y as usize * VIEWPORT_WIDTH;
             self.screen_buffer[offset] = pixel;
@@ -367,17 +368,17 @@ impl Ppu {
                 continue;
             }
 
-            let object_index = self.read_byte(tile_begin_address + 2);
+            let object_tile = self.read_byte(tile_begin_address + 2);
             let object_attributes = self.read_byte(tile_begin_address + 3);
 
-            let tile_begin_address = TILE_DATA_START + (object_index as u16 * 16);
+            let tile_begin_address = TILE_DATA_START + (object_tile as u16 * 16);
             let line_offset = flip_y(&object_attributes, line_y, tile_height, object_y);
 
-            let tile_data_address = tile_begin_address + (line_offset * 2) as u16;
-            let tile_color_address = tile_begin_address + (line_offset * 2) as u16 + 1;
+            let first_byte_address = tile_begin_address + (line_offset * 2) as u16;
+            let second_byte_address = tile_begin_address + (line_offset * 2) as u16 + 1;
 
-            let tile_data = self.read_byte(tile_data_address);
-            let tile_color = self.read_byte(tile_color_address);
+            let first_byte = self.read_byte(first_byte_address);
+            let second_byte = self.read_byte(second_byte_address);
 
             for x in 0..8 {
                 let x_offset = object_x + x as i16;
@@ -386,28 +387,24 @@ impl Ppu {
                 }
 
                 let pixel_index = flip_x(&object_attributes, x);
-                let sprite_palette = if is_bit_set(&object_attributes, 4) {
-                    &self.tile_palette1
-                } else {
-                    &self.tile_palette0
+
+                let bit1 = (first_byte >> pixel_index) & 1;
+                let bit2 = (second_byte >> pixel_index) & 1;
+                let pixel = match (bit2, bit1) {
+                    (0, 0) => WHITE,
+                    (0, 1) => LIGHT,
+                    (1, 0) => DARK,
+                    (1, 1) => BLACK,
+                    _ => unreachable!(),
                 };
 
-                let color_index = get_color_index(tile_data, tile_color, pixel_index);
-                if color_index == 0 {
-                    continue;
+                if pixel == WHITE {
+                    return;
                 }
-
-                let pixel = match sprite_palette[color_index as usize] {
-                    0 => WHITE,
-                    1 => LIGHT,
-                    2 => DARK,
-                    3 => BLACK,
-                    _ => BLACK,
-                };
 
                 let priority_offset = line_y as usize + FULL_WIDTH * x_offset as usize;
                 if self.bg_has_priority(&object_attributes, priority_offset) {
-                    continue;
+                    return;
                 }
 
                 let offset = x_offset + line_y * VIEWPORT_WIDTH as i16;
@@ -438,11 +435,17 @@ impl Ppu {
         }
     }
 
+    /*
     fn clear_screen(&mut self) {
+        for i in 0..BUFFER_SIZE {
+            self.screen_buffer[i] = WHITE;
+        }
+
         for i in 0..PRIORITY_MAP_SIZE {
             self.priority_map[i] = Priority::None;
         }
     }
+    */
 
     pub fn reset_interrupts(&mut self) {
         self.interrupts = 0;
@@ -506,66 +509,32 @@ impl Ppu {
     }
 }
 
-fn is_bit_set(byte: &u8, bit: u8) -> bool {
-    (byte & (1 << bit)) != 0
+pub fn is_bit_set(byte: &u8, index: u8) -> bool {
+    (1 << index) & byte > 0
 }
 
-fn flip_x(object_attributes: &u8, x: u8) -> u8 {
-    if is_bit_set(object_attributes, 5) {
+fn flip_x(sprite_attributes: &u8, x: u8) -> u8 {
+    if is_bit_set(sprite_attributes, 5) {
         return x;
     }
 
     7 - x
 }
 
-fn flip_y(object_attributes: &u8, line_y: i16, sprite_height: i16, y: i16) -> i16 {
-    if is_bit_set(object_attributes, 6) {
-        return sprite_height - 1 - (line_y - y);
+fn flip_y(sprite_attributes: &u8, current_line: i16, sprite_height: i16, y: i16) -> i16 {
+    if is_bit_set(sprite_attributes, 6) {
+        return sprite_height - 1 - (current_line - y);
     }
-
-    line_y - y
+    current_line - y
 }
 
-fn calculate_address(base_address: u16, row: u8, col: u8) -> u16 {
+fn calculate_address(base_address: u16, row: u8, column: u8) -> u16 {
     let tiles_per_row: u16 = 32;
     let tile_row = (row as u16) / TILE_WIDTH as u16;
-    let tile_col = (col as u16) / TILE_HEIGHT as u16;
+    let tile_column = (column as u16) / TILE_HEIGHT as u16;
 
-    let offset = tile_row * tiles_per_row + tile_col;
+    let offset = tile_row * tiles_per_row + tile_column;
 
     base_address + offset
 }
 
-fn get_color_index(first_byte: u8, second_byte: u8, pixel_index: u8) -> u8 {
-    ((first_byte >> pixel_index) & 1) | ((second_byte >> pixel_index) & 1) << 1
-}
-
-fn get_palette(palette: &[u8]) -> u8 {
-    let mut value = 0u8;
-
-    for (i, &color) in palette.iter().enumerate() {
-        let color_data = match color {
-            0 => 0,
-            1 => 1,
-            2 => 2,
-            3 => 3,
-            _ => 3,
-        };
-
-        value |= (color_data & 3) << (i * 2);
-    }
-
-    value
-}
-
-fn set_palette(palette: &mut [u8], value: u8) {
-    for (i, color_data) in (0..4).map(|i| (i, (value >> (i * 2) & 3))) {
-        palette[i] = match color_data {
-            0 => 0,
-            1 => 1,
-            2 => 2,
-            3 => 3,
-            _ => 3,
-        };
-    }
-}

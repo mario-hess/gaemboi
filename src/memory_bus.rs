@@ -44,6 +44,9 @@ const WAVE_PATTERN_START: u16 = 0xFF30;
 const WAVE_PATTERN_END: u16 = 0xFF3F;
 
 const PPU_IO_START: u16 = 0xFF40;
+const LINE_Y_COMPARE: u16 = 0xFF45;
+const DMA: u16 = 0xFF46;
+const BG_PALETTE: u16 = 0xFF47;
 const PPU_IO_END: u16 = 0xFF4B;
 
 const SPEED_SWITCH: u16 = 0xFF4D;
@@ -125,7 +128,7 @@ impl MemoryBus {
             // 0xFEA0 - 0xFEFF
             NOT_USABLE_START..=NOT_USABLE_END => 0,
             // 0xFF00 (Joypad)
-            JOYPAD_INPUT => self.joypad_input,
+            JOYPAD_INPUT => 0xFF,
             // 0xFF01 (Serial transfer data)
             SERIAL_SB => self.serial_sb,
             // 0xFF02 (Serial transfer control)
@@ -140,8 +143,12 @@ impl MemoryBus {
             WAVE_PATTERN_START..=WAVE_PATTERN_END => {
                 self.wave_pattern[address as usize - WAVE_PATTERN_START as usize]
             }
-            // 0xFF40 - 0xFF4B (PPU Registers)
-            PPU_IO_START..=PPU_IO_END => self.ppu.read_byte(address),
+            // 0xFF40 - 0xFF45 (PPU Registers)
+            PPU_IO_START..=LINE_Y_COMPARE => self.ppu.read_byte(address),
+            // 0xFF46 DMA Transfer (Write Only)
+            DMA => 0,
+            // 0xFF47 - 0xFF4B (PPU Registers)
+            BG_PALETTE..=PPU_IO_END => self.ppu.read_byte(address),
             // 0xFF4D (Speed Switch)
             SPEED_SWITCH => self.speed_switch,
             // 0xFF80 - 0xFFFE (High RAM)
@@ -191,8 +198,12 @@ impl MemoryBus {
             WAVE_PATTERN_START..=WAVE_PATTERN_END => {
                 self.wave_pattern[address as usize - WAVE_PATTERN_START as usize] = value;
             }
-            // 0xFF40 - 0xFF4B (PPU Registers)
-            PPU_IO_START..=PPU_IO_END => self.ppu.write_byte(address, value),
+            // 0xFF40 - 0xFF45 (PPU Registers)
+            PPU_IO_START..=LINE_Y_COMPARE => self.ppu.write_byte(address, value),
+            // 0xFF46 DMA Transfer (Write Only)
+            DMA => self.dma_transfer(value),
+            // 0xFF47 - 0xFF4B (PPU Registers)
+            BG_PALETTE..=PPU_IO_END => self.ppu.write_byte(address, value),
             // 0xFF4D (Speed Switch)
             SPEED_SWITCH => self.speed_switch = value,
             // 0xFF80 - 0xFFFE (High RAM)
@@ -203,6 +214,14 @@ impl MemoryBus {
                 "Unknown address: {:#X} Can't write byte: {:#X}.",
                 address, value
             ),
+        }
+    }
+
+    fn dma_transfer(&mut self, value: u8) {
+        let base = (value as u16) << 8;
+        for i in 0..160 {
+            let byte = self.read_byte(base + i);
+            self.write_byte(0xFE00 + i, byte);
         }
     }
 }
