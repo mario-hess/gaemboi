@@ -2,7 +2,7 @@
  * @file    main.rs
  * @brief   Initializes the emulator by loading the ROM and delegating control to the core emulation loop.
  * @author  Mario Hess
- * @date    October 11, 2023
+ * @date    October 19, 2023
  *
  * Dependencies:
  * - SDL2: Required for audio, input, and display handling.
@@ -17,6 +17,7 @@ mod debug_windows;
 mod event_handler;
 mod instruction;
 mod interrupt;
+mod joypad;
 mod machine;
 mod memory_bus;
 mod ppu;

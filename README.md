@@ -16,10 +16,10 @@ This is a Nintendo Game Boy emulator written in Rust. It aims to accurately emul
 - [x] Emulation of Game Boy CPU (Sharp LR35902)
 - [x] Precise timing based on instruction cycles and timing registers 
 - [x] Support for Game Boy ROMs
-- [ ] Accurate emulation of memory, registers, and interrupts
+- [x] Accurate emulation of memory, registers, and interrupts
 - [x] Basic graphics
 - [ ] Audio emulation (DMG sound channels)
-- [ ] Input handling
+- [x] Input handling
 - [ ] Save states and battery-backed save support
 
 ## Blargg's test ROMs

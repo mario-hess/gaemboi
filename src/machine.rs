@@ -2,11 +2,9 @@
  * @file    machine.rs
  * @brief   Orchestrates the emulation loop, utilizing SDL2 for rendering and input handling.
  * @author  Mario Hess
- * @date    October 15, 2023
+ * @date    October 19, 2023
  */
-use sdl2::{
-    keyboard::Keycode, pixels::Color, ttf::Sdl2TtfContext, EventPump, VideoSubsystem,
-};
+use sdl2::{keyboard::Keycode, pixels::Color, ttf::Sdl2TtfContext, EventPump, VideoSubsystem};
 
 use crate::clock::Clock;
 use crate::config::Config;
@@ -47,6 +45,10 @@ impl Machine {
         // Core emulation loop
         while event_handler.key_pressed != Some(Keycode::Escape) {
             event_handler.poll(event_pump);
+            self.cpu
+                .memory_bus
+                .joypad
+                .handle_input(&event_handler.key_pressed);
 
             if event_handler.file_dropped.is_some() {
                 config.mode = Mode::Boot;
