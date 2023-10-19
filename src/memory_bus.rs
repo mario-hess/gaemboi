@@ -2,9 +2,10 @@
  * @file    memory_bus.rs
  * @brief   Manages memory access and address decoding.
  * @author  Mario Hess
- * @date    September 23, 2023
+ * @date    October 19, 2023
  */
 use crate::cartridge::Cartridge;
+use crate::joypad::Joypad;
 use crate::ppu::Ppu;
 use crate::timer::Timer;
 
@@ -62,7 +63,7 @@ pub struct MemoryBus {
     wram: [u8; 8192],
     hram: [u8; 128],
     pub interrupt_enable: u8,
-    joypad_input: u8,
+    pub joypad: Joypad,
     serial_sb: u8,
     serial_sc: u8,
     pub timer: Timer,
@@ -82,7 +83,7 @@ impl MemoryBus {
             wram: [0; 8192],
             hram: [0; 128],
             interrupt_enable: 0,
-            joypad_input: 0,
+            joypad: Joypad::default(),
             serial_sb: 0,
             serial_sc: 0,
             timer: Timer::new(),
@@ -128,7 +129,10 @@ impl MemoryBus {
             // 0xFEA0 - 0xFEFF
             NOT_USABLE_START..=NOT_USABLE_END => 0,
             // 0xFF00 (Joypad)
-            JOYPAD_INPUT => 0xFF,
+            JOYPAD_INPUT => {
+                //println!("{:#b}", self.joypad.get());
+                self.joypad.get()
+            }
             // 0xFF01 (Serial transfer data)
             SERIAL_SB => self.serial_sb,
             // 0xFF02 (Serial transfer control)
@@ -160,11 +164,6 @@ impl MemoryBus {
     }
 
     pub fn write_byte(&mut self, address: u16, value: u8) {
-        // Test rom logs
-        if address == SERIAL_SB {
-            print!("{}", char::from(value));
-        }
-
         match address {
             // 0x0000 - 0x7FFF (Cartridge ROM Banks)
             CARTRIDGE_ROM_START..=CARTRIDGE_ROM_END => self.cartridge.write(address, value),
@@ -183,7 +182,7 @@ impl MemoryBus {
             // 0xFEA0 - 0xFEFF
             NOT_USABLE_START..=NOT_USABLE_END => {}
             // 0xFF00 (Joypad)
-            JOYPAD_INPUT => self.joypad_input = value,
+            JOYPAD_INPUT => self.joypad.set(value),
             // 0xFF01 (Serial transfer data)
             SERIAL_SB => self.serial_sb = value,
             // 0xFF02 (Serial transfer control)
@@ -218,10 +217,10 @@ impl MemoryBus {
     }
 
     fn dma_transfer(&mut self, value: u8) {
-        let base = (value as u16) << 8;
+        let byte = (value as u16) << 8;
         for i in 0..160 {
-            let byte = self.read_byte(base + i);
-            self.write_byte(0xFE00 + i, byte);
+            let new_byte = self.read_byte(byte + i);
+            self.write_byte(OAM_START + i, new_byte);
         }
     }
 }
