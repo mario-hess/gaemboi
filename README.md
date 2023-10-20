@@ -1,9 +1,8 @@
-# gemboi
-## ˈʤɛmˌbɔɪ
+# gaemboi
 
 <div align="center">
-<a href="https://github.com/mario-hess/gemboi">
-<img src="https://i.imgur.com/aZ7hWv2.png" alt="Screenshot" width="360">
+<a href="https://github.com/mario-hess/gaemboi">
+<img src="https://i.imgur.com/1LiQkNs.png" alt="Logo" width="360">
 </a>
 </div>
 
