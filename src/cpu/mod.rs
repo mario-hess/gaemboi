@@ -2,7 +2,7 @@
  * @file    cpu/mod.rs
  * @brief   Overarching construct, facilitates instruction execution coordination.
  * @author  Mario Hess
- * @date    September 23, 2023
+ * @date    October 20, 2023
  */
 mod arithmetic;
 mod bit_ops;
@@ -13,11 +13,13 @@ mod program_counter;
 mod rotate;
 mod shift;
 
-use crate::cpu::program_counter::ProgramCounter;
-use crate::instruction::{CycleDuration, Instruction, Mnemonic};
-use crate::interrupt::Interrupt;
-use crate::memory_bus::MemoryBus;
-use crate::registers::Registers;
+use crate::{
+    cpu::program_counter::ProgramCounter,
+    instruction::{CycleDuration, Instruction, Mnemonic},
+    interrupt::Interrupt,
+    memory_bus::MemoryBus,
+    registers::Registers,
+};
 
 const HEADER_CHECKSUM_ADDRESS: usize = 0x014D;
 const STACK_POINTER_START: u16 = 0xFFFE;
@@ -55,7 +57,6 @@ impl Cpu {
     }
 
     pub fn tick(&mut self) -> u8 {
-
         let i_enable = self.memory_bus.get_interrupt_enable();
         let i_flag = self.memory_bus.get_interrupt_flag();
 

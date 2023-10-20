@@ -2,10 +2,12 @@
  * @file    cpu/jump.rs
  * @brief   Implementation of jump instructions.
  * @author  Mario Hess
- * @date    September 20, 2023
+ * @date    October 20, 2023
  */
-use crate::cpu::Cpu;
-use crate::instruction::{CycleDuration, Flag};
+use crate::{
+    cpu::Cpu,
+    instruction::{CycleDuration, Flag},
+};
 
 pub fn jp_nn(cpu: &mut Cpu) -> CycleDuration {
     // Unconditional jump to the absolute address

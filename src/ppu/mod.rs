@@ -9,17 +9,18 @@ mod lcd_status;
 mod oam;
 pub mod tile;
 
-use sdl2::pixels::Color;
-use sdl2::rect::Point;
-use sdl2::render::Canvas;
-use sdl2::video::Window;
+use sdl2::{pixels::Color, rect::Point, render::Canvas, video::Window};
 
-use crate::interrupt::{LCD_STAT_MASK, VBLANK_MASK};
-use crate::memory_bus::{OAM_END, OAM_START, VRAM_END, VRAM_START};
-use crate::ppu::lcd_control::LCD_control;
-use crate::ppu::lcd_status::LCD_status;
-use crate::ppu::oam::OAM;
-use crate::ppu::tile::{Tile, TILE_HEIGHT, TILE_WIDTH};
+use crate::{
+    interrupt::{LCD_STAT_MASK, VBLANK_MASK},
+    memory_bus::{OAM_END, OAM_START, VRAM_END, VRAM_START},
+    ppu::{
+        lcd_control::LCD_control,
+        lcd_status::LCD_status,
+        oam::OAM,
+        tile::{Tile, TILE_HEIGHT, TILE_WIDTH},
+    },
+};
 
 pub const VRAM_SIZE: usize = 8 * 1024;
 const OAM_SIZE: usize = 40;
@@ -328,6 +329,7 @@ impl Ppu {
             let tile_data = self.read_byte(tile_data_address);
             let tile_color = self.read_byte(tile_color_address);
 
+            // Calculate the pixel index based on whether it's part of the window or background
             let pixel_index = if col_is_window && row_is_window {
                 self.window_x.wrapping_sub(x as u8) % 8
             } else {
@@ -349,12 +351,14 @@ impl Ppu {
                 _ => BLACK,
             };
 
+            // Calculate the offset for the current pixel and update the screen buffer
             let offset = x + self.line_y as usize * VIEWPORT_WIDTH;
             self.screen_buffer[offset] = pixel;
         }
     }
 
     fn render_tile_line(&mut self) {
+        // Convert line_y to an i16 and determine the height of the sprite (8x8 or 8x16)
         let line_y = self.line_y as i16;
         let tile_height = if self.lcd_control.object_size { 16 } else { 8 };
 
@@ -363,6 +367,7 @@ impl Ppu {
             let object_y = self.read_byte(tile_begin_address) as i16 - 16;
             let object_x = self.read_byte(tile_begin_address + 1) as i16 - 8;
 
+            // Check if the current line is within the vertical range of the sprite
             if line_y < object_y || line_y >= object_y + tile_height {
                 continue;
             }
@@ -385,6 +390,7 @@ impl Ppu {
                     continue;
                 }
 
+                // Determine the pixel index and sprite palette based on attributes
                 let pixel_index = flip_x(&object_attributes, x);
                 let sprite_palette = if is_bit_set(&object_attributes, 4) {
                     &self.tile_palette1
@@ -410,6 +416,7 @@ impl Ppu {
                     continue;
                 }
 
+                // Calculate the offset for the current pixel and update the screen buffer
                 let offset = x_offset + line_y * VIEWPORT_WIDTH as i16;
                 self.screen_buffer[offset as usize] = pixel;
             }
@@ -429,11 +436,10 @@ impl Ppu {
 
     pub fn draw_viewport(&self, canvas: &mut Canvas<Window>) {
         for (index, pixel) in self.screen_buffer.iter().enumerate() {
-            let color = *pixel;
             let x_coord = (index % VIEWPORT_WIDTH) as i32;
             let y_coord = (index / VIEWPORT_WIDTH) as i32;
 
-            canvas.set_draw_color(color);
+            canvas.set_draw_color(*pixel);
             canvas.draw_point(Point::new(x_coord, y_coord)).unwrap();
         }
     }

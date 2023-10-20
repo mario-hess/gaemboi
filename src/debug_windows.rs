@@ -2,14 +2,15 @@
  * @file    debug_windows.rs
  * @brief   Handles debug windows.
  * @author  Mario Hess
- * @date    October 04, 2023
+ * @date    October 20, 2023
  */
-use sdl2::VideoSubsystem;
-use sdl2::ttf::Sdl2TtfContext;
+use sdl2::{ttf::Sdl2TtfContext, VideoSubsystem};
 
-use crate::config::Config;
-use crate::ppu::{SCALE, TILEMAP_HEIGHT, TILEMAP_WIDTH, TILETABLE_HEIGHT, TILETABLE_WIDTH, WHITE};
-use crate::window::Window;
+use crate::{
+    config::Config,
+    ppu::{SCALE, TILEMAP_HEIGHT, TILEMAP_WIDTH, TILETABLE_HEIGHT, TILETABLE_WIDTH, WHITE},
+    window::Window,
+};
 
 pub struct DebugWindows<'a> {
     pub tiletable: Option<Window<'a>>,

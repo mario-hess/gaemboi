@@ -2,12 +2,9 @@
  * @file    memory_bus.rs
  * @brief   Manages memory access and address decoding.
  * @author  Mario Hess
- * @date    October 19, 2023
+ * @date    October 20, 2023
  */
-use crate::cartridge::Cartridge;
-use crate::joypad::Joypad;
-use crate::ppu::Ppu;
-use crate::timer::Timer;
+use crate::{cartridge::Cartridge, joypad::Joypad, ppu::Ppu, timer::Timer};
 
 pub const CARTRIDGE_ROM_START: u16 = 0x0000;
 pub const CARTRIDGE_ROM_END: u16 = 0x7FFF;
@@ -129,10 +126,7 @@ impl MemoryBus {
             // 0xFEA0 - 0xFEFF
             NOT_USABLE_START..=NOT_USABLE_END => 0,
             // 0xFF00 (Joypad)
-            JOYPAD_INPUT => {
-                //println!("{:#b}", self.joypad.get());
-                self.joypad.get()
-            }
+            JOYPAD_INPUT => self.joypad.get(),
             // 0xFF01 (Serial transfer data)
             SERIAL_SB => self.serial_sb,
             // 0xFF02 (Serial transfer control)

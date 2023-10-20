@@ -4,10 +4,7 @@
  * @author  Mario Hess
  * @date    October 20, 2023
  */
-use sdl2::controller::Button;
-use sdl2::event::Event;
-use sdl2::keyboard::Keycode;
-use sdl2::EventPump;
+use sdl2::{controller::Button, event::Event, keyboard::Keycode, EventPump};
 
 pub struct EventHandler {
     pub key_pressed: Option<Keycode>,
@@ -35,8 +32,8 @@ impl EventHandler {
                 Event::KeyDown { keycode, .. } => match keycode {
                     Some(Keycode::F) => self.key_pressed = Some(Keycode::F),
                     Some(Keycode::C) => self.key_pressed = Some(Keycode::C),
-                    Some(Keycode::Num9) => self.key_pressed = Some(Keycode::Num9),
-                    Some(Keycode::Num0) => self.key_pressed = Some(Keycode::Num0),
+                    Some(Keycode::Backspace) => self.key_pressed = Some(Keycode::Backspace),
+                    Some(Keycode::Return) => self.key_pressed = Some(Keycode::Return),
                     Some(Keycode::W) => self.key_pressed = Some(Keycode::W),
                     Some(Keycode::A) => self.key_pressed = Some(Keycode::A),
                     Some(Keycode::S) => self.key_pressed = Some(Keycode::S),

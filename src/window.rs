@@ -4,12 +4,14 @@
  * @author  Mario Hess
  * @date    October 20, 2023
  */
-use sdl2::render::{Canvas, CanvasBuilder, TextureCreator};
-use sdl2::pixels::Color;
-use sdl2::ttf::{Font, Sdl2TtfContext};
-use sdl2::rect::{Point, Rect};
-use sdl2::video::{Window as SDL_Window, WindowContext};
-use sdl2::VideoSubsystem;
+use sdl2::{
+    pixels::Color,
+    rect::{Point, Rect},
+    render::{Canvas, CanvasBuilder, TextureCreator},
+    ttf::{Font, Sdl2TtfContext},
+    video::{Window as SDL_Window, WindowContext},
+    VideoSubsystem,
+};
 
 use crate::ppu::WHITE;
 
@@ -44,10 +46,7 @@ impl<'a> Window<'a> {
         let mut canvas = CanvasBuilder::new(window).accelerated().build().unwrap();
 
         canvas
-            .set_logical_size(
-                width as u32,
-                height as u32,
-            )
+            .set_logical_size(width as u32, height as u32)
             .unwrap();
 
         let texture_creator = canvas.texture_creator();

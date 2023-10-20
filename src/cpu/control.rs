@@ -2,10 +2,9 @@
  * @file    cpu/control.rs
  * @brief   Implementation of control instructions.
  * @author  Mario Hess
- * @date    September 20, 2023
+ * @date    October 20, 2023
  */
-use crate::cpu::Cpu;
-use crate::instruction::CycleDuration;
+use crate::{cpu::Cpu, instruction::CycleDuration};
 
 pub fn daa(cpu: &mut Cpu) -> CycleDuration {
     // Decimal Adjust Accumulator to get a correct

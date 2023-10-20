@@ -2,10 +2,11 @@
  * @file    ppu/tile.rs
  * @brief   Handles tile graphics in 2BPP format.
  * @author  Mario Hess
- * @date    September 27, 2023
+ * @date    October 20, 2023
  */
-use crate::ppu::{BLACK, DARK, LIGHT, WHITE};
 use sdl2::pixels::Color;
+
+use crate::ppu::{BLACK, DARK, LIGHT, WHITE};
 
 pub const TILE_WIDTH: usize = 8;
 pub const TILE_HEIGHT: usize = TILE_WIDTH;

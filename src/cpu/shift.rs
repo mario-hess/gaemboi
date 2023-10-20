@@ -2,10 +2,12 @@
  * @file    cpu/shift.rs
  * @brief   Implementation of shift instructions.
  * @author  Mario Hess
- * @date    September 20, 2023
+ * @date    October 20, 2023
  */
-use crate::cpu::Cpu;
-use crate::instruction::{CycleDuration, Target};
+use crate::{
+    cpu::Cpu,
+    instruction::{CycleDuration, Target},
+};
 
 pub fn srl_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
     // Shifts all the bits of the register to the

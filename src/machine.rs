@@ -6,14 +6,16 @@
  */
 use sdl2::{keyboard::Keycode, pixels::Color, ttf::Sdl2TtfContext, EventPump, VideoSubsystem};
 
-use crate::clock::Clock;
-use crate::config::Config;
-use crate::cpu::Cpu;
-use crate::debug_windows::DebugWindows;
-use crate::event_handler::EventHandler;
-use crate::ppu::{TILEMAP_END_0, TILEMAP_END_1, TILEMAP_START_0, TILEMAP_START_1};
-use crate::window::{clear_canvas, Window};
-use crate::Mode;
+use crate::{
+    clock::Clock,
+    config::Config,
+    cpu::Cpu,
+    debug_windows::DebugWindows,
+    event_handler::EventHandler,
+    ppu::{TILEMAP_END_0, TILEMAP_END_1, TILEMAP_START_0, TILEMAP_START_1},
+    window::{clear_canvas, Window},
+    Mode,
+};
 
 pub const FPS: f32 = 60.0;
 
@@ -45,10 +47,7 @@ impl Machine {
         // Core emulation loop
         while event_handler.key_pressed != Some(Keycode::Escape) {
             event_handler.poll(event_pump);
-            self.cpu
-                .memory_bus
-                .joypad
-                .handle_input(event_handler);
+            self.cpu.memory_bus.joypad.handle_input(event_handler);
 
             if event_handler.file_dropped.is_some() {
                 config.mode = Mode::Boot;

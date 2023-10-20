@@ -2,10 +2,9 @@
  * @file    cartridge/mbc3.rs
  * @brief   MBC3 Memory Bank Controller implementation.
  * @author  Mario Hess
- * @date    September 22, 2023
+ * @date    October 20, 2023
  */
-use crate::cartridge::core::Core;
-use crate::cartridge::{MemoryBankController, MASK_MSB, RAM_ADDRESS};
+use crate::cartridge::{core::Core, MemoryBankController, MASK_MSB, RAM_ADDRESS};
 
 pub struct Mbc3 {}
 
@@ -41,7 +40,7 @@ impl MemoryBankController for Mbc3 {
             }
             // 0x4000 - 0x5FFF (RAM bank number)
             0x4 | 0x5 => core.ram_bank = value & 0b0000_0011,
-            0x6 | 0x7 => {},
+            0x6 | 0x7 => {}
             _ => panic!(
                 "Unknown address: {:#X}. Can't write byte: {:#X}.",
                 address, value

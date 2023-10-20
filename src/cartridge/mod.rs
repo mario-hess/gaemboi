@@ -2,20 +2,16 @@
  * @file    cartridge/mod.rs
  * @brief   Module for constructing cartridges with memory bank controllers.
  * @author  Mario Hess
- * @date    September 20, 2023
+ * @date    October 20, 2023
  */
 mod core;
 mod mbc0;
 mod mbc1;
 mod mbc3;
 
-use std::fs::File;
-use std::io::Write;
+use std::{fs::File, io::Write};
 
-use crate::cartridge::core::Core;
-use crate::cartridge::mbc0::Mbc0;
-use crate::cartridge::mbc1::Mbc1;
-use crate::cartridge::mbc3::Mbc3;
+use crate::cartridge::{core::Core, mbc0::Mbc0, mbc1::Mbc1, mbc3::Mbc3};
 
 const ROM_BANK_SIZE: usize = 16 * 1024;
 const RAM_BANK_SIZE: usize = 8 * 1024;
