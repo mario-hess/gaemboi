@@ -2,7 +2,7 @@
  * @file    ppu/mod.rs
  * @brief   Handles the Picture Processing Unit for graphics rendering.
  * @author  Mario Hess
- * @date    October 15, 2023
+ * @date    October 20, 2023
  */
 mod lcd_control;
 mod lcd_status;
@@ -68,7 +68,7 @@ pub const TILETABLE_HEIGHT: usize = 192;
 pub const TILEMAP_WIDTH: usize = 256;
 pub const TILEMAP_HEIGHT: usize = TILEMAP_WIDTH;
 
-pub const SCALE: usize = 2;
+pub const SCALE: usize = 3;
 pub const BUFFER_SIZE: usize = VIEWPORT_WIDTH * VIEWPORT_HEIGHT;
 
 const FULL_WIDTH: usize = TILEMAP_WIDTH;

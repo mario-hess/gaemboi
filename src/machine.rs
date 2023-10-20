@@ -2,7 +2,7 @@
  * @file    machine.rs
  * @brief   Orchestrates the emulation loop, utilizing SDL2 for rendering and input handling.
  * @author  Mario Hess
- * @date    October 19, 2023
+ * @date    October 20, 2023
  */
 use sdl2::{keyboard::Keycode, pixels::Color, ttf::Sdl2TtfContext, EventPump, VideoSubsystem};
 
@@ -48,7 +48,7 @@ impl Machine {
             self.cpu
                 .memory_bus
                 .joypad
-                .handle_input(&event_handler.key_pressed);
+                .handle_input(event_handler);
 
             if event_handler.file_dropped.is_some() {
                 config.mode = Mode::Boot;

@@ -2,9 +2,11 @@
  * @file    joypad.rs
  * @brief   Handles user input.
  * @author  Mario Hess
- * @date    October 19, 2023
+ * @date    October 20, 2023
  */
-use sdl2::keyboard::Keycode;
+use sdl2::{controller::Button, keyboard::Keycode};
+
+use crate::event_handler::EventHandler;
 
 const A_RIGHT_POS: u8 = 0;
 const B_LEFT_BOS: u8 = 1;
@@ -53,51 +55,59 @@ impl Joypad {
         input
     }
 
-    pub fn handle_input(&mut self, key: &Option<Keycode>) {
-        match key {
-            Some(Keycode::F) => {
-                self.a = true;
-                self.select_buttons = true;
+    pub fn handle_input(&mut self, event_handler: &EventHandler) {
+        // Keyboard input
+        if let Some(keycode) = event_handler.key_pressed {
+            match keycode {
+                Keycode::W | Keycode::S | Keycode::A | Keycode::D => {
+                    self.up = keycode == Keycode::W;
+                    self.down = keycode == Keycode::S;
+                    self.left = keycode == Keycode::A;
+                    self.right = keycode == Keycode::D;
+                    self.select_dpad = true;
+                }
+                Keycode::F | Keycode::C | Keycode::Num9 | Keycode::Num0 => {
+                    self.a = keycode == Keycode::F;
+                    self.b = keycode == Keycode::C;
+                    self.select = keycode == Keycode::Num9;
+                    self.start = keycode == Keycode::Num0;
+                    self.select_buttons = true;
+                }
+                _ => {}
             }
-            Some(Keycode::C) => {
-                self.b = true;
-                self.select_buttons = true;
+        }
+    
+        // Controller input
+        if let Some(button) = event_handler.button_pressed {
+            match button {
+                Button::DPadUp | Button::DPadLeft | Button::DPadDown | Button::DPadRight => {
+                    self.up = button == Button::DPadUp;
+                    self.down = button == Button::DPadDown;
+                    self.left = button == Button::DPadLeft;
+                    self.right = button == Button::DPadRight;
+                    self.select_dpad = true;
+                }
+                Button::A | Button::B | Button::Start | Button::Back => {
+                    self.a = button == Button::A;
+                    self.b = button == Button::B;
+                    self.select = button == Button::Back;
+                    self.start = button == Button::Start;
+                    self.select_buttons = true;
+                }
+                _ => {}
             }
-            Some(Keycode::Num9) => {
-                self.select = true;
-                self.select_buttons = true;
-            }
-            Some(Keycode::Num0) => {
-                self.start = true;
-                self.select_buttons = true;
-            }
-            Some(Keycode::W) => {
-                self.up = true;
-                self.select_dpad = true;
-            }
-            Some(Keycode::S) => {
-                self.down = true;
-                self.select_dpad = true;
-            }
-            Some(Keycode::A) => {
-                self.left = true;
-                self.select_dpad = true;
-            }
-            Some(Keycode::D) => {
-                self.right = true;
-                self.select_dpad = true;
-            }
-            None => {
-                self.a = false;
-                self.b = false;
-                self.select = false;
-                self.start = false;
-                self.up = false;
-                self.down = false;
-                self.left = false;
-                self.right = false;
-            }
-            _ => {}
+        }
+    
+        // Reset if no input is detected
+        if event_handler.key_pressed.is_none() && event_handler.button_pressed.is_none() {
+            self.a = false;
+            self.b = false;
+            self.select = false;
+            self.start = false;
+            self.up = false;
+            self.down = false;
+            self.left = false;
+            self.right = false;
         }
     }
 }

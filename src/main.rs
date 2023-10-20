@@ -2,7 +2,7 @@
  * @file    main.rs
  * @brief   Initializes the emulator by loading the ROM and delegating control to the core emulation loop.
  * @author  Mario Hess
- * @date    October 19, 2023
+ * @date    October 20, 2023
  *
  * Dependencies:
  * - SDL2: Required for audio, input, and display handling.
@@ -52,6 +52,35 @@ fn main() -> Result<(), Error> {
     // Initialize SDL2
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
+    let controller_subsystem = sdl_context.game_controller().unwrap();
+
+    // Initialize Gamepad
+    let available = controller_subsystem
+        .num_joysticks()
+        .map_err(|e| format!("can't enumerate joysticks: {}", e))
+        .unwrap();
+
+    let _controller = (0..available)
+        .find_map(|id| {
+            if !controller_subsystem.is_game_controller(id) {
+                println!("{} is not a game controller", id);
+                return None;
+            }
+
+            println!("Attempting to open controller {}", id);
+
+            match controller_subsystem.open(id) {
+                Ok(c) => {
+                    println!("Success: opened \"{}\"", c.name());
+                    Some(c)
+                }
+                Err(e) => {
+                    println!("failed: {:?}", e);
+                    None
+                }
+            }
+        });
+
     let ttf_context = init().map_err(|e| e.to_string()).unwrap();
     let mut event_pump = sdl_context.event_pump().unwrap();
     let mut event_handler = EventHandler::new();
@@ -112,7 +141,10 @@ fn main() -> Result<(), Error> {
                     &mut viewport,
                 );
 
-                machine.cpu.memory_bus.save_game(&file_path.replace(".gb", ".sav"));
+                machine
+                    .cpu
+                    .memory_bus
+                    .save_game(&file_path.replace(".gb", ".sav"));
             }
         }
     }
