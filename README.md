@@ -2,7 +2,7 @@
 
 <div align="center">
 <a href="https://github.com/mario-hess/gaemboi">
-<img src="https://i.imgur.com/1LiQkNs.png" alt="Logo" width="360">
+<img src="https://i.imgur.com/XWK2g3E.png" alt="Logo" width="360">
 </a>
 </div>
 
