@@ -52,7 +52,7 @@ This is a Nintendo Game Boy emulator written in Rust. It aims to accurately emul
 
 Clone the repository:
 ```
-git clone https://github.com/mario-hess/gemboi
+git clone https://github.com/mario-hess/gaemboi
 ```
 
 ### Usage
