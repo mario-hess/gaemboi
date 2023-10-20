@@ -20,7 +20,7 @@ This is a Nintendo Game Boy emulator written in Rust. It aims to accurately emul
 - [x] Basic graphics
 - [ ] Audio emulation (DMG sound channels)
 - [x] Input handling
-- [ ] Save states and battery-backed save support
+- [x] Save/Load game progress
 
 ## Blargg's test ROMs
 
