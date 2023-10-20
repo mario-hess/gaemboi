@@ -91,12 +91,18 @@ fn main() -> Result<(), Error> {
                 );
             }
             Mode::Play => {
-                let file_path = event_handler.file_dropped.as_ref().unwrap();
-                let rom_data = read_file(file_path.to_owned())?;
+                let file_path = event_handler.file_dropped.unwrap();
+                let rom_data = read_file(file_path.clone())?;
+
+                let mut machine = Machine::new(rom_data);
+
+                match read_file(file_path.replace(".gb", ".sav")) {
+                    Ok(value) => machine.cpu.memory_bus.load_game(value),
+                    Err(error) => println!("Error: {error}"),
+                }
 
                 event_handler.file_dropped = None;
 
-                let mut machine = Machine::new(rom_data);
                 machine.run(
                     &mut config,
                     &mut event_pump,
@@ -105,6 +111,8 @@ fn main() -> Result<(), Error> {
                     &ttf_context,
                     &mut viewport,
                 );
+
+                machine.cpu.memory_bus.save_game(&file_path.replace(".gb", ".sav"));
             }
         }
     }
@@ -112,10 +120,10 @@ fn main() -> Result<(), Error> {
     Ok(())
 }
 
-fn read_file(rom_path: String) -> Result<Vec<u8>, Error> {
-    let mut file = File::open(rom_path)?;
-    let mut rom_data = Vec::new();
-    file.read_to_end(&mut rom_data)?;
+fn read_file(file_path: String) -> Result<Vec<u8>, Error> {
+    let mut file = File::open(file_path)?;
+    let mut data = Vec::new();
+    file.read_to_end(&mut data)?;
 
-    Ok(rom_data)
+    Ok(data)
 }

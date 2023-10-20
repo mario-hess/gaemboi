@@ -18,7 +18,7 @@ use crate::Mode;
 pub const FPS: f32 = 60.0;
 
 pub struct Machine {
-    cpu: Cpu,
+    pub cpu: Cpu,
     clock: Clock,
 }
 

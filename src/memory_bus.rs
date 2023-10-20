@@ -223,4 +223,12 @@ impl MemoryBus {
             self.write_byte(OAM_START + i, new_byte);
         }
     }
+
+    pub fn load_game(&mut self, ram_data: Vec<u8>) {
+        self.cartridge.load_game(ram_data);
+    }
+
+    pub fn save_game(&self, file_path: &str) {
+        self.cartridge.save_game(file_path);
+    }
 }

@@ -9,6 +9,9 @@ mod mbc0;
 mod mbc1;
 mod mbc3;
 
+use std::fs::File;
+use std::io::Write;
+
 use crate::cartridge::core::Core;
 use crate::cartridge::mbc0::Mbc0;
 use crate::cartridge::mbc1::Mbc1;
@@ -65,7 +68,24 @@ impl Cartridge {
         match (address & MASK_MSB) >> 12 {
             0x0..=0x7 => self.mbc.write_rom(&mut self.core, address, value),
             0xA | 0xB => self.mbc.write_ram(&mut self.core, address, value),
-            _ => println!("Unknown address: {:#X} Can't write byte: {:#X}", address, value),
+            _ => println!(
+                "Unknown address: {:#X} Can't write byte: {:#X}",
+                address, value
+            ),
+        }
+    }
+
+    pub fn load_game(&mut self, ram_data: Vec<u8>) {
+        self.core.ram_data = Some(ram_data);
+        println!("Game loaded.")
+    }
+
+    pub fn save_game(&self, save_path: &str) {
+        if let Some(ram_data) = &self.core.ram_data {
+            let mut file = File::create(save_path).expect("Failed to create save file.");
+            file.write_all(ram_data)
+                .expect("Failed to write save file.");
+            println!("Game saved.")
         }
     }
 }
