@@ -2,10 +2,12 @@
  * @file    cpu/load.rs
  * @brief   Implementation of load instructions.
  * @author  Mario Hess
- * @date    September 23, 2023
+ * @date    October 20, 2023
  */
-use crate::cpu::Cpu;
-use crate::instruction::{CycleDuration, Target};
+use crate::{
+    cpu::Cpu,
+    instruction::{CycleDuration, Target},
+};
 
 pub fn ld_r_r(cpu: &mut Cpu, to: Target, from: Target) -> CycleDuration {
     // 8-bit load instructions transfer one byte of data

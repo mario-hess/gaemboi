@@ -2,7 +2,7 @@
  * @file    boot_sequence.rs
  * @brief   Custom boot sequence.
  * @author  Mario Hess
- * @date    October 11, 2023
+ * @date    October 20, 2023
  */
 use sdl2::{
     image::LoadTexture,
@@ -11,10 +11,12 @@ use sdl2::{
     EventPump,
 };
 
-use crate::config::Config;
-use crate::event_handler::EventHandler;
-use crate::window::{Window, clear_canvas};
-use crate::Mode;
+use crate::{
+    config::Config,
+    event_handler::EventHandler,
+    window::{clear_canvas, Window},
+    Mode,
+};
 
 pub fn run(
     viewport: &mut Window,

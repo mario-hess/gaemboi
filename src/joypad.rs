@@ -66,11 +66,11 @@ impl Joypad {
                     self.right = keycode == Keycode::D;
                     self.select_dpad = true;
                 }
-                Keycode::F | Keycode::C | Keycode::Num9 | Keycode::Num0 => {
+                Keycode::F | Keycode::C | Keycode::Backspace | Keycode::Return => {
                     self.a = keycode == Keycode::F;
                     self.b = keycode == Keycode::C;
-                    self.select = keycode == Keycode::Num9;
-                    self.start = keycode == Keycode::Num0;
+                    self.select = keycode == Keycode::Backspace;
+                    self.start = keycode == Keycode::Return;
                     self.select_buttons = true;
                 }
                 _ => {}

@@ -2,10 +2,12 @@
  * @file    cpu/arithmetic.rs
  * @brief   Implementation of arithmetic instructions.
  * @author  Mario Hess
- * @date    September 20, 2023
+ * @date    October 20, 2023
  */
-use crate::cpu::Cpu;
-use crate::instruction::{CycleDuration, Target};
+use crate::{
+    cpu::Cpu,
+    instruction::{CycleDuration, Target},
+};
 
 pub fn add_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
     // Adds to the 8-bit A register, the 8-bit register r,

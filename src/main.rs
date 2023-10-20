@@ -26,17 +26,21 @@ mod splash_screen;
 mod timer;
 mod window;
 
-use std::env;
-use std::fs::File;
-use std::io::{Error, Read};
+use std::{
+    env,
+    fs::File,
+    io::{Error, Read},
+};
 
 use sdl2::{keyboard::Keycode, ttf::init};
 
-use crate::config::Config;
-use crate::event_handler::EventHandler;
-use crate::machine::Machine;
-use crate::ppu::{SCALE, VIEWPORT_HEIGHT, VIEWPORT_WIDTH};
-use crate::window::Window;
+use crate::{
+    config::Config,
+    event_handler::EventHandler,
+    machine::Machine,
+    ppu::{SCALE, VIEWPORT_HEIGHT, VIEWPORT_WIDTH},
+    window::Window,
+};
 
 pub enum Mode {
     Splash,
@@ -54,32 +58,31 @@ fn main() -> Result<(), Error> {
     let video_subsystem = sdl_context.video().unwrap();
     let controller_subsystem = sdl_context.game_controller().unwrap();
 
-    // Initialize Gamepad
+    // Initialize gamepad
     let available = controller_subsystem
         .num_joysticks()
         .map_err(|e| format!("can't enumerate joysticks: {}", e))
         .unwrap();
 
-    let _controller = (0..available)
-        .find_map(|id| {
-            if !controller_subsystem.is_game_controller(id) {
-                println!("{} is not a game controller", id);
-                return None;
-            }
+    let _gamepad = (0..available).find_map(|id| {
+        if !controller_subsystem.is_game_controller(id) {
+            println!("{} is not a gamepad", id);
+            return None;
+        }
 
-            println!("Attempting to open controller {}", id);
+        println!("Attempting to open gamepad {}", id);
 
-            match controller_subsystem.open(id) {
-                Ok(c) => {
-                    println!("Success: opened \"{}\"", c.name());
-                    Some(c)
-                }
-                Err(e) => {
-                    println!("failed: {:?}", e);
-                    None
-                }
+        match controller_subsystem.open(id) {
+            Ok(gamepad) => {
+                println!("Success: opened \"{}\"", gamepad.name());
+                Some(gamepad)
             }
-        });
+            Err(e) => {
+                println!("failed: {:?}", e);
+                None
+            }
+        }
+    });
 
     let ttf_context = init().map_err(|e| e.to_string()).unwrap();
     let mut event_pump = sdl_context.event_pump().unwrap();
@@ -126,8 +129,8 @@ fn main() -> Result<(), Error> {
                 let mut machine = Machine::new(rom_data);
 
                 match read_file(file_path.replace(".gb", ".sav")) {
-                    Ok(value) => machine.cpu.memory_bus.load_game(value),
-                    Err(error) => println!("Error: {error}"),
+                    Ok(data) => machine.cpu.memory_bus.load_game(data),
+                    Err(_) => println!("Couldn't load game progress."),
                 }
 
                 event_handler.file_dropped = None;

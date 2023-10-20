@@ -2,10 +2,12 @@
  * @file    cpu/bit_ops.rs
  * @brief   Implementation of bit operation instructions.
  * @author  Mario Hess
- * @date    September 20, 2023
+ * @date    October 20, 2023
  */
-use crate::cpu::Cpu;
-use crate::instruction::{CycleDuration, Target};
+use crate::{
+    cpu::Cpu,
+    instruction::{CycleDuration, Target},
+};
 
 pub fn bit_r(cpu: &mut Cpu, position: u8, target: Target) -> CycleDuration {
     // Test bit at position in target register,
@@ -56,7 +58,7 @@ pub fn res_r(cpu: &mut Cpu, position: u8, target: Target) -> CycleDuration {
 }
 
 pub fn res_hl(cpu: &mut Cpu, position: u8) -> CycleDuration {
-    // Set bit at position in the byte pointed by HL to 0. 
+    // Set bit at position in the byte pointed by HL to 0.
 
     let address = cpu.registers.get_hl();
     let byte = cpu.memory_bus.read_byte(address);
@@ -83,7 +85,7 @@ pub fn set_r(cpu: &mut Cpu, position: u8, target: Target) -> CycleDuration {
 }
 
 pub fn set_hl(cpu: &mut Cpu, position: u8) -> CycleDuration {
-    // Set bit at position in the byte pointed by HL to 1. 
+    // Set bit at position in the byte pointed by HL to 1.
 
     let address = cpu.registers.get_hl();
     let byte = cpu.memory_bus.read_byte(address);

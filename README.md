@@ -74,6 +74,16 @@ You can use additional flags to customize the emulator's behavior:
 - `-m1`:    Display tilemap 0x9800 - 0x9BFF.
 - `-m2`:    Display tilemap 0x9C00 - 0x9FFF.
 
+## Keybindings
+
+| Key on Keyboard | Key on Gamepad     | Emulator Key       |
+| --------------- | --------------     | ------------       |
+| F               | A                  | A                  |
+| C               | B                  | B                  |
+| W/A/S/D         | Up/Left/Down/Right | Up/Left/Down/Right |
+| Backspace       | Select             | Select             |
+| Return/Enter    | Start              | Start              |
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

@@ -2,10 +2,12 @@
  * @file    cpu/rotate.rs
  * @brief   Implementation of rotate instructions.
  * @author  Mario Hess
- * @date    September 20, 2023
+ * @date    October 20, 2023
  */
-use crate::cpu::Cpu;
-use crate::instruction::{CycleDuration, Target};
+use crate::{
+    cpu::Cpu,
+    instruction::{CycleDuration, Target},
+};
 
 pub fn rrca(cpu: &mut Cpu) -> CycleDuration {
     // Rotate the contents of the 8-bit A register to the right by one bit.

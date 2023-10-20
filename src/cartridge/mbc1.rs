@@ -2,10 +2,9 @@
  * @file    cartridge/mbc1.rs
  * @brief   MBC1 Memory Bank Controller implementation.
  * @author  Mario Hess
- * @date    September 22, 2023
+ * @date    October 20, 2023
  */
-use crate::cartridge::core::Core;
-use crate::cartridge::{MemoryBankController, MASK_MSB, RAM_ADDRESS};
+use crate::cartridge::{core::Core, MemoryBankController, MASK_MSB, RAM_ADDRESS};
 
 enum Mode {
     RomBanking,
