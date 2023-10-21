@@ -343,13 +343,7 @@ impl Ppu {
                 self.priority_map[priority_offset] = Priority::Overlap
             }
 
-            let pixel = match self.bg_palette[color_index as usize] {
-                0 => WHITE,
-                1 => LIGHT,
-                2 => DARK,
-                3 => BLACK,
-                _ => BLACK,
-            };
+            let pixel = get_pixel_color(&self.bg_palette, color_index);
 
             // Calculate the offset for the current pixel and update the screen buffer
             let offset = x + self.line_y as usize * VIEWPORT_WIDTH;
@@ -363,20 +357,25 @@ impl Ppu {
         let tile_height = if self.lcd_control.object_size { 16 } else { 8 };
 
         for i in (0..OAM_SIZE).rev() {
-            let tile_begin_address = OAM_START + i as u16 * 4;
-            let object_y = self.read_byte(tile_begin_address) as i16 - 16;
-            let object_x = self.read_byte(tile_begin_address + 1) as i16 - 8;
+            let oam_entry = self.oam[i];
+            let object_y = oam_entry.y_pos as i16 - 16;
+            let object_x = oam_entry.x_pos as i16 - 8;
 
             // Check if the current line is within the vertical range of the sprite
             if line_y < object_y || line_y >= object_y + tile_height {
                 continue;
             }
 
-            let object_index = self.read_byte(tile_begin_address + 2);
-            let object_attributes = self.read_byte(tile_begin_address + 3);
+            let object_index = oam_entry.tile_index;
 
             let tile_begin_address = TILE_DATA_START + (object_index as u16 * 16);
-            let line_offset = flip_y(&object_attributes, line_y, tile_height, object_y);
+
+            // Check if tile is vertically mirrored
+            let line_offset = if oam_entry.y_flip_enabled() {
+                tile_height - 1 - (line_y - object_y)
+            } else {
+                line_y - object_y
+            };
 
             let tile_data_address = tile_begin_address + (line_offset * 2) as u16;
             let tile_color_address = tile_begin_address + (line_offset * 2) as u16 + 1;
@@ -390,29 +389,30 @@ impl Ppu {
                     continue;
                 }
 
-                // Determine the pixel index and sprite palette based on attributes
-                let pixel_index = flip_x(&object_attributes, x);
-                let sprite_palette = if is_bit_set(&object_attributes, 4) {
-                    &self.tile_palette1
+                // Check if pixel is horizontally mirrored
+                let pixel_index = if oam_entry.x_flip_enabled() {
+                    x
                 } else {
-                    &self.tile_palette0
+                    7 - x
+                };
+
+                let sprite_palette = if oam_entry.palette_enabled() {
+                    self.tile_palette1
+                } else {
+                    self.tile_palette0
                 };
 
                 let color_index = get_color_index(tile_data, tile_color, pixel_index);
+
+                // Skip rendering transparent pixels
                 if color_index == 0 {
                     continue;
                 }
 
-                let pixel = match sprite_palette[color_index as usize] {
-                    0 => WHITE,
-                    1 => LIGHT,
-                    2 => DARK,
-                    3 => BLACK,
-                    _ => BLACK,
-                };
+                let pixel = get_pixel_color(&sprite_palette, color_index);
 
                 let priority_offset = line_y as usize + FULL_WIDTH * x_offset as usize;
-                if self.bg_has_priority(&object_attributes, priority_offset) {
+                if self.bg_has_priority(&oam_entry, priority_offset) {
                     continue;
                 }
 
@@ -423,8 +423,8 @@ impl Ppu {
         }
     }
 
-    fn bg_has_priority(&self, sprite_attributes: &u8, offset: usize) -> bool {
-        if !is_bit_set(sprite_attributes, 7) {
+    fn bg_has_priority(&self, oam_entry: &OAM, offset: usize) -> bool {
+        if !oam_entry.overlap_enabled() {
             return false;
         }
 
@@ -512,24 +512,14 @@ impl Ppu {
     }
 }
 
-fn is_bit_set(byte: &u8, bit: u8) -> bool {
-    (byte & (1 << bit)) != 0
-}
-
-fn flip_x(object_attributes: &u8, x: u8) -> u8 {
-    if is_bit_set(object_attributes, 5) {
-        return x;
+fn get_pixel_color(palette: &[u8], color_index: u8) -> Color {
+    match palette[color_index as usize] {
+        0 => WHITE,
+        1 => LIGHT,
+        2 => DARK,
+        3 => BLACK,
+        _ => BLACK,
     }
-
-    7 - x
-}
-
-fn flip_y(object_attributes: &u8, line_y: i16, sprite_height: i16, y: i16) -> i16 {
-    if is_bit_set(object_attributes, 6) {
-        return sprite_height - 1 - (line_y - y);
-    }
-
-    line_y - y
 }
 
 fn calculate_address(base_address: u16, row: u8, col: u8) -> u16 {

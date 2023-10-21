@@ -2,7 +2,7 @@
  * @file    ppu/oam.rs
  * @brief   Handles the Object Attribute Memory
  * @author  Mario Hess
- * @date    September 22, 2023
+ * @date    October 21, 2023
  */
 
 #[allow(clippy::upper_case_acronyms)]
@@ -22,5 +22,29 @@ impl OAM {
             tile_index: 0,
             attributes: 0,
         }
+    }
+
+    pub fn cgb_palette_enabled(&self) -> u8 {
+        self.attributes & 0x07
+    }
+
+    pub fn cgb_vram_bank_enabled(&self) -> bool {
+        self.attributes & 0x08 != 0
+    }
+
+    pub fn palette_enabled(&self) -> bool {
+        self.attributes & 0x10 != 0
+    }
+
+    pub fn x_flip_enabled(&self) -> bool {
+        self.attributes & 0x20 != 0
+    }
+
+    pub fn y_flip_enabled(&self) -> bool {
+        self.attributes & 0x40 != 0
+    }
+
+    pub fn overlap_enabled(&self) -> bool {
+        self.attributes & 0x80 != 0
     }
 }
