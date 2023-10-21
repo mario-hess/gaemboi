@@ -411,6 +411,7 @@ impl Ppu {
 
                 let pixel = get_pixel_color(&sprite_palette, color_index);
 
+                // Skip rendering tile if background overlaps
                 let priority_offset = line_y as usize + FULL_WIDTH * x_offset as usize;
                 if self.bg_has_priority(&oam_entry, priority_offset) {
                     continue;
