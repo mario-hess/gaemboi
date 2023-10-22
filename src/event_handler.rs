@@ -6,10 +6,17 @@
  */
 use sdl2::{controller::Button, event::Event, keyboard::Keycode, EventPump};
 
+use crate::{
+    ppu::{VIEWPORT_HEIGHT, VIEWPORT_WIDTH},
+    window::Window,
+};
+
 pub struct EventHandler {
     pub key_pressed: Option<Keycode>,
     pub button_pressed: Option<Button>,
     pub file_dropped: Option<String>,
+    pub window_scale: u32,
+    pub window_resized: bool,
 }
 
 impl EventHandler {
@@ -18,6 +25,8 @@ impl EventHandler {
             key_pressed: None,
             button_pressed: None,
             file_dropped: None,
+            window_scale: 4,
+            window_resized: false,
         }
     }
 
@@ -29,6 +38,8 @@ impl EventHandler {
                     keycode: Some(Keycode::Escape),
                     ..
                 } => self.key_pressed = Some(Keycode::Escape),
+                Event::KeyUp { .. } => self.key_pressed = None,
+                Event::ControllerButtonUp { .. } => self.button_pressed = None,
                 Event::KeyDown { keycode, .. } => match keycode {
                     Some(Keycode::N) => self.key_pressed = Some(Keycode::N),
                     Some(Keycode::M) => self.key_pressed = Some(Keycode::M),
@@ -38,9 +49,10 @@ impl EventHandler {
                     Some(Keycode::A) => self.key_pressed = Some(Keycode::A),
                     Some(Keycode::S) => self.key_pressed = Some(Keycode::S),
                     Some(Keycode::D) => self.key_pressed = Some(Keycode::D),
+                    Some(Keycode::Up) => self.increase_scale(),
+                    Some(Keycode::Down) => self.decrease_scale(),
                     _ => {}
                 },
-                Event::KeyUp { .. } => self.key_pressed = None,
                 Event::ControllerButtonDown { button, .. } => match button {
                     Button::A => self.button_pressed = Some(Button::A),
                     Button::B => self.button_pressed = Some(Button::B),
@@ -52,10 +64,42 @@ impl EventHandler {
                     Button::Back => self.button_pressed = Some(Button::Back),
                     _ => {}
                 },
-                Event::ControllerButtonUp { .. } => self.button_pressed = None,
                 Event::DropFile { filename, .. } => self.file_dropped = Some(filename),
                 _ => {}
             };
         }
+    }
+
+    fn increase_scale(&mut self) {
+        if self.window_scale < 6 {
+            self.window_scale += 1;
+        }
+
+        self.window_resized = true;
+    }
+
+    fn decrease_scale(&mut self) {
+        if self.window_scale > 1 {
+            self.window_scale -= 1;
+        }
+
+        self.window_resized = true;
+    }
+
+    pub fn check_resized(&mut self, viewport: &mut Window) {
+        if !self.window_resized {
+            return;
+        }
+
+        viewport
+            .canvas
+            .window_mut()
+            .set_size(
+                (VIEWPORT_WIDTH) as u32 * self.window_scale,
+                (VIEWPORT_HEIGHT as u32) * self.window_scale,
+            )
+            .unwrap();
+
+        self.window_resized = false;
     }
 }
