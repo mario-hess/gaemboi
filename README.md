@@ -2,7 +2,7 @@
 
 <div align="center">
 <a href="https://github.com/mario-hess/gaemboi">
-<img src="https://i.imgur.com/XWK2g3E.png" alt="Logo" width="360">
+<img src="https://i.imgur.com/Nc7mM3N.png" alt="Logo" width="360">
 </a>
 </div>
 
@@ -75,13 +75,9 @@ You can use additional flags to customize the emulator's behavior:
 
 ## Keybindings
 
-| Key on Keyboard | Key on Gamepad     | Emulator Key       |
-| --------------- | --------------     | ------------       |
-| F               | A                  | A                  |
-| C               | B                  | B                  |
-| W/A/S/D         | Up/Left/Down/Right | Up/Left/Down/Right |
-| Backspace       | Select             | Select             |
-| Return/Enter    | Start              | Start              |
+<div align="center">
+<img src="https://i.imgur.com/sjUOz2L.png" alt="Keybindings" width="360">
+</div>
 
 ## License
 

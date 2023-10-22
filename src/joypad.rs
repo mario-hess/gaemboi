@@ -2,7 +2,7 @@
  * @file    joypad.rs
  * @brief   Handles user input.
  * @author  Mario Hess
- * @date    October 20, 2023
+ * @date    October 22, 2023
  */
 use sdl2::{controller::Button, keyboard::Keycode};
 
@@ -66,9 +66,9 @@ impl Joypad {
                     self.right = keycode == Keycode::D;
                     self.select_dpad = true;
                 }
-                Keycode::F | Keycode::C | Keycode::Backspace | Keycode::Return => {
-                    self.a = keycode == Keycode::F;
-                    self.b = keycode == Keycode::C;
+                Keycode::N | Keycode::M | Keycode::Backspace | Keycode::Return => {
+                    self.a = keycode == Keycode::N;
+                    self.b = keycode == Keycode::M;
                     self.select = keycode == Keycode::Backspace;
                     self.start = keycode == Keycode::Return;
                     self.select_buttons = true;
