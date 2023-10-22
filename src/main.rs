@@ -2,7 +2,7 @@
  * @file    main.rs
  * @brief   Initializes the emulator by loading the ROM and delegating control to the core emulation loop.
  * @author  Mario Hess
- * @date    October 20, 2023
+ * @date    October 22, 2023
  *
  * Dependencies:
  * - SDL2: Required for audio, input, and display handling.
@@ -38,7 +38,7 @@ use crate::{
     config::Config,
     event_handler::EventHandler,
     machine::Machine,
-    ppu::{SCALE, VIEWPORT_HEIGHT, VIEWPORT_WIDTH},
+    ppu::{VIEWPORT_HEIGHT, VIEWPORT_WIDTH},
     window::Window,
 };
 
@@ -94,7 +94,7 @@ fn main() -> Result<(), Error> {
         "Viewport",
         VIEWPORT_WIDTH,
         VIEWPORT_HEIGHT,
-        SCALE,
+        event_handler.window_scale as usize,
     );
 
     // Set file_path if passed through args
@@ -105,6 +105,7 @@ fn main() -> Result<(), Error> {
 
     while event_handler.key_pressed != Some(Keycode::Escape) {
         event_handler.poll(&mut event_pump);
+        event_handler.check_resized(&mut viewport);
 
         match config.mode {
             Mode::Splash => {
