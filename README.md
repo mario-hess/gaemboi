@@ -75,7 +75,7 @@ You can use additional flags to customize the emulator's behavior:
 
 ## Keybindings
 
-<div align="center">
+<div>
 <img src="https://i.imgur.com/sjUOz2L.png" alt="Keybindings" width="360">
 </div>
 
