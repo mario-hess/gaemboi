@@ -36,23 +36,21 @@ impl Joypad {
     }
 
     pub fn get(&self) -> u8 {
-        let mut input: u8 = 0;
-
         if self.select_buttons {
-            input = (if self.a { 0 } else { 1 }) << A_RIGHT_POS
+            return (if self.a { 0 } else { 1 }) << A_RIGHT_POS
                 | (if self.b { 0 } else { 1 }) << B_LEFT_BOS
                 | (if self.select { 0 } else { 1 }) << SELECT_UP_POS
-                | (if self.start { 0 } else { 1 }) << START_DOWN_POS
+                | (if self.start { 0 } else { 1 }) << START_DOWN_POS;
         }
 
         if self.select_dpad {
-            input = (if self.right { 0 } else { 1 }) << A_RIGHT_POS
+            return (if self.right { 0 } else { 1 }) << A_RIGHT_POS
                 | (if self.left { 0 } else { 1 }) << B_LEFT_BOS
                 | (if self.up { 0 } else { 1 }) << SELECT_UP_POS
-                | (if self.down { 0 } else { 1 }) << START_DOWN_POS
+                | (if self.down { 0 } else { 1 }) << START_DOWN_POS;
         }
 
-        input
+        0x00
     }
 
     pub fn handle_input(&mut self, event_handler: &EventHandler) {
@@ -76,7 +74,7 @@ impl Joypad {
                 _ => {}
             }
         }
-    
+
         // Controller input
         if let Some(button) = event_handler.button_pressed {
             match button {
@@ -97,7 +95,7 @@ impl Joypad {
                 _ => {}
             }
         }
-    
+
         // Reset if no input is detected
         if event_handler.key_pressed.is_none() && event_handler.button_pressed.is_none() {
             self.a = false;
