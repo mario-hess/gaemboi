@@ -2,7 +2,7 @@
  * @file    joypad.rs
  * @brief   Handles user input.
  * @author  Mario Hess
- * @date    October 22, 2023
+ * @date    October 23, 2023
  */
 use sdl2::{controller::Button, keyboard::Keycode};
 
