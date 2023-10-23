@@ -55,6 +55,27 @@ Clone the repository:
 git clone https://github.com/mario-hess/gaemboi
 ```
 
+Install dependencies:
+
+#### Arch
+
+```
+sudo pacman -S sdl2 sdl2_ttf sdl2_image
+```
+
+#### Ubuntu
+
+```
+sudo apt-get install libsdl2-dev libsdl-image1.2 libsdl-image1.2-dev libsdl-ttf2.0-0 libsdl-ttf2.0-dev
+```
+
+#### Fedora
+
+```
+sudo dnf install SDL2-devel install SDL2_image SDL2_image-devel SDL2_ttf SDL2_ttf-devel
+```
+
+
 ### Usage
 
 Drop a `.gb` file into the window or create a folder named 'roms' in the root directory, and place your rom in there.
