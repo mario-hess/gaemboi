@@ -2,7 +2,7 @@
  * @file    boot_sequence.rs
  * @brief   Custom boot sequence.
  * @author  Mario Hess
- * @date    October 20, 2023
+ * @date    October 23, 2023
  */
 use sdl2::{
     image::LoadTexture,
@@ -26,9 +26,12 @@ pub fn run(
 ) {
     let frame_duration = std::time::Duration::from_millis((1000.0 / 30.0) as u64);
 
+    // Include logo in binaries.
+    let bytes = include_bytes!("../images/logo.png");
+
     let texture = viewport
         .texture_creator
-        .load_texture("images/logo.png")
+        .load_texture_bytes(bytes)
         .unwrap();
 
     let logo_width = texture.query().width;

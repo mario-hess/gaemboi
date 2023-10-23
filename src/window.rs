@@ -2,12 +2,13 @@
  * @file    window.rs
  * @brief   Handles window management.
  * @author  Mario Hess
- * @date    October 20, 2023
+ * @date    October 23, 2023
  */
 use sdl2::{
     pixels::Color,
     rect::{Point, Rect},
     render::{Canvas, CanvasBuilder, TextureCreator},
+    rwops::RWops,
     ttf::{Font, Sdl2TtfContext},
     video::{Window as SDL_Window, WindowContext},
     VideoSubsystem,
@@ -30,7 +31,9 @@ impl<'a> Window<'a> {
         height: usize,
         scale: usize,
     ) -> Self {
-        let font_path = "fonts/OpenSans-Regular.ttf".to_string();
+        //Include font in binaries.
+        let bytes = include_bytes!("../fonts/OpenSans-Regular.ttf");
+        let rw_bytes = RWops::from_bytes(bytes).unwrap();
         let font_size = 16;
 
         let window = video_subsystem
@@ -50,7 +53,7 @@ impl<'a> Window<'a> {
             .unwrap();
 
         let texture_creator = canvas.texture_creator();
-        let font = ttf_context.load_font(font_path, font_size).unwrap();
+        let font = ttf_context.load_font_from_rwops(rw_bytes, font_size).unwrap();
 
         Self {
             canvas,

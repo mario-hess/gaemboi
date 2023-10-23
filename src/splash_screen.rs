@@ -2,20 +2,19 @@
  * @file    splash_screen.rs
  * @brief   Display splash screen.
  * @author  Mario Hess
- * @date    October 11, 2023
+ * @date    October 23, 2023
  */
 use sdl2::{
     image::LoadTexture,
     rect::{Point, Rect},
 };
 
-use crate::window::{Window, clear_canvas};
+use crate::window::{clear_canvas, Window};
 
 pub fn run(viewport: &mut Window) {
-    let texture = viewport
-        .texture_creator
-        .load_texture("images/splash.png")
-        .unwrap();
+    // Include splash in binaries.
+    let bytes = include_bytes!("../images/splash.png");
+    let texture = viewport.texture_creator.load_texture_bytes(bytes).unwrap();
 
     let splash_width = texture.query().width;
     let splash_height = texture.query().height;
