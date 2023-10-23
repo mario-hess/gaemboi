@@ -2,7 +2,7 @@
  * @file    event_handler.rs
  * @brief   Manages keyboard input and key states.
  * @author  Mario Hess
- * @date    October 22, 2023
+ * @date    October 23, 2023
  */
 use sdl2::{controller::Button, event::Event, keyboard::Keycode, EventPump};
 
@@ -38,8 +38,6 @@ impl EventHandler {
                     keycode: Some(Keycode::Escape),
                     ..
                 } => self.key_pressed = Some(Keycode::Escape),
-                Event::KeyUp { .. } => self.key_pressed = None,
-                Event::ControllerButtonUp { .. } => self.button_pressed = None,
                 Event::KeyDown { keycode, .. } => match keycode {
                     Some(Keycode::N) => self.key_pressed = Some(Keycode::N),
                     Some(Keycode::M) => self.key_pressed = Some(Keycode::M),
@@ -64,6 +62,8 @@ impl EventHandler {
                     Button::Back => self.button_pressed = Some(Button::Back),
                     _ => {}
                 },
+                Event::KeyUp { .. } => self.key_pressed = None,
+                Event::ControllerButtonUp { .. } => self.button_pressed = None,
                 Event::DropFile { filename, .. } => self.file_dropped = Some(filename),
                 _ => {}
             };
