@@ -9,9 +9,11 @@ use sdl2::{controller::Button, event::Event, keyboard::Keycode, EventPump};
 use crate::{
     ppu::{VIEWPORT_HEIGHT, VIEWPORT_WIDTH},
     window::Window,
+    State,
 };
 
 pub struct EventHandler {
+    pub mode: State,
     pub key_pressed: Option<Keycode>,
     pub button_pressed: Option<Button>,
     pub file_dropped: Option<String>,
@@ -22,6 +24,7 @@ pub struct EventHandler {
 impl EventHandler {
     pub fn new() -> Self {
         Self {
+            mode: State::Splash,
             key_pressed: None,
             button_pressed: None,
             file_dropped: None,

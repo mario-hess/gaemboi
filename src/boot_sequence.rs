@@ -12,17 +12,15 @@ use sdl2::{
 };
 
 use crate::{
-    config::Config,
     event_handler::EventHandler,
     window::{clear_canvas, Window},
-    Mode,
+    State,
 };
 
 pub fn run(
     viewport: &mut Window,
     event_handler: &mut EventHandler,
     event_pump: &mut EventPump,
-    config: &mut Config,
 ) {
     let frame_duration = std::time::Duration::from_millis((1000.0 / 30.0) as u64);
 
@@ -43,8 +41,8 @@ pub fn run(
     while event_handler.key_pressed != Some(Keycode::Escape) {
         event_handler.poll(event_pump);
 
-        match config.mode {
-            Mode::Boot => {
+        match event_handler.mode {
+            State::Boot => {
                 let frame_start_time = std::time::Instant::now();
 
                 clear_canvas(&mut viewport.canvas);
@@ -53,7 +51,7 @@ pub fn run(
 
                 if logo_position.y > logo_height as i32 / 2 {
                     logo_position.y = logo_height as i32 / 2;
-                    config.mode = Mode::Play;
+                    event_handler.mode = State::Play;
 
                     std::thread::sleep(std::time::Duration::from_millis(3000));
                 }

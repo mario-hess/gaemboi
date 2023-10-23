@@ -5,15 +5,12 @@
  * @date    October 23, 2023
  */
 
-use crate::Mode;
-
 pub struct Config {
     pub file_path: Option<String>,
     pub tiletable_enable: bool,
     pub tilemaps_enable: bool,
     pub tilemap_9800_enable: bool,
     pub tilemap_9c00_enable: bool,
-    pub mode: Mode,
 }
 
 impl Config {
@@ -30,7 +27,6 @@ impl Config {
         let tilemaps_enable = args.contains(&"-m".to_string());
         let tilemap_9800_enable = args.contains(&"-m1".to_string());
         let tilemap_9c00_enable = args.contains(&"-m2".to_string());
-        let mode = Mode::Splash;
 
         Self {
             file_path,
@@ -38,7 +34,6 @@ impl Config {
             tilemaps_enable,
             tilemap_9800_enable,
             tilemap_9c00_enable,
-            mode,
         }
     }
 }

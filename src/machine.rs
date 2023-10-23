@@ -14,7 +14,7 @@ use crate::{
     event_handler::EventHandler,
     ppu::{TILEMAP_END_0, TILEMAP_END_1, TILEMAP_START_0, TILEMAP_START_1},
     window::{clear_canvas, Window},
-    Mode,
+    State,
 };
 
 pub const FPS: f32 = 60.0;
@@ -51,7 +51,7 @@ impl Machine {
             self.cpu.memory_bus.joypad.handle_input(event_handler);
 
             if event_handler.file_dropped.is_some() {
-                config.mode = Mode::Boot;
+                event_handler.mode = State::Boot;
                 break;
             }
 
@@ -80,6 +80,8 @@ impl Machine {
                 std::thread::sleep(frame_duration - elapsed_time);
             }
         }
+
+        event_handler.key_pressed = None;
     }
 
     fn debug_draw(&mut self, windows: &mut DebugWindows) {

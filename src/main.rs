@@ -42,7 +42,7 @@ use crate::{
     window::Window,
 };
 
-pub enum Mode {
+pub enum State {
     Splash,
     Boot,
     Play,
@@ -100,30 +100,29 @@ fn main() -> Result<(), Error> {
     // Set file_path if passed through args
     if let Some(ref file_path) = config.file_path {
         event_handler.file_dropped = Some(file_path.to_string());
-        config.mode = Mode::Boot;
+        event_handler.mode = State::Boot;
     }
 
     while event_handler.key_pressed != Some(Keycode::Escape) {
         event_handler.poll(&mut event_pump);
         event_handler.check_resized(&mut viewport);
 
-        match config.mode {
-            Mode::Splash => {
+        match event_handler.mode {
+            State::Splash => {
                 splash_screen::run(&mut viewport);
 
                 if let Some(_file_path) = &event_handler.file_dropped {
-                    config.mode = Mode::Boot;
+                    event_handler.mode = State::Boot;
                 }
             }
-            Mode::Boot => {
+            State::Boot => {
                 boot_sequence::run(
                     &mut viewport,
                     &mut event_handler,
                     &mut event_pump,
-                    &mut config,
                 );
             }
-            Mode::Play => {
+            State::Play => {
                 let file_path = event_handler.file_dropped.unwrap();
                 let rom_data = read_file(file_path.clone())?;
 
