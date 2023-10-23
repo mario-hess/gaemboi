@@ -2,7 +2,7 @@
  * @file    config.rs
  * @brief   Handles configuration settings.
  * @author  Mario Hess
- * @date    October 11, 2023
+ * @date    October 23, 2023
  */
 
 use crate::Mode;
@@ -21,7 +21,7 @@ impl Config {
         let mut file_path = None;
 
         for arg in args {
-            if !arg.starts_with('-') && !arg.contains("target/release/gemboi") {
+            if !arg.starts_with('-') && !arg.contains("gaemboi") {
                 file_path = Some("roms/".to_owned() + arg)
             }
         }
