@@ -2,7 +2,7 @@
  * @file    main.rs
  * @brief   Initializes the emulator by loading the ROM and delegating control to the core emulation loop.
  * @author  Mario Hess
- * @date    October 22, 2023
+ * @date    October 24, 2023
  *
  * Dependencies:
  * - SDL2: Required for audio, input, and display handling.
@@ -20,9 +20,9 @@ mod interrupt;
 mod joypad;
 mod machine;
 mod memory_bus;
+mod menu;
 mod ppu;
 mod registers;
-mod splash_screen;
 mod timer;
 mod window;
 
@@ -38,12 +38,13 @@ use crate::{
     config::Config,
     event_handler::EventHandler,
     machine::Machine,
+    menu::Menu,
     ppu::{VIEWPORT_HEIGHT, VIEWPORT_WIDTH},
     window::Window,
 };
 
-pub enum State {
-    Splash,
+pub enum MachineState {
+    Menu,
     Boot,
     Play,
 }
@@ -97,32 +98,26 @@ fn main() -> Result<(), Error> {
         event_handler.window_scale as usize,
     );
 
+    let mut menu = Menu::new();
+
     // Set file_path if passed through args
     if let Some(ref file_path) = config.file_path {
         event_handler.file_dropped = Some(file_path.to_string());
-        event_handler.mode = State::Boot;
+        event_handler.machine_state = MachineState::Boot;
     }
 
     while event_handler.key_pressed != Some(Keycode::Escape) {
         event_handler.poll(&mut event_pump);
-        event_handler.check_resized(&mut viewport);
+        event_handler.check_resized(&mut viewport.canvas);
 
-        match event_handler.mode {
-            State::Splash => {
-                splash_screen::run(&mut viewport);
-
-                if let Some(_file_path) = &event_handler.file_dropped {
-                    event_handler.mode = State::Boot;
-                }
+        match event_handler.machine_state {
+            MachineState::Menu => {
+                menu.run(&mut event_handler, &mut event_pump, &mut viewport);
             }
-            State::Boot => {
-                boot_sequence::run(
-                    &mut viewport,
-                    &mut event_handler,
-                    &mut event_pump,
-                );
+            MachineState::Boot => {
+                boot_sequence::run(&mut viewport, &mut event_handler, &mut event_pump);
             }
-            State::Play => {
+            MachineState::Play => {
                 let file_path = event_handler.file_dropped.unwrap();
                 let rom_data = read_file(file_path.clone())?;
 
@@ -148,6 +143,8 @@ fn main() -> Result<(), Error> {
                     .cpu
                     .memory_bus
                     .save_game(&file_path.replace(".gb", ".sav"));
+
+                event_handler.machine_state = MachineState::Menu;
             }
         }
     }
