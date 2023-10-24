@@ -2,20 +2,26 @@
  * @file    event_handler.rs
  * @brief   Manages keyboard input and key states.
  * @author  Mario Hess
- * @date    October 23, 2023
+ * @date    October 24, 2023
  */
-use sdl2::{controller::Button, event::Event, keyboard::Keycode, EventPump};
+use sdl2::{
+    controller::Button, event::Event, keyboard::Keycode, render::Canvas,
+    video::Window as SDL_Window, EventPump,
+};
 
 use crate::{
     ppu::{VIEWPORT_HEIGHT, VIEWPORT_WIDTH},
-    window::Window,
-    State,
+    MachineState,
 };
 
 pub struct EventHandler {
-    pub mode: State,
+    pub machine_state: MachineState,
     pub key_pressed: Option<Keycode>,
     pub button_pressed: Option<Button>,
+    pub mouse_x: i32,
+    pub mouse_y: i32,
+    pub mouse_btn_down: bool,
+    pub mouse_btn_up: bool,
     pub file_dropped: Option<String>,
     pub window_scale: u32,
     pub window_resized: bool,
@@ -24,9 +30,13 @@ pub struct EventHandler {
 impl EventHandler {
     pub fn new() -> Self {
         Self {
-            mode: State::Splash,
+            machine_state: MachineState::Menu,
             key_pressed: None,
             button_pressed: None,
+            mouse_x: 0,
+            mouse_y: 0,
+            mouse_btn_down: false,
+            mouse_btn_up: true,
             file_dropped: None,
             window_scale: 4,
             window_resized: false,
@@ -41,6 +51,17 @@ impl EventHandler {
                     keycode: Some(Keycode::Escape),
                     ..
                 } => self.key_pressed = Some(Keycode::Escape),
+                Event::MouseMotion { x, y, .. } => {
+                    self.mouse_x = x;
+                    self.mouse_y = y;
+                }
+                Event::MouseButtonDown { .. } => {
+                    self.mouse_btn_down = true;
+                    self.mouse_btn_up = false;
+                }
+                Event::MouseButtonUp { .. } => {
+                    self.mouse_btn_up = true;
+                }
                 Event::KeyDown { keycode, .. } => match keycode {
                     Some(Keycode::N) => self.key_pressed = Some(Keycode::N),
                     Some(Keycode::M) => self.key_pressed = Some(Keycode::M),
@@ -89,13 +110,12 @@ impl EventHandler {
         self.window_resized = true;
     }
 
-    pub fn check_resized(&mut self, viewport: &mut Window) {
+    pub fn check_resized(&mut self, canvas: &mut Canvas<SDL_Window>) {
         if !self.window_resized {
             return;
         }
 
-        viewport
-            .canvas
+        canvas
             .window_mut()
             .set_size(
                 (VIEWPORT_WIDTH) as u32 * self.window_scale,
@@ -104,5 +124,10 @@ impl EventHandler {
             .unwrap();
 
         self.window_resized = false;
+    }
+
+    pub fn reset_mouse_buttons(&mut self) {
+        self.mouse_btn_up = true;
+        self.mouse_btn_down = false;
     }
 }
