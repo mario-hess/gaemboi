@@ -4,6 +4,8 @@
  * @author  Mario Hess
  * @date    October 20, 2023
  */
+use sdl2::{render::Canvas, video::Window};
+
 use crate::{cartridge::Cartridge, joypad::Joypad, ppu::Ppu, timer::Timer};
 
 pub const CARTRIDGE_ROM_START: u16 = 0x0000;
@@ -91,12 +93,12 @@ impl MemoryBus {
         }
     }
 
-    pub fn tick(&mut self, m_cycles: u8) {
+    pub fn tick(&mut self, m_cycles: u8, canvas: &mut Canvas<Window>) {
         self.timer.tick(m_cycles);
         self.interrupt_flag |= self.timer.interrupt;
         self.timer.reset_interrupt();
 
-        self.ppu.tick(m_cycles);
+        self.ppu.tick(m_cycles, canvas);
         self.interrupt_flag |= self.ppu.interrupts;
         self.ppu.reset_interrupts();
     }

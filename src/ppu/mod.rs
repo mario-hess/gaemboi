@@ -134,7 +134,7 @@ impl Ppu {
         }
     }
 
-    pub fn tick(&mut self, m_cycles: u8) {
+    pub fn tick(&mut self, m_cycles: u8, canvas: &mut Canvas<Window>) {
         if !self.lcd_control.lcd_enabled {
             return;
         }
@@ -149,7 +149,7 @@ impl Ppu {
 
                     if self.line_y >= LINES_Y {
                         self.lcd_status.set_mode(Mode::VBlank, &mut self.interrupts);
-                        //self.render_screen();
+                        self.draw_viewport(canvas);
                         self.interrupts |= VBLANK_MASK;
                         self.clear_screen();
                     } else {
@@ -273,7 +273,7 @@ impl Ppu {
     fn set_lcd_control(&mut self, value: u8) {
         self.lcd_control.set(value);
 
-        if !self.lcd_control.lcd_enabled {
+        if self.enabled && !self.lcd_control.lcd_enabled {
             self.clear_screen();
             self.set_line_y(0);
             self.lcd_status.mode = Mode::HBlank;
@@ -390,11 +390,7 @@ impl Ppu {
                 }
 
                 // Check if pixel is horizontally mirrored
-                let pixel_index = if oam_entry.x_flip_enabled() {
-                    x
-                } else {
-                    7 - x
-                };
+                let pixel_index = if oam_entry.x_flip_enabled() { x } else { 7 - x };
 
                 let sprite_palette = if oam_entry.palette_enabled() {
                     self.tile_palette1
@@ -435,7 +431,7 @@ impl Ppu {
         }
     }
 
-    pub fn draw_viewport(&self, canvas: &mut Canvas<Window>) {
+    pub fn draw_viewport(&mut self, canvas: &mut Canvas<Window>) {
         for (index, pixel) in self.screen_buffer.iter().enumerate() {
             let x_coord = (index % VIEWPORT_WIDTH) as i32;
             let y_coord = (index / VIEWPORT_WIDTH) as i32;
@@ -447,6 +443,9 @@ impl Ppu {
 
     fn clear_screen(&mut self) {
         for i in 0..PRIORITY_MAP_SIZE {
+            if i < BUFFER_SIZE {
+                self.screen_buffer[i] = WHITE;
+            }
             self.priority_map[i] = Priority::None;
         }
     }

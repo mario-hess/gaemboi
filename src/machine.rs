@@ -57,25 +57,24 @@ impl Machine {
 
             let frame_start_time = std::time::Instant::now();
 
-            clear_canvas(&mut viewport.canvas);
             debug_windows.clear();
 
             // Component tick
             while self.clock.cycles_passed <= self.clock.cycles_per_frame {
                 let m_cycles = self.cpu.tick();
-                self.cpu.memory_bus.tick(m_cycles);
+                self.cpu.memory_bus.tick(m_cycles, &mut viewport.canvas);
                 self.clock.tick(m_cycles);
             }
 
             self.clock.reset();
             self.debug_draw(&mut debug_windows);
-            self.cpu.memory_bus.ppu.draw_viewport(&mut viewport.canvas);
 
             viewport.canvas.present();
             debug_windows.present();
 
             // Tick at the CPU frequency rate
             let elapsed_time = frame_start_time.elapsed();
+            println!("{:?}", elapsed_time);
             if elapsed_time < frame_duration {
                 std::thread::sleep(frame_duration - elapsed_time);
             }
