@@ -1,3 +1,9 @@
+/**
+ * @file    menu/mod.rs
+ * @brief   Manages the menu.
+ * @author  Mario Hess
+ * @date    October 27, 2023
+ */
 mod button;
 
 use rfd::FileDialog;
@@ -8,17 +14,19 @@ use sdl2::{keyboard::Keycode, EventPump};
 
 use crate::{
     event_handler::EventHandler,
-    menu::button::{Button, BTN_HEIGHT, BTN_WIDTH},
+    menu::button::{Button, ButtonState, ButtonType, BTN_HEIGHT, BTN_WIDTH},
     ppu::{VIEWPORT_HEIGHT, VIEWPORT_WIDTH, WHITE},
     window::Window,
     MachineState,
 };
 
+#[derive(Copy, Clone)]
 enum MenuState {
     Default,
     Keybindings,
 }
 
+#[derive(Copy, Clone)]
 pub struct Menu {
     state: MenuState,
 }
@@ -48,7 +56,6 @@ impl Menu {
             Point::new(keybindings_width as i32 / 2, keybindings_height as i32 / 2);
 
         let button_bytes = include_bytes!("../../images/buttons.png");
-
         let button_texture = viewport
             .texture_creator
             .load_texture_bytes(button_bytes)
@@ -64,7 +71,7 @@ impl Menu {
             BTN_WIDTH as u32,
             BTN_HEIGHT as u32,
         );
-        let open_btn = Button::new(open_default, open_dest);
+        let mut open_btn = Button::new(ButtonType::Open, open_default, open_dest);
 
         let keys_default = Rect::new(0, BTN_HEIGHT, BTN_WIDTH as u32, BTN_HEIGHT as u32);
         let keys_dest = Rect::new(
@@ -73,7 +80,7 @@ impl Menu {
             BTN_WIDTH as u32,
             BTN_HEIGHT as u32,
         );
-        let keys_btn = Button::new(keys_default, keys_dest);
+        let mut keys_btn = Button::new(ButtonType::Keys, keys_default, keys_dest);
 
         let exit_default = Rect::new(0, BTN_HEIGHT * 2, BTN_WIDTH as u32, BTN_HEIGHT as u32);
         let exit_dest = Rect::new(
@@ -82,11 +89,13 @@ impl Menu {
             BTN_WIDTH as u32,
             BTN_HEIGHT as u32,
         );
-        let exit_btn = Button::new(exit_default, exit_dest);
+        let mut exit_btn = Button::new(ButtonType::Exit, exit_default, exit_dest);
 
         let back_default = Rect::new(0, BTN_HEIGHT * 3, BTN_WIDTH as u32, BTN_HEIGHT as u32);
         let back_dest = Rect::new(0, 0, BTN_WIDTH as u32, BTN_HEIGHT as u32);
-        let back_btn = Button::new(back_default, back_dest);
+        let mut back_btn = Button::new(ButtonType::Back, back_default, back_dest);
+
+        let mut menu_buttons = [&mut open_btn, &mut keys_btn, &mut exit_btn];
 
         while event_handler.key_pressed != Some(Keycode::Escape) {
             event_handler.poll(event_pump);
@@ -97,107 +106,28 @@ impl Menu {
                 break;
             }
 
-            let (mouse_x, mouse_y) = (&event_handler.mouse_x, &event_handler.mouse_y);
+            let (mouse_x, mouse_y) = (event_handler.mouse_x, event_handler.mouse_y);
 
             viewport.canvas.set_draw_color(WHITE);
             viewport.canvas.clear();
 
             match self.state {
                 MenuState::Default => {
-                    open_btn.draw(
-                        &mut viewport.canvas,
-                        &button_texture,
-                        open_default,
-                        open_dest,
-                    );
-                    keys_btn.draw(
-                        &mut viewport.canvas,
-                        &button_texture,
-                        keys_default,
-                        keys_dest,
-                    );
-                    exit_btn.draw(
-                        &mut viewport.canvas,
-                        &button_texture,
-                        exit_default,
-                        exit_dest,
-                    );
-
-                    if check_hovered(mouse_x, mouse_y, open_dest) {
-                        if event_handler.mouse_btn_down {
-                            open_btn.draw(
-                                &mut viewport.canvas,
-                                &button_texture,
-                                open_btn.clicked,
-                                open_dest,
-                            );
-
-                            if event_handler.mouse_btn_up {
-                                println!("OPEN ACTION");
-
-                                let file = FileDialog::new()
-                                    .add_filter("gb", &["gb"])
-                                    .set_directory("../")
-                                    .pick_file();
-
-                                event_handler.file_dropped =
-                                    Some(file.unwrap().into_os_string().into_string().unwrap());
-                                event_handler.reset_mouse_buttons();
-                                event_handler.machine_state = MachineState::Boot;
-                                break;
+                    for button in &mut menu_buttons {
+                        match (
+                            button.check_hovered(&mouse_x, &mouse_y),
+                            event_handler.mouse_btn_down,
+                            event_handler.mouse_btn_up,
+                        ) {
+                            (true, true, true) => {
+                                self.handle_clicked(event_handler, &button.button_type)
                             }
-                        } else {
-                            open_btn.draw(
-                                &mut viewport.canvas,
-                                &button_texture,
-                                open_btn.hover,
-                                open_dest,
-                            );
-                        }
-                    } else if check_hovered(mouse_x, mouse_y, keys_dest) {
-                        if event_handler.mouse_btn_down {
-                            keys_btn.draw(
-                                &mut viewport.canvas,
-                                &button_texture,
-                                keys_btn.clicked,
-                                keys_dest,
-                            );
+                            (true, true, _) => button.button_state = ButtonState::Clicked,
+                            (true, _, _) => button.button_state = ButtonState::Hovered,
+                            _ => button.button_state = ButtonState::Default,
+                        };
 
-                            if event_handler.mouse_btn_up {
-                                self.state = MenuState::Keybindings;
-                                event_handler.reset_mouse_buttons();
-                                return;
-                            }
-                        } else {
-                            keys_btn.draw(
-                                &mut viewport.canvas,
-                                &button_texture,
-                                keys_btn.hover,
-                                keys_dest,
-                            );
-                        }
-                    } else if check_hovered(mouse_x, mouse_y, exit_dest) {
-                        if event_handler.mouse_btn_down {
-                            exit_btn.draw(
-                                &mut viewport.canvas,
-                                &button_texture,
-                                exit_btn.clicked,
-                                exit_dest,
-                            );
-
-                            if event_handler.mouse_btn_up {
-                                event_handler.reset_mouse_buttons();
-                                event_handler.key_pressed = Some(Keycode::Escape);
-                                break;
-                            }
-                        } else {
-                            exit_btn.draw(
-                                &mut viewport.canvas,
-                                &button_texture,
-                                exit_btn.hover,
-                                exit_dest,
-                            );
-                        }
+                        button.draw(&mut viewport.canvas, &button_texture, button.dest_rect);
                     }
                 }
                 MenuState::Keybindings => {
@@ -213,36 +143,21 @@ impl Menu {
                             ),
                         )
                         .unwrap();
-                    open_btn.draw(
-                        &mut viewport.canvas,
-                        &button_texture,
-                        back_default,
-                        back_dest,
-                    );
 
-                    if check_hovered(mouse_x, mouse_y, back_dest) {
-                        if event_handler.mouse_btn_down {
-                            back_btn.draw(
-                                &mut viewport.canvas,
-                                &button_texture,
-                                back_btn.clicked,
-                                back_dest,
-                            );
-
-                            if event_handler.mouse_btn_up {
-                                self.state = MenuState::Default;
-                                event_handler.reset_mouse_buttons();
-                                break;
-                            }
-                        } else {
-                            back_btn.draw(
-                                &mut viewport.canvas,
-                                &button_texture,
-                                back_btn.hover,
-                                back_dest,
-                            );
+                    match (
+                        back_btn.check_hovered(&mouse_x, &mouse_y),
+                        event_handler.mouse_btn_down,
+                        event_handler.mouse_btn_up,
+                    ) {
+                        (true, true, true) => {
+                            self.handle_clicked(event_handler, &back_btn.button_type);
                         }
-                    }
+                        (true, true, _) => back_btn.button_state = ButtonState::Clicked,
+                        (true, _, _) => back_btn.button_state = ButtonState::Hovered,
+                        _ => back_btn.button_state = ButtonState::Default,
+                    };
+
+                    back_btn.draw(&mut viewport.canvas, &button_texture, back_dest);
                 }
             }
 
@@ -253,11 +168,30 @@ impl Menu {
             viewport.canvas.present();
         }
     }
-}
 
-fn check_hovered(mouse_x: &i32, mouse_y: &i32, rect: Rect) -> bool {
-    mouse_x >= &rect.left()
-        && mouse_x < &rect.right()
-        && mouse_y >= &rect.top()
-        && mouse_y < &rect.bottom()
+    fn handle_clicked(&mut self, event_handler: &mut EventHandler, button_type: &ButtonType) {
+        event_handler.reset_mouse_buttons();
+
+        match button_type {
+            ButtonType::Open => {
+                let file = FileDialog::new()
+                    .add_filter("gb", &["gb"])
+                    .set_directory("../")
+                    .pick_file();
+
+                if let Some(file) = file {
+                    event_handler.file_dropped = Some(file.into_os_string().into_string().unwrap());
+                }
+            }
+            ButtonType::Keys => {
+                self.state = MenuState::Keybindings;
+            }
+            ButtonType::Exit => {
+                event_handler.key_pressed = Some(Keycode::Escape);
+            }
+            ButtonType::Back => {
+                self.state = MenuState::Default;
+            }
+        }
+    }
 }
