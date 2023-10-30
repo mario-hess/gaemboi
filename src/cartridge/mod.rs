@@ -7,11 +7,12 @@
 mod core;
 mod mbc0;
 mod mbc1;
+mod mbc2;
 mod mbc3;
 
 use std::{fs::File, io::Write};
 
-use crate::cartridge::{core::Core, mbc0::Mbc0, mbc1::Mbc1, mbc3::Mbc3};
+use crate::cartridge::{core::Core, mbc0::Mbc0, mbc1::Mbc1, mbc2::Mbc2, mbc3::Mbc3};
 
 const ROM_BANK_SIZE: usize = 16 * 1024;
 const RAM_BANK_SIZE: usize = 8 * 1024;
@@ -41,6 +42,7 @@ impl Cartridge {
         let mbc: Box<dyn MemoryBankController> = match rom_data[CARTRIDGE_TYPE_ADDRESS] {
             0x0 => Box::new(Mbc0::new()),
             0x01..=0x03 => Box::new(Mbc1::new()),
+            0x05 | 0x06 => Box::new(Mbc2::new()),
             0x0F..=0x13 => Box::new(Mbc3::new()),
             _ => panic!("Error: Cartridge type not supported"),
         };
