@@ -4,7 +4,7 @@
  * @author  Mario Hess
  * @date    September 20, 2023
  */
-use crate::cartridge::{RAM_BANK_SIZE, RAM_SIZE_ADDRESS, ROM_BANK_SIZE};
+use crate::cartridge::{CARTRIDGE_TYPE_ADDRESS, RAM_BANK_SIZE, RAM_SIZE_ADDRESS, ROM_BANK_SIZE};
 
 pub struct Core {
     pub rom_data: Vec<u8>,
@@ -18,7 +18,14 @@ pub struct Core {
 
 impl Core {
     pub fn new(rom_data: &[u8]) -> Self {
-        let ram_data = create_ram(rom_data);
+        let ram_data = match rom_data[CARTRIDGE_TYPE_ADDRESS] {
+            // Mbc2 internal ram
+            0x05 | 0x06 => {
+                let ram_size = Some(512);
+                ram_size.map(|size| vec![0; size])
+            }
+            _ => create_ram(rom_data),
+        };
         let rom_bank = 0;
         let ram_bank = 0;
         let rom_offset: usize = ROM_BANK_SIZE;

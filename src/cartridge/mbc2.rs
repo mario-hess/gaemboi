@@ -1,20 +1,20 @@
 /**
- * @file    cartridge/mbc3.rs
- * @brief   MBC3 Memory Bank Controller implementation.
+ * @file    cartridge/mbc2.rs
+ * @brief   MBC2 Memory Bank Controller implementation.
  * @author  Mario Hess
- * @date    October 20, 2023
+ * @date    October 30, 2023
  */
 use crate::cartridge::{core::Core, MemoryBankController, MASK_MSB, RAM_ADDRESS};
 
-pub struct Mbc3 {}
+pub struct Mbc2 {}
 
-impl Mbc3 {
+impl Mbc2 {
     pub fn new() -> Self {
         Self {}
     }
 }
 
-impl MemoryBankController for Mbc3 {
+impl MemoryBankController for Mbc2 {
     fn read_rom(&self, core: &Core, address: u16) -> u8 {
         match (address & MASK_MSB) >> 12 {
             // 0x0000 - 0x3FFF (Bank 00)
@@ -31,15 +31,23 @@ impl MemoryBankController for Mbc3 {
     fn write_rom(&mut self, core: &mut Core, address: u16, value: u8) {
         match (address & MASK_MSB) >> 12 {
             // 0x0000 - 0x1FFF (RAM enable)
-            0x0 | 0x1 => core.ram_enabled = (value & 0x0F) == 0x0A,
+            0x0 | 0x1 => {
+                if address & 0x100 != 0 {
+                    return;
+                }
+
+                core.ram_enabled = value == 0x0A
+            }
             // 0x2000 - 0x3FFF (ROM bank number)
             0x2 | 0x3 => {
+                if address & 0x100 != 0x100 {
+                    return;
+                }
+
                 let bank_number = if value == 0 { 1 } else { value };
-                core.rom_bank = bank_number & 0b0111_1111;
+                core.rom_bank = bank_number & 0xF;
             }
-            // 0x4000 - 0x5FFF (RAM bank number)
-            0x4 | 0x5 => core.ram_bank = value & 0b0000_0011,
-            0x6 | 0x7 => {}
+            0x4..=0x7 => {}
             _ => panic!(
                 "Unknown address: {:#X}. Can't write byte: {:#X}.",
                 address, value
@@ -53,8 +61,7 @@ impl MemoryBankController for Mbc3 {
         }
 
         if let Some(ref mut ram_data) = core.ram_data {
-            let offset = core.ram_offset * core.ram_bank as usize;
-            ram_data[(address as usize - RAM_ADDRESS) + offset] = value;
+            ram_data[address as usize - RAM_ADDRESS] = value & 0xF;
         }
     }
 
@@ -64,8 +71,7 @@ impl MemoryBankController for Mbc3 {
         }
 
         if let Some(ref ram_data) = core.ram_data {
-            let offset = core.ram_offset * core.ram_bank as usize;
-            return ram_data[(address as usize - RAM_ADDRESS) + offset];
+            return ram_data[address as usize - RAM_ADDRESS] & 0xF;
         }
 
         0xFF
