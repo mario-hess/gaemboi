@@ -26,7 +26,7 @@ impl Core {
             }
             _ => create_ram(rom_data),
         };
-        let rom_bank = 0;
+        let rom_bank = 1;
         let ram_bank = 0;
         let rom_offset: usize = ROM_BANK_SIZE;
         let ram_offset: usize = RAM_BANK_SIZE;
