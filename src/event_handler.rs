@@ -2,7 +2,7 @@
  * @file    event_handler.rs
  * @brief   Manages keyboard input and key states.
  * @author  Mario Hess
- * @date    October 24, 2023
+ * @date    October 30, 2023
  */
 use sdl2::{
     controller::Button, event::Event, keyboard::Keycode, render::Canvas,
@@ -22,9 +22,10 @@ pub struct EventHandler {
     pub mouse_y: i32,
     pub mouse_btn_down: bool,
     pub mouse_btn_up: bool,
-    pub file_dropped: Option<String>,
+    pub file_path: Option<String>,
     pub window_scale: u32,
     pub window_resized: bool,
+    pub quit: bool,
 }
 
 impl EventHandler {
@@ -37,17 +38,21 @@ impl EventHandler {
             mouse_y: 0,
             mouse_btn_down: false,
             mouse_btn_up: true,
-            file_dropped: None,
+            file_path: None,
             window_scale: 4,
             window_resized: false,
+            quit: false,
         }
     }
 
     pub fn poll(&mut self, event_pump: &mut EventPump) {
         for event in event_pump.poll_iter() {
             match event {
-                Event::Quit { .. }
-                | Event::KeyDown {
+                Event::Quit { .. } => {
+                    self.quit = true;
+                    self.key_pressed = Some(Keycode::Escape);
+                },
+                Event::KeyDown {
                     keycode: Some(Keycode::Escape),
                     ..
                 } => self.key_pressed = Some(Keycode::Escape),
@@ -88,7 +93,7 @@ impl EventHandler {
                 },
                 Event::KeyUp { .. } => self.key_pressed = None,
                 Event::ControllerButtonUp { .. } => self.button_pressed = None,
-                Event::DropFile { filename, .. } => self.file_dropped = Some(filename),
+                Event::DropFile { filename, .. } => self.file_path = Some(filename),
                 _ => {}
             };
         }

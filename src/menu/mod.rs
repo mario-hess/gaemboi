@@ -2,7 +2,7 @@
  * @file    menu/mod.rs
  * @brief   Manages the menu.
  * @author  Mario Hess
- * @date    October 27, 2023
+ * @date    October 30, 2023
  */
 mod button;
 
@@ -44,10 +44,10 @@ impl Menu {
         event_pump: &mut EventPump,
         viewport: &mut Window,
     ) {
-        let keybindings_bytes = include_bytes!("../../images/keybindings.png");
+        let keybindings_image = include_bytes!("../../images/keybindings.png");
         let keybindings_texture = viewport
             .texture_creator
-            .load_texture_bytes(keybindings_bytes)
+            .load_texture_bytes(keybindings_image)
             .unwrap();
 
         let keybindings_width = keybindings_texture.query().width;
@@ -55,10 +55,10 @@ impl Menu {
         let keybindings_position =
             Point::new(keybindings_width as i32 / 2, keybindings_height as i32 / 2);
 
-        let button_bytes = include_bytes!("../../images/buttons.png");
+        let buttons_image = include_bytes!("../../images/buttons.png");
         let button_texture = viewport
             .texture_creator
-            .load_texture_bytes(button_bytes)
+            .load_texture_bytes(buttons_image)
             .unwrap();
 
         let center_horizontal = VIEWPORT_WIDTH / 2 - BTN_WIDTH as usize / 2;
@@ -101,7 +101,7 @@ impl Menu {
             event_handler.poll(event_pump);
             event_handler.check_resized(&mut viewport.canvas);
 
-            if let Some(_file_path) = &event_handler.file_dropped {
+            if event_handler.file_path.is_some() {
                 event_handler.machine_state = MachineState::Boot;
                 break;
             }
@@ -120,11 +120,11 @@ impl Menu {
                             event_handler.mouse_btn_up,
                         ) {
                             (true, true, true) => {
-                                self.handle_clicked(event_handler, &button.button_type)
+                                self.handle_clicked(event_handler, &button.btn_type)
                             }
-                            (true, true, _) => button.button_state = ButtonState::Clicked,
-                            (true, _, _) => button.button_state = ButtonState::Hovered,
-                            _ => button.button_state = ButtonState::Default,
+                            (true, true, _) => button.btn_state = ButtonState::Clicked,
+                            (true, _, _) => button.btn_state = ButtonState::Hovered,
+                            _ => button.btn_state = ButtonState::Default,
                         };
 
                         button.draw(&mut viewport.canvas, &button_texture, button.dest_rect);
@@ -150,11 +150,11 @@ impl Menu {
                         event_handler.mouse_btn_up,
                     ) {
                         (true, true, true) => {
-                            self.handle_clicked(event_handler, &back_btn.button_type);
+                            self.handle_clicked(event_handler, &back_btn.btn_type);
                         }
-                        (true, true, _) => back_btn.button_state = ButtonState::Clicked,
-                        (true, _, _) => back_btn.button_state = ButtonState::Hovered,
-                        _ => back_btn.button_state = ButtonState::Default,
+                        (true, true, _) => back_btn.btn_state = ButtonState::Clicked,
+                        (true, _, _) => back_btn.btn_state = ButtonState::Hovered,
+                        _ => back_btn.btn_state = ButtonState::Default,
                     };
 
                     back_btn.draw(&mut viewport.canvas, &button_texture, back_dest);
@@ -180,13 +180,14 @@ impl Menu {
                     .pick_file();
 
                 if let Some(file) = file {
-                    event_handler.file_dropped = Some(file.into_os_string().into_string().unwrap());
+                    event_handler.file_path = Some(file.into_os_string().into_string().unwrap());
                 }
             }
             ButtonType::Keys => {
                 self.state = MenuState::Keybindings;
             }
             ButtonType::Exit => {
+                event_handler.quit = true;
                 event_handler.key_pressed = Some(Keycode::Escape);
             }
             ButtonType::Back => {

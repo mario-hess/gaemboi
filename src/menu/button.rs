@@ -2,7 +2,7 @@
  * @file    menu/button.rs
  * @brief   Handles menu buttons.
  * @author  Mario Hess
- * @date    October 27, 2023
+ * @date    October 30, 2023
  */
 use sdl2::rect::Rect;
 use sdl2::render::Canvas;
@@ -29,8 +29,8 @@ pub enum ButtonState {
 
 #[derive(Copy, Clone)]
 pub struct Button {
-    pub button_type: ButtonType,
-    pub button_state: ButtonState,
+    pub btn_type: ButtonType,
+    pub btn_state: ButtonState,
     pub default_rect: Rect,
     pub hovered_rect: Rect,
     pub clicked_rect: Rect,
@@ -40,8 +40,8 @@ pub struct Button {
 }
 
 impl Button {
-    pub fn new(button_type: ButtonType, default_rect: Rect, dest_rect: Rect) -> Self {
-        let button_state = ButtonState::Default;
+    pub fn new(btn_type: ButtonType, default_rect: Rect, dest_rect: Rect) -> Self {
+        let btn_state = ButtonState::Default;
         let hovered_rect = Rect::new(
             default_rect.x + BTN_WIDTH,
             default_rect.y,
@@ -60,8 +60,8 @@ impl Button {
         let clicked = false;
 
         Self {
-            button_type,
-            button_state,
+            btn_type,
+            btn_state,
             default_rect,
             hovered_rect,
             clicked_rect,
@@ -79,7 +79,7 @@ impl Button {
     }
 
     pub fn draw(&self, canvas: &mut Canvas<SDL_Window>, texture: &Texture, dest_rect: Rect) {
-        let rect = match self.button_state {
+        let rect = match self.btn_state {
             ButtonState::Default => self.default_rect,
             ButtonState::Hovered => self.hovered_rect,
             ButtonState::Clicked => self.clicked_rect,

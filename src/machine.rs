@@ -2,7 +2,7 @@
  * @file    machine.rs
  * @brief   Orchestrates the emulation loop, utilizing SDL2 for rendering and input handling.
  * @author  Mario Hess
- * @date    October 24, 2023
+ * @date    October 30, 2023
  */
 use sdl2::{keyboard::Keycode, pixels::Color, ttf::Sdl2TtfContext, EventPump, VideoSubsystem};
 
@@ -13,7 +13,7 @@ use crate::{
     debug_windows::DebugWindows,
     event_handler::EventHandler,
     ppu::{TILEMAP_END_0, TILEMAP_END_1, TILEMAP_START_0, TILEMAP_START_1},
-    window::{clear_canvas, Window},
+    window::Window,
     MachineState,
 };
 
@@ -50,7 +50,7 @@ impl Machine {
             event_handler.check_resized(&mut viewport.canvas);
             self.cpu.memory_bus.joypad.handle_input(event_handler);
 
-            if event_handler.file_dropped.is_some() {
+            if event_handler.file_path.is_some() {
                 event_handler.machine_state = MachineState::Boot;
                 break;
             }
@@ -74,7 +74,6 @@ impl Machine {
 
             // Tick at the CPU frequency rate
             let elapsed_time = frame_start_time.elapsed();
-            println!("{:?}", elapsed_time);
             if elapsed_time < frame_duration {
                 std::thread::sleep(frame_duration - elapsed_time);
             }
