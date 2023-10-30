@@ -44,7 +44,7 @@ impl LCD_control {
         let object_enabled: u8 = if self.object_enabled { 0x02 } else { 0 };
         let object_size: u8 = if self.object_size { 0x04 } else { 0 };
         let bg_tilemap: u8 = if self.bg_tilemap { 0x08 } else { 0 };
-        let addressing_mode: u8 = if self.addressing_mode { 0x010 } else { 0 };
+        let addressing_mode: u8 = if self.addressing_mode { 0x10 } else { 0 };
         let window_enabled: u8 = if self.window_enabled { 0x20 } else { 0 };
         let window_tilemap: u8 = if self.window_tilemap { 0x40 } else { 0 };
         let lcd_enable: u8 = if self.lcd_enabled { 0x80 } else { 0 };
