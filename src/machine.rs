@@ -2,9 +2,9 @@
  * @file    machine.rs
  * @brief   Orchestrates the emulation loop, utilizing SDL2 for rendering and input handling.
  * @author  Mario Hess
- * @date    October 30, 2023
+ * @date    November 06, 2023
  */
-use sdl2::{keyboard::Keycode, pixels::Color, ttf::Sdl2TtfContext, EventPump, VideoSubsystem};
+use sdl2::{pixels::Color, ttf::Sdl2TtfContext, EventPump, VideoSubsystem};
 
 use crate::{
     clock::Clock,
@@ -45,7 +45,7 @@ impl Machine {
         let mut debug_windows = DebugWindows::build(video_subsystem, ttf_context, config);
 
         // Core emulation loop
-        while event_handler.key_pressed != Some(Keycode::Escape) {
+        while !event_handler.escape_pressed {
             event_handler.poll(event_pump);
             event_handler.check_resized(&mut viewport.canvas);
             self.cpu.memory_bus.joypad.handle_input(event_handler);
@@ -79,7 +79,7 @@ impl Machine {
             }
         }
 
-        event_handler.key_pressed = None;
+        event_handler.escape_pressed = false;
     }
 
     fn debug_draw(&mut self, windows: &mut DebugWindows) {

@@ -2,7 +2,7 @@
  * @file    main.rs
  * @brief   Initializes the emulator by loading the ROM and delegating control to the core emulation loop.
  * @author  Mario Hess
- * @date    October 30, 2023
+ * @date    November 06, 2023
  *
  * Dependencies:
  * - SDL2: Audio, input, and display handling.
@@ -34,7 +34,7 @@ use std::{
     io::{Error, Read},
 };
 
-use sdl2::{keyboard::Keycode, ttf::init};
+use sdl2::ttf::init;
 
 use crate::{
     config::Config,
@@ -109,7 +109,7 @@ fn main() -> Result<(), Error> {
         event_handler.machine_state = MachineState::Boot;
     }
 
-    while event_handler.key_pressed != Some(Keycode::Escape) && !event_handler.quit {
+    while !event_handler.escape_pressed && !event_handler.quit {
         event_handler.poll(&mut event_pump);
         event_handler.check_resized(&mut viewport.canvas);
 

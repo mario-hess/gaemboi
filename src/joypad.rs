@@ -2,10 +2,8 @@
  * @file    joypad.rs
  * @brief   Handles user input.
  * @author  Mario Hess
- * @date    October 23, 2023
+ * @date    November 06, 2023
  */
-use sdl2::{controller::Button, keyboard::Keycode};
-
 use crate::event_handler::EventHandler;
 
 const A_RIGHT_POS: u8 = 0;
@@ -54,58 +52,13 @@ impl Joypad {
     }
 
     pub fn handle_input(&mut self, event_handler: &EventHandler) {
-        // Keyboard input
-        if let Some(keycode) = event_handler.key_pressed {
-            match keycode {
-                Keycode::W | Keycode::S | Keycode::A | Keycode::D => {
-                    self.up = keycode == Keycode::W;
-                    self.down = keycode == Keycode::S;
-                    self.left = keycode == Keycode::A;
-                    self.right = keycode == Keycode::D;
-                    self.select_dpad = true;
-                }
-                Keycode::N | Keycode::M | Keycode::Backspace | Keycode::Return => {
-                    self.a = keycode == Keycode::N;
-                    self.b = keycode == Keycode::M;
-                    self.select = keycode == Keycode::Backspace;
-                    self.start = keycode == Keycode::Return;
-                    self.select_buttons = true;
-                }
-                _ => {}
-            }
-        }
-
-        // Controller input
-        if let Some(button) = event_handler.button_pressed {
-            match button {
-                Button::DPadUp | Button::DPadLeft | Button::DPadDown | Button::DPadRight => {
-                    self.up = button == Button::DPadUp;
-                    self.down = button == Button::DPadDown;
-                    self.left = button == Button::DPadLeft;
-                    self.right = button == Button::DPadRight;
-                    self.select_dpad = true;
-                }
-                Button::A | Button::B | Button::Start | Button::Back => {
-                    self.a = button == Button::A;
-                    self.b = button == Button::B;
-                    self.select = button == Button::Back;
-                    self.start = button == Button::Start;
-                    self.select_buttons = true;
-                }
-                _ => {}
-            }
-        }
-
-        // Reset if no input is detected
-        if event_handler.key_pressed.is_none() && event_handler.button_pressed.is_none() {
-            self.a = false;
-            self.b = false;
-            self.select = false;
-            self.start = false;
-            self.up = false;
-            self.down = false;
-            self.left = false;
-            self.right = false;
-        }
+        self.up = event_handler.up_pressed;
+        self.left = event_handler.left_pressed;
+        self.down = event_handler.down_pressed;
+        self.right = event_handler.right_pressed;
+        self.a = event_handler.a_pressed;
+        self.b = event_handler.b_pressed;
+        self.select = event_handler.select_pressed;
+        self.start = event_handler.start_pressed;
     }
 }

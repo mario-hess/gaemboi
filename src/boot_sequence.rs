@@ -2,11 +2,10 @@
  * @file    boot_sequence.rs
  * @brief   Custom boot sequence.
  * @author  Mario Hess
- * @date    October 24, 2023
+ * @date    November 06, 2023
  */
 use sdl2::{
     image::LoadTexture,
-    keyboard::Keycode,
     rect::{Point, Rect},
     EventPump,
 };
@@ -33,7 +32,7 @@ pub fn run(viewport: &mut Window, event_handler: &mut EventHandler, event_pump: 
 
     let start_time = std::time::Instant::now();
 
-    while event_handler.key_pressed != Some(Keycode::Escape) {
+    while !event_handler.escape_pressed {
         event_handler.poll(event_pump);
         event_handler.check_resized(&mut viewport.canvas);
 

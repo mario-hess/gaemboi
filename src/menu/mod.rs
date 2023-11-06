@@ -2,7 +2,7 @@
  * @file    menu/mod.rs
  * @brief   Manages the menu.
  * @author  Mario Hess
- * @date    October 30, 2023
+ * @date    November 06, 2023
  */
 mod button;
 
@@ -10,7 +10,7 @@ use rfd::FileDialog;
 use sdl2::image::LoadTexture;
 use sdl2::rect::Point;
 use sdl2::rect::Rect;
-use sdl2::{keyboard::Keycode, EventPump};
+use sdl2::EventPump;
 
 use crate::{
     event_handler::EventHandler,
@@ -97,7 +97,7 @@ impl Menu {
 
         let mut menu_buttons = [&mut open_btn, &mut keys_btn, &mut exit_btn];
 
-        while event_handler.key_pressed != Some(Keycode::Escape) {
+        while !event_handler.escape_pressed {
             event_handler.poll(event_pump);
             event_handler.check_resized(&mut viewport.canvas);
 
@@ -188,7 +188,7 @@ impl Menu {
             }
             ButtonType::Exit => {
                 event_handler.quit = true;
-                event_handler.key_pressed = Some(Keycode::Escape);
+                event_handler.escape_pressed = true;
             }
             ButtonType::Back => {
                 self.state = MenuState::Default;
