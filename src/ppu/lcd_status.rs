@@ -1,5 +1,4 @@
 /**
-                   return;
 * @file    ppu/lcd_status.rs
 * @brief   Handles the PPU's LCD Status register.
 * @author  Mario Hess
