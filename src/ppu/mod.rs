@@ -361,7 +361,9 @@ impl Ppu {
         let line_y = self.line_y as i16;
         let tile_height = if self.lcd_control.object_size { 16 } else { 8 };
 
-        for i in (0..OAM_SIZE).rev() {
+        let mut sprite_counter = 0;
+
+        for i in 0..OAM_SIZE {
             let oam_entry = self.oam[i];
             let object_y = oam_entry.y_pos as i16 - 16;
             let object_x = oam_entry.x_pos as i16 - 8;
@@ -421,6 +423,11 @@ impl Ppu {
                 // Calculate the offset for the current pixel and update the screen buffer
                 let offset = x_offset + line_y * VIEWPORT_WIDTH as i16;
                 self.screen_buffer[offset as usize] = pixel;
+            }
+
+            sprite_counter += 1;
+            if sprite_counter >= 10 {
+                break;
             }
         }
     }
