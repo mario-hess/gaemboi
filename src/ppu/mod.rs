@@ -2,7 +2,7 @@
  * @file    ppu/mod.rs
  * @brief   Handles the Picture Processing Unit for graphics rendering.
  * @author  Mario Hess
- * @date    October 20, 2023
+ * @date    November 07, 2023
  */
 mod lcd_control;
 mod lcd_status;
@@ -53,7 +53,7 @@ pub const LIGHT: Color = Color::RGB(192, 192, 192);
 pub const WHITE: Color = Color::RGB(255, 255, 255);
 
 const CYCLES_OAM: u16 = 80;
-const CYCLES_VRAM: u16 = 172;
+const CYCLES_TRANSFER: u16 = 172;
 const CYCLES_HBLANK: u16 = 204;
 const CYCLES_VBLANK: u16 = 456;
 
@@ -153,19 +153,19 @@ impl Ppu {
                         self.interrupts |= VBLANK_MASK;
                         self.clear_screen();
                     } else {
-                        self.line_y = self.line_y.wrapping_add(1);
+                        self.set_line_y(self.line_y + 1);
                         self.lcd_status.set_mode(Mode::OAM, &mut self.interrupts);
                     }
                 }
             }
             Mode::VBlank => {
                 if self.counter >= CYCLES_VBLANK {
-                    self.line_y = self.line_y.wrapping_add(1);
+                    self.set_line_y(self.line_y + 1);
                     self.counter %= CYCLES_VBLANK;
 
                     if self.line_y > MAX_LINES_Y {
                         self.lcd_status.set_mode(Mode::OAM, &mut self.interrupts);
-                        self.line_y = 0;
+                        self.set_line_y(0);
                     }
                 }
             }
@@ -177,10 +177,10 @@ impl Ppu {
                 }
             }
             Mode::Transfer => {
-                if self.counter >= CYCLES_VRAM {
+                if self.counter >= CYCLES_TRANSFER {
                     self.render_scanline();
                     self.lcd_status.set_mode(Mode::HBlank, &mut self.interrupts);
-                    self.counter %= CYCLES_VRAM;
+                    self.counter %= CYCLES_TRANSFER;
                 }
             }
         }
@@ -213,8 +213,8 @@ impl Ppu {
             LCD_STATUS => self.lcd_status.set(value),
             SCROLL_Y => self.scroll_y = value,
             SCROLL_X => self.scroll_x = value,
-            LINE_Y => self.line_y = value,
-            LINE_Y_COMPARE => self.set_line_y(value),
+            //LINE_Y => self.line_y = value,
+            LINE_Y_COMPARE => self.set_line_y_compare(value),
             BG_PALETTE => set_palette(&mut self.bg_palette, value),
             TILE_PALETTE_0 => set_palette(&mut self.tile_palette0, value),
             TILE_PALETTE_1 => set_palette(&mut self.tile_palette1, value),
@@ -255,6 +255,11 @@ impl Ppu {
 
     fn set_line_y(&mut self, value: u8) {
         self.line_y = value;
+        self.compare_line();
+    }
+
+    pub fn set_line_y_compare(&mut self, value: u8) {
+        self.line_y_compare = value;
         self.compare_line();
     }
 
