@@ -373,7 +373,10 @@ impl Ppu {
                 continue;
             }
 
-            let object_index = oam_entry.tile_index;
+            let mut object_index = oam_entry.tile_index;
+            if tile_height == 16 {
+                object_index &= 0b1111_1110;
+            }
 
             let tile_begin_address = TILE_DATA_START + (object_index as u16 * 16);
 
