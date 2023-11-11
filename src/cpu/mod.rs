@@ -27,8 +27,8 @@ const STACK_POINTER_START: u16 = 0xFFFE;
 pub struct Cpu {
     pub memory_bus: MemoryBus,
     registers: Registers,
-    pc: ProgramCounter,
-    sp: u16,
+    program_counter: ProgramCounter,
+    stack_pointer: u16,
     interrupt: Interrupt,
     ime: bool,
     ime_state: bool,
@@ -46,8 +46,8 @@ impl Cpu {
         Self {
             memory_bus: MemoryBus::new(rom_data),
             registers: Registers::new(flags_enable),
-            pc: ProgramCounter::new(),
-            sp: STACK_POINTER_START,
+            program_counter: ProgramCounter::new(),
+            stack_pointer: STACK_POINTER_START,
             interrupt: Interrupt::new(),
             ime: false,
             ime_state: false,
@@ -77,7 +77,7 @@ impl Cpu {
         // IME is set after last instruction
         self.ime = self.ime_state;
 
-        let byte = self.memory_bus.read_byte(self.pc.next());
+        let byte = self.memory_bus.read_byte(self.program_counter.next());
         self.instruction = Some(Instruction::from_byte(byte));
 
         let m_cycles = match self.instruction.unwrap().mnemonic {
@@ -92,24 +92,24 @@ impl Cpu {
     }
 
     fn prefix_step(&mut self) -> CycleDuration {
-        let byte = self.memory_bus.read_byte(self.pc.next());
+        let byte = self.memory_bus.read_byte(self.program_counter.next());
         self.instruction = Some(Instruction::from_prefix_byte(byte));
         self.execute_prefix(self.instruction.unwrap())
     }
 
     fn get_nn_little_endian(&mut self) -> u16 {
-        let low_byte = self.memory_bus.read_byte(self.pc.next()) as u16;
-        let high_byte = self.memory_bus.read_byte(self.pc.next()) as u16;
+        let low_byte = self.memory_bus.read_byte(self.program_counter.next()) as u16;
+        let high_byte = self.memory_bus.read_byte(self.program_counter.next()) as u16;
 
         (high_byte << 8) | low_byte
     }
 
     fn pop_stack(&mut self) -> u16 {
-        let low_byte = self.memory_bus.read_byte(self.sp) as u16;
-        self.sp = self.sp.wrapping_add(1);
+        let low_byte = self.memory_bus.read_byte(self.stack_pointer) as u16;
+        self.stack_pointer = self.stack_pointer.wrapping_add(1);
 
-        let high_byte = self.memory_bus.read_byte(self.sp) as u16;
-        self.sp = self.sp.wrapping_add(1);
+        let high_byte = self.memory_bus.read_byte(self.stack_pointer) as u16;
+        self.stack_pointer = self.stack_pointer.wrapping_add(1);
 
         (high_byte << 8) | low_byte
     }
@@ -118,17 +118,17 @@ impl Cpu {
         let high_byte = (value >> 8) as u8;
         let low_byte = value as u8;
 
-        self.sp = self.sp.wrapping_sub(1);
-        self.memory_bus.write_byte(self.sp, high_byte);
+        self.stack_pointer = self.stack_pointer.wrapping_sub(1);
+        self.memory_bus.write_byte(self.stack_pointer, high_byte);
 
-        self.sp = self.sp.wrapping_sub(1);
-        self.memory_bus.write_byte(self.sp, low_byte);
+        self.stack_pointer = self.stack_pointer.wrapping_sub(1);
+        self.memory_bus.write_byte(self.stack_pointer, low_byte);
     }
 
     pub fn interrupt_service_routine(&mut self, isr_address: u16, value: u8) {
         self.ime = false;
-        self.push_stack(self.pc.get());
-        self.pc.set(isr_address);
+        self.push_stack(self.program_counter.get());
+        self.program_counter.set(isr_address);
         self.memory_bus.interrupt_flag &= value ^ 0xFF;
     }
 

@@ -33,7 +33,7 @@ pub fn add_n(cpu: &mut Cpu) -> CycleDuration {
     // Adds to the 8-bit A register, the immediate data n,
     // and stores the result back into the A register
 
-    let n = cpu.memory_bus.read_byte(cpu.pc.next());
+    let n = cpu.memory_bus.read_byte(cpu.program_counter.next());
     let a = cpu.registers.get_a();
 
     let half_carry = ((a & 0x0F) + (n & 0x0F)) > 0x0F;
@@ -95,9 +95,9 @@ pub fn add_hl_sp(cpu: &mut Cpu) -> CycleDuration {
     // Add the value in SP to HL
 
     let hl = cpu.registers.get_hl();
-    let result = hl.wrapping_add(cpu.sp);
+    let result = hl.wrapping_add(cpu.stack_pointer);
 
-    let half_carry = (hl & 0xFFF) + (cpu.sp & 0xFFF) > 0xFFF;
+    let half_carry = (hl & 0xFFF) + (cpu.stack_pointer & 0xFFF) > 0xFFF;
 
     cpu.registers.set_hl(result);
 
@@ -111,14 +111,14 @@ pub fn add_hl_sp(cpu: &mut Cpu) -> CycleDuration {
 pub fn add_sp_n(cpu: &mut Cpu) -> CycleDuration {
     // Add the signed immediate value to SP
 
-    let n = cpu.memory_bus.read_byte(cpu.pc.next()) as i8;
-    let sp = cpu.sp as i32;
+    let n = cpu.memory_bus.read_byte(cpu.program_counter.next()) as i8;
+    let sp = cpu.stack_pointer as i32;
     let result = sp.wrapping_add(n as i32) as u16;
 
     let carry = (sp ^ n as i32 ^ result as i32) & 0x100 != 0;
     let half_carry = (sp ^ n as i32 ^ result as i32) & 0x10 != 0;
 
-    cpu.sp = result;
+    cpu.stack_pointer = result;
 
     cpu.registers.flags.set_zero(false);
     cpu.registers.flags.set_subtract(false);
@@ -156,7 +156,7 @@ pub fn adc_n(cpu: &mut Cpu) -> CycleDuration {
     // the immediate data n, and stores the result back
     // into the A register
 
-    let n = cpu.memory_bus.read_byte(cpu.pc.next());
+    let n = cpu.memory_bus.read_byte(cpu.program_counter.next());
     let a = cpu.registers.get_a();
 
     let carry: u8 = cpu.registers.flags.get_carry().into();
@@ -223,7 +223,7 @@ pub fn sub_n(cpu: &mut Cpu) -> CycleDuration {
     // immediate data n, and stores the result
     // back into the A register
 
-    let n = cpu.memory_bus.read_byte(cpu.pc.next());
+    let n = cpu.memory_bus.read_byte(cpu.program_counter.next());
     let a = cpu.registers.get_a();
 
     let result = a.wrapping_sub(n);
@@ -289,7 +289,7 @@ pub fn sbc_n(cpu: &mut Cpu) -> CycleDuration {
     // stores the result back into the A register
 
     let a = cpu.registers.get_a();
-    let n = cpu.memory_bus.read_byte(cpu.pc.next());
+    let n = cpu.memory_bus.read_byte(cpu.program_counter.next());
 
     let carry: u8 = cpu.registers.flags.get_carry().into();
 
@@ -355,7 +355,7 @@ pub fn and_n(cpu: &mut Cpu) -> CycleDuration {
     // 8-bit A register and immediate data n, and
     // stores the result back into the A register
 
-    let n = cpu.memory_bus.read_byte(cpu.pc.next());
+    let n = cpu.memory_bus.read_byte(cpu.program_counter.next());
     let a = cpu.registers.get_a();
     let result = a & n;
     cpu.registers.set_a(result);
@@ -435,7 +435,7 @@ pub fn inc_hl(cpu: &mut Cpu) -> CycleDuration {
 pub fn inc_sp(cpu: &mut Cpu) -> CycleDuration {
     // Increment SP by 1
 
-    cpu.sp = cpu.sp.wrapping_add(1);
+    cpu.stack_pointer = cpu.stack_pointer.wrapping_add(1);
 
     CycleDuration::Default
 }
@@ -470,7 +470,7 @@ pub fn dec_rr(cpu: &mut Cpu, target: Target) -> CycleDuration {
 pub fn dec_sp(cpu: &mut Cpu) -> CycleDuration {
     // Decrement SP by 1
 
-    cpu.sp = cpu.sp.wrapping_sub(1);
+    cpu.stack_pointer = cpu.stack_pointer.wrapping_sub(1);
 
     CycleDuration::Default
 }
@@ -519,7 +519,7 @@ pub fn or_n(cpu: &mut Cpu) -> CycleDuration {
     // result back into the A register
 
     let a = cpu.registers.get_a();
-    let n = cpu.memory_bus.read_byte(cpu.pc.next());
+    let n = cpu.memory_bus.read_byte(cpu.program_counter.next());
 
     let result = a | n;
 
@@ -580,7 +580,7 @@ pub fn xor_n(cpu: &mut Cpu) -> CycleDuration {
     // result back into the A register
 
     let a = cpu.registers.get_a();
-    let n = cpu.memory_bus.read_byte(cpu.pc.next());
+    let n = cpu.memory_bus.read_byte(cpu.program_counter.next());
 
     let result = a ^ n;
     cpu.registers.set_a(result);
@@ -620,7 +620,7 @@ pub fn cp_n(cpu: &mut Cpu) -> CycleDuration {
     // This instructions basically identical to SUB n,
     // but does not update the A register
 
-    let byte = cpu.memory_bus.read_byte(cpu.pc.next());
+    let byte = cpu.memory_bus.read_byte(cpu.program_counter.next());
     let a = cpu.registers.get_a();
 
     let zero = a.wrapping_sub(byte) == 0;
