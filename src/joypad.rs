@@ -2,7 +2,7 @@
  * @file    joypad.rs
  * @brief   Handles user input.
  * @author  Mario Hess
- * @date    November 06, 2023
+ * @date    November 11, 2023
  */
 use crate::event_handler::EventHandler;
 
@@ -52,13 +52,13 @@ impl Joypad {
     }
 
     pub fn handle_input(&mut self, event_handler: &EventHandler) {
-        self.up = event_handler.up_pressed;
-        self.left = event_handler.left_pressed;
-        self.down = event_handler.down_pressed;
-        self.right = event_handler.right_pressed;
-        self.a = event_handler.a_pressed;
-        self.b = event_handler.b_pressed;
-        self.select = event_handler.select_pressed;
-        self.start = event_handler.start_pressed;
+        self.up = event_handler.pressed_up;
+        self.left = event_handler.pressed_left;
+        self.down = event_handler.pressed_down;
+        self.right = event_handler.pressed_right;
+        self.a = event_handler.pressed_a;
+        self.b = event_handler.pressed_b;
+        self.select = event_handler.pressed_select;
+        self.start = event_handler.pressed_start;
     }
 }

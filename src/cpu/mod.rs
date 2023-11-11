@@ -2,7 +2,7 @@
  * @file    cpu/mod.rs
  * @brief   Overarching construct, facilitates instruction execution coordination.
  * @author  Mario Hess
- * @date    October 20, 2023
+ * @date    November 11, 2023
  */
 mod arithmetic;
 mod bit_ops;
@@ -27,11 +27,11 @@ const STACK_POINTER_START: u16 = 0xFFFE;
 pub struct Cpu {
     pub memory_bus: MemoryBus,
     registers: Registers,
-    program_counter: ProgramCounter,
-    stack_pointer: u16,
+    pc: ProgramCounter,
+    sp: u16,
     interrupt: Interrupt,
-    interrupt_master: bool,
-    interrupt_master_state: bool,
+    ime: bool,
+    ime_state: bool,
     halted: bool,
     instruction: Option<Instruction>,
 }
@@ -39,18 +39,18 @@ pub struct Cpu {
 impl Cpu {
     pub fn new(rom_data: Vec<u8>) -> Self {
         // If the header checksum is 0x00, then the carry and
-        // half-carry flags are clear; otherwise, they are both set.
+        // half-carry flags are clear; otherwise, they are both set
 
         let flags_enable = rom_data[HEADER_CHECKSUM_ADDRESS] != 0x00;
 
         Self {
             memory_bus: MemoryBus::new(rom_data),
             registers: Registers::new(flags_enable),
-            program_counter: ProgramCounter::new(),
-            stack_pointer: STACK_POINTER_START,
+            pc: ProgramCounter::new(),
+            sp: STACK_POINTER_START,
             interrupt: Interrupt::new(),
-            interrupt_master: false,
-            interrupt_master_state: false,
+            ime: false,
+            ime_state: false,
             halted: false,
             instruction: None,
         }
@@ -63,21 +63,21 @@ impl Cpu {
         if self.halted && self.interrupt.interrupt_enabled(i_enable, i_flag) {
             self.halted = false;
         } else if self.halted {
-            // Halt consumes 1 m_cycle.
+            // Halt consumes 1 m_cycle
             return 1;
         }
 
-        if self.interrupt_master {
+        if self.ime {
             self.halted = false;
             if let Some(m_cycles) = self.interrupt.handle_interrupts(self) {
                 return m_cycles;
             }
         }
 
-        // interrupt_master is set after last instruction.
-        self.interrupt_master = self.interrupt_master_state;
+        // IME is set after last instruction
+        self.ime = self.ime_state;
 
-        let byte = self.memory_bus.read_byte(self.program_counter.next());
+        let byte = self.memory_bus.read_byte(self.pc.next());
         self.instruction = Some(Instruction::from_byte(byte));
 
         let m_cycles = match self.instruction.unwrap().mnemonic {
@@ -87,29 +87,29 @@ impl Cpu {
 
         match m_cycles {
             CycleDuration::Default => self.instruction.unwrap().m_cycles,
-            CycleDuration::Optional => self.instruction.unwrap().cond_m_cycles.unwrap(),
+            CycleDuration::Optional => self.instruction.unwrap().opt_m_cycles.unwrap(),
         }
     }
 
     fn prefix_step(&mut self) -> CycleDuration {
-        let byte = self.memory_bus.read_byte(self.program_counter.next());
+        let byte = self.memory_bus.read_byte(self.pc.next());
         self.instruction = Some(Instruction::from_prefix_byte(byte));
         self.execute_prefix(self.instruction.unwrap())
     }
 
     fn get_nn_little_endian(&mut self) -> u16 {
-        let low_byte = self.memory_bus.read_byte(self.program_counter.next()) as u16;
-        let high_byte = self.memory_bus.read_byte(self.program_counter.next()) as u16;
+        let low_byte = self.memory_bus.read_byte(self.pc.next()) as u16;
+        let high_byte = self.memory_bus.read_byte(self.pc.next()) as u16;
 
         (high_byte << 8) | low_byte
     }
 
     fn pop_stack(&mut self) -> u16 {
-        let low_byte = self.memory_bus.read_byte(self.stack_pointer) as u16;
-        self.stack_pointer = self.stack_pointer.wrapping_add(1);
+        let low_byte = self.memory_bus.read_byte(self.sp) as u16;
+        self.sp = self.sp.wrapping_add(1);
 
-        let high_byte = self.memory_bus.read_byte(self.stack_pointer) as u16;
-        self.stack_pointer = self.stack_pointer.wrapping_add(1);
+        let high_byte = self.memory_bus.read_byte(self.sp) as u16;
+        self.sp = self.sp.wrapping_add(1);
 
         (high_byte << 8) | low_byte
     }
@@ -118,17 +118,17 @@ impl Cpu {
         let high_byte = (value >> 8) as u8;
         let low_byte = value as u8;
 
-        self.stack_pointer = self.stack_pointer.wrapping_sub(1);
-        self.memory_bus.write_byte(self.stack_pointer, high_byte);
+        self.sp = self.sp.wrapping_sub(1);
+        self.memory_bus.write_byte(self.sp, high_byte);
 
-        self.stack_pointer = self.stack_pointer.wrapping_sub(1);
-        self.memory_bus.write_byte(self.stack_pointer, low_byte);
+        self.sp = self.sp.wrapping_sub(1);
+        self.memory_bus.write_byte(self.sp, low_byte);
     }
 
     pub fn interrupt_service_routine(&mut self, isr_address: u16, value: u8) {
-        self.interrupt_master = false;
-        self.push_stack(self.program_counter.get());
-        self.program_counter.set(isr_address);
+        self.ime = false;
+        self.push_stack(self.pc.get());
+        self.pc.set(isr_address);
         self.memory_bus.interrupt_flag &= value ^ 0xFF;
     }
 

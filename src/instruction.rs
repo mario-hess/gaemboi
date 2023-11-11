@@ -152,16 +152,16 @@ pub struct Instruction {
     pub mnemonic: Mnemonic,
     pub length: u16,
     pub m_cycles: u8,
-    pub cond_m_cycles: Option<u8>,
+    pub opt_m_cycles: Option<u8>,
 }
 
 impl Instruction {
-    fn new(mnemonic: Mnemonic, length: u16, m_cycles: u8, cond_m_cycles: Option<u8>) -> Self {
+    fn new(mnemonic: Mnemonic, length: u16, m_cycles: u8, opt_m_cycles: Option<u8>) -> Self {
         Self {
             mnemonic,
             length,
             m_cycles,
-            cond_m_cycles,
+            opt_m_cycles,
         }
     }
 

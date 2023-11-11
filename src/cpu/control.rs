@@ -2,13 +2,13 @@
  * @file    cpu/control.rs
  * @brief   Implementation of control instructions.
  * @author  Mario Hess
- * @date    October 20, 2023
+ * @date    November 11, 2023
  */
 use crate::{cpu::Cpu, instruction::CycleDuration};
 
 pub fn daa(cpu: &mut Cpu) -> CycleDuration {
     // Decimal Adjust Accumulator to get a correct
-    // BCD representation after an arithmetic instruction.
+    // BCD representation after an arithmetic instruction
 
     let subtract = cpu.registers.flags.get_subtract();
     let half_carry = cpu.registers.flags.get_half_carry();
@@ -44,7 +44,7 @@ pub fn daa(cpu: &mut Cpu) -> CycleDuration {
 }
 
 pub fn cpl(cpu: &mut Cpu) -> CycleDuration {
-    // Flips all the bits in the 8-bit A register, and sets the N and H flags.
+    // Flips all the bits in the 8-bit A register, and sets the N and H flags
 
     let a = cpu.registers.get_a();
     cpu.registers.set_a(!a);
@@ -56,7 +56,7 @@ pub fn cpl(cpu: &mut Cpu) -> CycleDuration {
 }
 
 pub fn scf(cpu: &mut Cpu) -> CycleDuration {
-    // Sets the carry flag, and clears the N and H flags.
+    // Sets the carry flag, and clears the N and H flags
 
     cpu.registers.flags.set_subtract(false);
     cpu.registers.flags.set_half_carry(false);
@@ -66,7 +66,7 @@ pub fn scf(cpu: &mut Cpu) -> CycleDuration {
 }
 
 pub fn ccf(cpu: &mut Cpu) -> CycleDuration {
-    // Flips the carry flag, and clears the N and H flags.
+    // Flips the carry flag, and clears the N and H flags
 
     let carry = !cpu.registers.flags.get_carry();
 
@@ -80,15 +80,15 @@ pub fn ccf(cpu: &mut Cpu) -> CycleDuration {
 pub fn disable_interrupt(cpu: &mut Cpu) -> CycleDuration {
     // Disables interrupt handling by setting IME=0
     // and cancelling any scheduled effects of the EI
-    // instruction if any.
+    // instruction if any
 
-    cpu.interrupt_master_state = false;
+    cpu.ime_state = false;
 
     CycleDuration::Default
 }
 
 pub fn enable_interrupt(cpu: &mut Cpu) -> CycleDuration {
-    cpu.interrupt_master_state = true;
+    cpu.ime_state = true;
 
     CycleDuration::Default
 }

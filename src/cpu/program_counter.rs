@@ -2,7 +2,7 @@
  * @file    cpu/program_counter.rs
  * @brief   Controls the CPU's program counter.
  * @author  Mario Hess
- * @date    September 20, 2023
+ * @date    November 11, 2023
  */
 const BOOT_ROM_END: u16 = 0x100;
 
@@ -29,8 +29,10 @@ impl ProgramCounter {
     }
 
     pub fn next(&mut self) -> u16 {
-        let old = self.value;
+        // The program counter should always point to the next instruction
+        let old_value = self.value;
         self.value = self.value.wrapping_add(1);
-        old
+
+        old_value
     }
 }

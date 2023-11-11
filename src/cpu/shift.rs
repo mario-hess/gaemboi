@@ -2,7 +2,7 @@
  * @file    cpu/shift.rs
  * @brief   Implementation of shift instructions.
  * @author  Mario Hess
- * @date    October 20, 2023
+ * @date    November 11, 2023
  */
 use crate::{
     cpu::Cpu,
@@ -11,7 +11,7 @@ use crate::{
 
 pub fn srl_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
     // Shifts all the bits of the register to the
-    // right by one position.
+    // right by one position
 
     let r = cpu.registers.get_register(&target);
 
@@ -30,7 +30,7 @@ pub fn srl_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
 
 pub fn srl_hl(cpu: &mut Cpu) -> CycleDuration {
     // Shifts all the bits of the byte pointed to by HL
-    // to the right by one position.
+    // to the right by one position
 
     let address = cpu.registers.get_hl();
     let byte = cpu.memory_bus.read_byte(address);
@@ -49,7 +49,7 @@ pub fn srl_hl(cpu: &mut Cpu) -> CycleDuration {
 }
 
 pub fn sla_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
-    // Shift target register to the left arithmetically.
+    // Shift target register to the left arithmetically
 
     let r = cpu.registers.get_register(&target);
 
@@ -67,7 +67,7 @@ pub fn sla_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
 }
 
 pub fn sla_hl(cpu: &mut Cpu) -> CycleDuration {
-    // Shift the byte pointed to by HL to the left arithmetically.
+    // Shift the byte pointed to by HL to the left arithmetically
 
     let address = cpu.registers.get_hl();
     let byte = cpu.memory_bus.read_byte(address);
@@ -86,7 +86,7 @@ pub fn sla_hl(cpu: &mut Cpu) -> CycleDuration {
 }
 
 pub fn sra_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
-    // Shift target register to the right arithmetically.
+    // Shift target register to the right arithmetically
 
     let r = cpu.registers.get_register(&target);
 
@@ -104,7 +104,7 @@ pub fn sra_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
 }
 
 pub fn sra_hl(cpu: &mut Cpu) -> CycleDuration {
-    // Shift the byte pointed to by HL to the right arithmetically.
+    // Shift the byte pointed to by HL to the right arithmetically
 
     let address = cpu.registers.get_hl();
     let byte = cpu.memory_bus.read_byte(address);
@@ -123,7 +123,7 @@ pub fn sra_hl(cpu: &mut Cpu) -> CycleDuration {
 }
 
 pub fn swap_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
-    // Swap the upper 4 bits in the target register and the lower 4 ones.
+    // Swap the upper 4 bits in the target register and the lower 4 ones
 
     let r = cpu.registers.get_register(&target);
 
@@ -140,7 +140,7 @@ pub fn swap_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
 }
 
 pub fn swap_hl(cpu: &mut Cpu) -> CycleDuration {
-    // Swap the upper 4 bits in the byte pointed by HL and the lower 4 ones.
+    // Swap the upper 4 bits in the byte pointed by HL and the lower 4 ones
 
     let address = cpu.registers.get_hl();
     let byte = cpu.memory_bus.read_byte(address);

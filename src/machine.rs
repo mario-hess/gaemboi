@@ -45,7 +45,7 @@ impl Machine {
         let mut debug_windows = DebugWindows::build(video_subsystem, ttf_context, config);
 
         // Core emulation loop
-        while !event_handler.escape_pressed {
+        while !event_handler.pressed_escape {
             event_handler.poll(event_pump);
             event_handler.check_resized(&mut viewport.canvas);
             self.cpu.memory_bus.joypad.handle_input(event_handler);
@@ -79,7 +79,7 @@ impl Machine {
             }
         }
 
-        event_handler.escape_pressed = false;
+        event_handler.pressed_escape = false;
     }
 
     fn debug_draw(&mut self, windows: &mut DebugWindows) {

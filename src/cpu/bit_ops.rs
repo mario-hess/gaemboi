@@ -2,7 +2,7 @@
  * @file    cpu/bit_ops.rs
  * @brief   Implementation of bit operation instructions.
  * @author  Mario Hess
- * @date    October 20, 2023
+ * @date    November 11, 2023
  */
 use crate::{
     cpu::Cpu,
@@ -11,7 +11,7 @@ use crate::{
 
 pub fn bit_r(cpu: &mut Cpu, position: u8, target: Target) -> CycleDuration {
     // Test bit at position in target register,
-    // set the zero flag if bit not set.
+    // set the zero flag if bit not set
 
     let byte = cpu.registers.get_register(&target);
 
@@ -28,7 +28,7 @@ pub fn bit_r(cpu: &mut Cpu, position: u8, target: Target) -> CycleDuration {
 
 pub fn bit_hl(cpu: &mut Cpu, position: u8) -> CycleDuration {
     // Test bit at position in the byte pointed by HL,
-    // set the zero flag if bit not set.
+    // set the zero flag if bit not set
 
     let address = cpu.registers.get_hl();
     let byte = cpu.memory_bus.read_byte(address);
@@ -45,7 +45,7 @@ pub fn bit_hl(cpu: &mut Cpu, position: u8) -> CycleDuration {
 }
 
 pub fn res_r(cpu: &mut Cpu, position: u8, target: Target) -> CycleDuration {
-    // Set bit at position in target register to 0.
+    // Set bit at position in target register to 0
 
     let byte = cpu.registers.get_register(&target);
 
@@ -58,7 +58,7 @@ pub fn res_r(cpu: &mut Cpu, position: u8, target: Target) -> CycleDuration {
 }
 
 pub fn res_hl(cpu: &mut Cpu, position: u8) -> CycleDuration {
-    // Set bit at position in the byte pointed by HL to 0.
+    // Set bit at position in the byte pointed by HL to 0
 
     let address = cpu.registers.get_hl();
     let byte = cpu.memory_bus.read_byte(address);
@@ -72,7 +72,7 @@ pub fn res_hl(cpu: &mut Cpu, position: u8) -> CycleDuration {
 }
 
 pub fn set_r(cpu: &mut Cpu, position: u8, target: Target) -> CycleDuration {
-    // Set bit at position in target register to 1.
+    // Set bit at position in target register to 1
 
     let byte = cpu.registers.get_register(&target);
 
@@ -85,7 +85,7 @@ pub fn set_r(cpu: &mut Cpu, position: u8, target: Target) -> CycleDuration {
 }
 
 pub fn set_hl(cpu: &mut Cpu, position: u8) -> CycleDuration {
-    // Set bit at position in the byte pointed by HL to 1.
+    // Set bit at position in the byte pointed by HL to 1
 
     let address = cpu.registers.get_hl();
     let byte = cpu.memory_bus.read_byte(address);

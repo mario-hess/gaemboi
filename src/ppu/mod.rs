@@ -96,8 +96,8 @@ pub struct Ppu {
     lcd_status: LCD_status,
     scroll_y: u8,
     scroll_x: u8,
-    line_y: u8,
-    line_y_compare: u8,
+    ly: u8,
+    lyc: u8,
     bg_palette: [u8; 4],
     tile_palette0: [u8; 4],
     tile_palette1: [u8; 4],
@@ -119,8 +119,8 @@ impl Ppu {
             lcd_status: LCD_status::new(),
             scroll_y: 0,
             scroll_x: 0,
-            line_y: 0,
-            line_y_compare: 0,
+            ly: 0,
+            lyc: 0,
             bg_palette: [0, 1, 2, 3],
             tile_palette0: [0, 1, 2, 3],
             tile_palette1: [0, 1, 2, 3],
@@ -147,25 +147,25 @@ impl Ppu {
                 if self.counter >= CYCLES_HBLANK {
                     self.counter %= CYCLES_HBLANK;
 
-                    if self.line_y >= LINES_Y {
+                    if self.ly >= LINES_Y {
                         self.lcd_status.set_mode(Mode::VBlank, &mut self.interrupts);
                         self.draw_viewport(canvas);
                         self.interrupts |= VBLANK_MASK;
                         self.clear_screen();
                     } else {
-                        self.set_line_y(self.line_y + 1);
+                        self.set_ly(self.ly + 1);
                         self.lcd_status.set_mode(Mode::OAM, &mut self.interrupts);
                     }
                 }
             }
             Mode::VBlank => {
                 if self.counter >= CYCLES_VBLANK {
-                    self.set_line_y(self.line_y + 1);
+                    self.set_ly(self.ly + 1);
                     self.counter %= CYCLES_VBLANK;
 
-                    if self.line_y > MAX_LINES_Y {
+                    if self.ly > MAX_LINES_Y {
                         self.lcd_status.set_mode(Mode::OAM, &mut self.interrupts);
-                        self.set_line_y(0);
+                        self.set_ly(0);
                     }
                 }
             }
@@ -194,8 +194,8 @@ impl Ppu {
             LCD_STATUS => self.lcd_status.get(),
             SCROLL_Y => self.scroll_y,
             SCROLL_X => self.scroll_x,
-            LINE_Y => self.line_y,
-            LINE_Y_COMPARE => self.line_y_compare,
+            LINE_Y => self.ly,
+            LINE_Y_COMPARE => self.lyc,
             BG_PALETTE => get_palette(&self.bg_palette),
             TILE_PALETTE_0 => get_palette(&self.tile_palette0),
             TILE_PALETTE_1 => get_palette(&self.tile_palette1),
@@ -213,8 +213,8 @@ impl Ppu {
             LCD_STATUS => self.lcd_status.set(value),
             SCROLL_Y => self.scroll_y = value,
             SCROLL_X => self.scroll_x = value,
-            //LINE_Y => self.line_y = value,
-            LINE_Y_COMPARE => self.set_line_y_compare(value),
+            //LINE_Y => self.ly = value,
+            LINE_Y_COMPARE => self.set_lyc(value),
             BG_PALETTE => set_palette(&mut self.bg_palette, value),
             TILE_PALETTE_0 => set_palette(&mut self.tile_palette0, value),
             TILE_PALETTE_1 => set_palette(&mut self.tile_palette1, value),
@@ -253,20 +253,20 @@ impl Ppu {
         }
     }
 
-    fn set_line_y(&mut self, value: u8) {
-        self.line_y = value;
+    fn set_ly(&mut self, value: u8) {
+        self.ly = value;
         self.compare_line();
     }
 
-    pub fn set_line_y_compare(&mut self, value: u8) {
-        self.line_y_compare = value;
+    pub fn set_lyc(&mut self, value: u8) {
+        self.lyc = value;
         self.compare_line();
     }
 
     fn compare_line(&mut self) {
         self.lcd_status.compare_flag = false;
 
-        if self.line_y_compare == self.line_y {
+        if self.lyc == self.ly {
             self.lcd_status.compare_flag = true;
 
             if self.lcd_status.interrupt_stat {
@@ -280,7 +280,7 @@ impl Ppu {
 
         if self.enabled && !self.lcd_control.lcd_enabled {
             self.clear_screen();
-            self.set_line_y(0);
+            self.set_ly(0);
             self.lcd_status.mode = Mode::HBlank;
             self.counter = 0;
             self.enabled = false;
@@ -298,8 +298,8 @@ impl Ppu {
     }
 
     fn render_bg_line(&mut self) {
-        let bg_offset_y = self.line_y.wrapping_add(self.scroll_y);
-        let row_is_window = self.lcd_control.window_enabled && self.line_y >= self.window_y;
+        let bg_offset_y = self.ly.wrapping_add(self.scroll_y);
+        let row_is_window = self.lcd_control.window_enabled && self.ly >= self.window_y;
 
         for x in 0..VIEWPORT_WIDTH {
             let bg_offset_x = x.wrapping_add(self.scroll_x as usize);
@@ -309,7 +309,7 @@ impl Ppu {
             // Determine the address of the tile data based on whether it's in the window or background
             let tile_address = if row_is_window && col_is_window {
                 let address = self.lcd_control.get_window_address();
-                let y_offset = self.line_y.wrapping_sub(self.window_y);
+                let y_offset = self.ly.wrapping_sub(self.window_y);
                 let x_offset = x.wrapping_sub(self.window_x.wrapping_sub(7) as usize);
 
                 calculate_address(address, y_offset, x_offset as u8)
@@ -323,7 +323,7 @@ impl Ppu {
 
             // Calculate the offset within the tile data for the current row
             let y_tile_address_offset = if row_is_window && col_is_window {
-                (self.line_y - self.window_y) % TILE_HEIGHT as u8 * 2
+                (self.ly - self.window_y) % TILE_HEIGHT as u8 * 2
             } else {
                 bg_offset_y % TILE_HEIGHT as u8 * 2
             } as u16;
@@ -342,7 +342,7 @@ impl Ppu {
             };
 
             let color_index = get_color_index(tile_data, tile_color, pixel_index);
-            let priority_offset = self.line_y as usize + FULL_WIDTH * x;
+            let priority_offset = self.ly as usize + FULL_WIDTH * x;
 
             if color_index == 0 {
                 self.priority_map[priority_offset] = Priority::Overlap
@@ -351,14 +351,14 @@ impl Ppu {
             let pixel = get_pixel_color(&self.bg_palette, color_index);
 
             // Calculate the offset for the current pixel and update the screen buffer
-            let offset = x + self.line_y as usize * VIEWPORT_WIDTH;
+            let offset = x + self.ly as usize * VIEWPORT_WIDTH;
             self.screen_buffer[offset] = pixel;
         }
     }
 
     fn render_tile_line(&mut self) {
-        // Convert line_y to an i16 and determine the height of the sprite (8x8 or 8x16)
-        let line_y = self.line_y as i16;
+        // Convert ly to an i16 and determine the height of the sprite (8x8 or 8x16)
+        let ly = self.ly as i16;
         let tile_height = if self.lcd_control.object_size { 16 } else { 8 };
 
         let mut sprite_counter = 0;
@@ -369,7 +369,7 @@ impl Ppu {
             let object_x = oam_entry.x_pos as i16 - 8;
 
             // Check if the current line is within the vertical range of the sprite
-            if line_y < object_y || line_y >= object_y + tile_height {
+            if ly < object_y || ly >= object_y + tile_height {
                 continue;
             }
 
@@ -382,9 +382,9 @@ impl Ppu {
 
             // Check if tile is vertically mirrored
             let line_offset = if oam_entry.y_flip_enabled() {
-                tile_height - 1 - (line_y - object_y)
+                tile_height - 1 - (ly - object_y)
             } else {
-                line_y - object_y
+                ly - object_y
             };
 
             let tile_data_address = tile_begin_address + (line_offset * 2) as u16;
@@ -418,13 +418,13 @@ impl Ppu {
                 let pixel = get_pixel_color(&sprite_palette, color_index);
 
                 // Skip rendering tile if background overlaps
-                let priority_offset = line_y as usize + FULL_WIDTH * x_offset as usize;
+                let priority_offset = ly as usize + FULL_WIDTH * x_offset as usize;
                 if self.bg_has_priority(&oam_entry, priority_offset) {
                     continue;
                 }
 
                 // Calculate the offset for the current pixel and update the screen buffer
-                let offset = x_offset + line_y * VIEWPORT_WIDTH as i16;
+                let offset = x_offset + ly * VIEWPORT_WIDTH as i16;
                 self.screen_buffer[offset as usize] = pixel;
             }
 

@@ -15,8 +15,6 @@ pub const BTN_HEIGHT: i32 = 16;
 #[derive(Copy, Clone)]
 pub enum ButtonType {
     Open,
-    Keys,
-    Back,
     Exit,
 }
 

@@ -32,7 +32,7 @@ pub fn run(viewport: &mut Window, event_handler: &mut EventHandler, event_pump: 
 
     let start_time = std::time::Instant::now();
 
-    while !event_handler.escape_pressed {
+    while !event_handler.pressed_escape {
         event_handler.poll(event_pump);
         event_handler.check_resized(&mut viewport.canvas);
 

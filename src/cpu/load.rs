@@ -2,7 +2,7 @@
  * @file    cpu/load.rs
  * @brief   Implementation of load instructions.
  * @author  Mario Hess
- * @date    October 20, 2023
+ * @date    November 11, 2023
  */
 use crate::{
     cpu::Cpu,
@@ -12,7 +12,7 @@ use crate::{
 pub fn ld_r_r(cpu: &mut Cpu, to: Target, from: Target) -> CycleDuration {
     // 8-bit load instructions transfer one byte of data
     // between two 8-bit registers, or between one 8-bit
-    // register and location in memory.
+    // register and location in memory
 
     let value = cpu.registers.get_register(&from);
     cpu.registers.set_register(to, value);
@@ -22,7 +22,7 @@ pub fn ld_r_r(cpu: &mut Cpu, to: Target, from: Target) -> CycleDuration {
 
 pub fn ld_rr_r(cpu: &mut Cpu, pair_target: Target, reg_target: Target) -> CycleDuration {
     // Load data from the 8-bit target register to the
-    // absolute address specified by the 16-bit register.
+    // absolute address specified by the 16-bit register
 
     let address = cpu.registers.get_pair(&pair_target);
     let value = cpu.registers.get_register(&reg_target);
@@ -34,7 +34,7 @@ pub fn ld_rr_r(cpu: &mut Cpu, pair_target: Target, reg_target: Target) -> CycleD
 
 pub fn ld_rr_nn(cpu: &mut Cpu, target: Target) -> CycleDuration {
     // Load to the 16-bit register rr, the
-    // immediate 16-bit data nn.
+    // immediate 16-bit data nn
 
     let value = cpu.get_nn_little_endian();
     cpu.registers.set_pair(target, value);
@@ -44,7 +44,7 @@ pub fn ld_rr_nn(cpu: &mut Cpu, target: Target) -> CycleDuration {
 
 pub fn ld_r_rr(cpu: &mut Cpu, reg_target: Target, pair_target: Target) -> CycleDuration {
     // Load data from the absolute address specified
-    // by the 16-bit register to the 8-bit register.
+    // by the 16-bit register to the 8-bit register
 
     let address = cpu.registers.get_pair(&pair_target);
     let value = cpu.memory_bus.read_byte(address);
@@ -55,20 +55,20 @@ pub fn ld_r_rr(cpu: &mut Cpu, reg_target: Target, pair_target: Target) -> CycleD
 }
 
 pub fn ld_r_n(cpu: &mut Cpu, target: Target) -> CycleDuration {
-    // Load the immediate 8-bit value to the 8-bit target register.
+    // Load the immediate 8-bit value to the 8-bit target register
 
-    let byte = cpu.memory_bus.read_byte(cpu.program_counter.next());
-    cpu.registers.set_register(target, byte);
+    let value = cpu.memory_bus.read_byte(cpu.pc.next());
+    cpu.registers.set_register(target, value);
 
     CycleDuration::Default
 }
 
 pub fn ld_hl_n(cpu: &mut Cpu) -> CycleDuration {
     // Load to the absolute address specified by the 16-bit register
-    // HL, the immediate data n.
+    // HL, the immediate data n
 
     let hl = cpu.registers.get_hl();
-    let n = cpu.memory_bus.read_byte(cpu.program_counter.next());
+    let n = cpu.memory_bus.read_byte(cpu.pc.next());
 
     cpu.memory_bus.write_byte(hl, n);
 
@@ -78,7 +78,7 @@ pub fn ld_hl_n(cpu: &mut Cpu) -> CycleDuration {
 pub fn ld_hl_plus_a(cpu: &mut Cpu) -> CycleDuration {
     // Load to the absolute address specified by the 16-bit
     // register HL, data from the 8-bit A register. The
-    // value of HL is incremented after the memory write.
+    // value of HL is incremented after the memory write
 
     let hl = cpu.registers.get_hl();
     let a = cpu.registers.get_a();
@@ -92,7 +92,7 @@ pub fn ld_hl_plus_a(cpu: &mut Cpu) -> CycleDuration {
 pub fn ld_hl_minus_a(cpu: &mut Cpu) -> CycleDuration {
     // Load to the absolute address specified by the 16-bit
     // register HL, data from the 8-bit A register. The
-    // value of HL is decremented after the memory write.
+    // value of HL is decremented after the memory write
 
     let hl = cpu.registers.get_hl();
     let a = cpu.registers.get_a();
@@ -104,10 +104,10 @@ pub fn ld_hl_minus_a(cpu: &mut Cpu) -> CycleDuration {
 }
 
 pub fn ld_hl_sp_plus_n(cpu: &mut Cpu) -> CycleDuration {
-    // Add the signed immediate value to SP and store the result in HL.
+    // Add the signed immediate value to SP and store the result in HL
 
-    let n = cpu.memory_bus.read_byte(cpu.program_counter.next()) as i8;
-    let sp = cpu.stack_pointer as i32;
+    let n = cpu.memory_bus.read_byte(cpu.pc.next()) as i8;
+    let sp = cpu.sp as i32;
 
     let result = sp.wrapping_add(n as i32) as u16;
 
@@ -127,7 +127,7 @@ pub fn ld_hl_sp_plus_n(cpu: &mut Cpu) -> CycleDuration {
 pub fn ld_a_hl_plus(cpu: &mut Cpu) -> CycleDuration {
     // Load to the 8-bit A register, data from the absolute
     // address specified by the 16-bit register HL. The value
-    // of HL is incremented after the memory read.
+    // of HL is incremented after the memory read
 
     let hl = cpu.registers.get_hl();
     let value = cpu.memory_bus.read_byte(hl);
@@ -141,7 +141,7 @@ pub fn ld_a_hl_plus(cpu: &mut Cpu) -> CycleDuration {
 pub fn ld_a_hl_minus(cpu: &mut Cpu) -> CycleDuration {
     // Load to the 8-bit A register, data from the absolute
     // address specified by the 16-bit register HL. The value
-    // of HL is decremented after the memory read.
+    // of HL is decremented after the memory read
 
     let hl = cpu.registers.get_hl();
     let value = cpu.memory_bus.read_byte(hl);
@@ -154,7 +154,7 @@ pub fn ld_a_hl_minus(cpu: &mut Cpu) -> CycleDuration {
 
 pub fn ld_a_nn(cpu: &mut Cpu) -> CycleDuration {
     // Load to the 8-bit A register, data from the absolute
-    // address specified by the 16-bit operand nn.
+    // address specified by the 16-bit operand nn
 
     let address = cpu.get_nn_little_endian();
     let value = cpu.memory_bus.read_byte(address);
@@ -166,7 +166,7 @@ pub fn ld_a_nn(cpu: &mut Cpu) -> CycleDuration {
 
 pub fn ld_nn_a(cpu: &mut Cpu) -> CycleDuration {
     // Load data from the 8-bit A register to the absolute
-    // address specified by the 16-bit immediate values.
+    // address specified by the 16-bit immediate values
 
     let address = cpu.get_nn_little_endian();
     let a = cpu.registers.get_a();
@@ -181,9 +181,9 @@ pub fn ldh_n_a(cpu: &mut Cpu) -> CycleDuration {
     // data n, data from the 8-bit A register. The full 16-bit
     // absolute address is obtained by setting the most significant
     // byte to 0xFF and the least significant byte to the value of
-    // n, so the possible range is 0xFF00-0xFFFF.
+    // n, so the possible range is 0xFF00-0xFFFF
 
-    let n = cpu.memory_bus.read_byte(cpu.program_counter.next()) as u16;
+    let n = cpu.memory_bus.read_byte(cpu.pc.next()) as u16;
     let address = 0xFF00 | n;
 
     let value = cpu.registers.get_a();
@@ -197,9 +197,9 @@ pub fn ldh_a_n(cpu: &mut Cpu) -> CycleDuration {
     // by the 8-bit immediate data n. The full 16-bit absolute address
     // is obtained by setting the most significant byte to 0xFF and
     // the least significant byte to the value of n, so the possible
-    // range is 0xFF00-0xFFFF.
+    // range is 0xFF00-0xFFFF
 
-    let n = cpu.memory_bus.read_byte(cpu.program_counter.next()) as u16;
+    let n = cpu.memory_bus.read_byte(cpu.pc.next()) as u16;
     let address = 0xFF00 | n;
 
     let value = cpu.memory_bus.read_byte(address);
@@ -213,7 +213,7 @@ pub fn ldh_a_c(cpu: &mut Cpu) -> CycleDuration {
     // by the 8-bit C register. The full 16-bit absolute address is
     // obtained by setting the most significant byte to 0xFF and the
     // least significant byte to the value of C, so the possible range
-    // is 0xFF00-0xFFFF.
+    // is 0xFF00-0xFFFF
 
     let c: u8 = cpu.registers.get_c();
     let address: u16 = 0xFF00 | c as u16;
@@ -225,19 +225,19 @@ pub fn ldh_a_c(cpu: &mut Cpu) -> CycleDuration {
 }
 
 pub fn ld_sp_nn(cpu: &mut Cpu) -> CycleDuration {
-    // Loads the immediate 16-bit value into the stack pointer register.
+    // Loads the immediate 16-bit value into the stack pointer register
 
     let value = cpu.get_nn_little_endian();
-    cpu.stack_pointer = value;
+    cpu.sp = value;
 
     CycleDuration::Default
 }
 
 pub fn ld_sp_hl(cpu: &mut Cpu) -> CycleDuration {
-    // Load to the 16-bit SP register, data from the 16-bit HL register.
+    // Load to the 16-bit SP register, data from the 16-bit HL register
 
     let hl = cpu.registers.get_hl();
-    cpu.stack_pointer = hl;
+    cpu.sp = hl;
 
     CycleDuration::Default
 }
@@ -247,7 +247,7 @@ pub fn ld_nn_sp(cpu: &mut Cpu) -> CycleDuration {
     // nn, data from the 16-bit SP register.
 
     let nn = cpu.get_nn_little_endian();
-    let sp = cpu.stack_pointer;
+    let sp = cpu.sp;
 
     let lsb = sp as u8;
     let msb = (sp >> 8) as u8;
@@ -263,7 +263,7 @@ pub fn ld_c_a(cpu: &mut Cpu) -> CycleDuration {
     // from the 8-bit A register. The full 16-bit absolute
     // address is obtained by setting the most significant byte to
     // 0xFF and the least significant byte to the value of C,
-    // so the possible range is 0xFF00-0xFFFF.
+    // so the possible range is 0xFF00-0xFFFF
 
     let c = cpu.registers.get_c();
     let value = cpu.registers.get_a();
@@ -276,7 +276,7 @@ pub fn ld_c_a(cpu: &mut Cpu) -> CycleDuration {
 }
 
 pub fn push_rr(cpu: &mut Cpu, target: Target) -> CycleDuration {
-    // Push to the stack memory, data from the 16-bit register rr.
+    // Push to the stack memory, data from the 16-bit register rr
 
     let value = cpu.registers.get_pair(&target);
     cpu.push_stack(value);
@@ -285,7 +285,7 @@ pub fn push_rr(cpu: &mut Cpu, target: Target) -> CycleDuration {
 }
 
 pub fn pop_rr(cpu: &mut Cpu, target: Target) -> CycleDuration {
-    // Pops to the 16-bit register rr, data from the stack memory.
+    // Pops to the 16-bit register rr, data from the stack memory
 
     let value = cpu.pop_stack();
     cpu.registers.set_pair(target, value);
@@ -296,7 +296,7 @@ pub fn pop_rr(cpu: &mut Cpu, target: Target) -> CycleDuration {
 pub fn pop_af(cpu: &mut Cpu) -> CycleDuration {
     // Pops to the 16-bit register rr, data from the stack memory.
     // Completely replaces the F register value, so all
-    // flags are changed based on the 8-bit data that is read from memory.
+    // flags are changed based on the 8-bit data that is read from memory
 
     let value = cpu.pop_stack();
     cpu.registers.set_af(value);
