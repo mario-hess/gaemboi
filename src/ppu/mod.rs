@@ -98,6 +98,7 @@ pub struct Ppu {
     scroll_x: u8,
     ly: u8,
     lyc: u8,
+    lyw: u8,
     bg_palette: [u8; 4],
     tile_palette0: [u8; 4],
     tile_palette1: [u8; 4],
@@ -121,6 +122,7 @@ impl Ppu {
             scroll_x: 0,
             ly: 0,
             lyc: 0,
+            lyw: 0,
             bg_palette: [0, 1, 2, 3],
             tile_palette0: [0, 1, 2, 3],
             tile_palette1: [0, 1, 2, 3],
@@ -153,6 +155,13 @@ impl Ppu {
                         self.interrupts |= VBLANK_MASK;
                         self.clear_screen();
                     } else {
+                        if self.lcd_control.window_enabled
+                            && self.window_x - 7 < VIEWPORT_WIDTH as u8
+                            && self.window_y < VIEWPORT_HEIGHT as u8
+                            && self.ly >= self.window_y
+                        {
+                            self.lyw += 1;
+                        }
                         self.set_ly(self.ly + 1);
                         self.lcd_status.set_mode(Mode::OAM, &mut self.interrupts);
                     }
@@ -165,6 +174,7 @@ impl Ppu {
 
                     if self.ly > MAX_LINES_Y {
                         self.lcd_status.set_mode(Mode::OAM, &mut self.interrupts);
+                        self.lyw = 0;
                         self.set_ly(0);
                     }
                 }
@@ -280,6 +290,7 @@ impl Ppu {
 
         if self.enabled && !self.lcd_control.lcd_enabled {
             self.clear_screen();
+            self.lyw = 0;
             self.set_ly(0);
             self.lcd_status.mode = Mode::HBlank;
             self.counter = 0;
@@ -309,7 +320,7 @@ impl Ppu {
             // Determine the address of the tile data based on whether it's in the window or background
             let tile_address = if row_is_window && col_is_window {
                 let address = self.lcd_control.get_window_address();
-                let y_offset = self.ly.wrapping_sub(self.window_y);
+                let y_offset = self.lyw;
                 let x_offset = x.wrapping_sub(self.window_x.wrapping_sub(7) as usize);
 
                 calculate_address(address, y_offset, x_offset as u8)
