@@ -229,7 +229,12 @@ impl Ppu {
             TILE_PALETTE_0 => set_palette(&mut self.tile_palette0, value),
             TILE_PALETTE_1 => set_palette(&mut self.tile_palette1, value),
             WINDOW_Y => self.window_y = value,
-            WINDOW_X => self.window_x = value,
+            WINDOW_X => {
+                if value < 7 {
+                    return;
+                }
+                self.window_x = value
+            },
             _ => panic!(
                 "Unknown address: {:#X}. Can't write byte: {:#X}.",
                 address, value
@@ -312,21 +317,21 @@ impl Ppu {
         let bg_offset_y = self.ly.wrapping_add(self.scroll_y);
         let row_is_window = self.lcd_control.window_enabled && self.ly >= self.window_y;
 
-        for x in 0..VIEWPORT_WIDTH {
-            let bg_offset_x = x.wrapping_add(self.scroll_x as usize);
+        for x in 0..VIEWPORT_WIDTH as u8 {
+            let bg_offset_x = x.wrapping_add(self.scroll_x);
             let col_is_window =
-                self.lcd_control.window_enabled && x >= self.window_x.wrapping_sub(7) as usize;
+                self.lcd_control.window_enabled && x >= self.window_x.wrapping_sub(7);
 
             // Determine the address of the tile data based on whether it's in the window or background
             let tile_address = if row_is_window && col_is_window {
                 let address = self.lcd_control.get_window_address();
                 let y_offset = self.lyw;
-                let x_offset = x.wrapping_sub(self.window_x.wrapping_sub(7) as usize);
+                let x_offset = x.wrapping_sub(self.window_x.wrapping_sub(7));
 
-                calculate_address(address, y_offset, x_offset as u8)
+                calculate_address(address, y_offset, x_offset)
             } else {
                 let address = self.lcd_control.get_bg_address();
-                calculate_address(address, bg_offset_y, bg_offset_x as u8)
+                calculate_address(address, bg_offset_y, bg_offset_x)
             };
 
             let tile_index = self.read_byte(tile_address);
@@ -347,13 +352,13 @@ impl Ppu {
 
             // Calculate the pixel index based on whether it's part of the window or background
             let pixel_index = if col_is_window && row_is_window {
-                self.window_x.wrapping_sub(x as u8) % 8
+                self.window_x.wrapping_sub(x) % 8
             } else {
-                7 - (bg_offset_x % 8) as u8
+                7 - (bg_offset_x % 8)
             };
 
             let color_index = get_color_index(tile_data, tile_color, pixel_index);
-            let priority_offset = self.ly as usize + FULL_WIDTH * x;
+            let priority_offset = self.ly as usize + FULL_WIDTH * x as usize;
 
             if color_index == 0 {
                 self.priority_map[priority_offset] = Priority::Overlap
@@ -362,7 +367,7 @@ impl Ppu {
             let pixel = get_pixel_color(&self.bg_palette, color_index);
 
             // Calculate the offset for the current pixel and update the screen buffer
-            let offset = x + self.ly as usize * VIEWPORT_WIDTH;
+            let offset = x as usize + self.ly as usize * VIEWPORT_WIDTH;
             self.screen_buffer[offset] = pixel;
         }
     }
