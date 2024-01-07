@@ -121,7 +121,7 @@ You can use additional flags to customize the emulator's behavior:
 | :heavy_check_mark: | ![failure image](images/dmg_acid2/11_right_chin_missing.png) | Right chin missing | Window Tile Map (bit 6) |
 | :heavy_check_mark: | ![failure image](images/dmg_acid2/12_eye_displayed.png) | Eye displayed instead of right chin | Window internal line counter |
 | :heavy_check_mark: | ![failure image](images/dmg_acid2/13_left_mole.png) | Left mole visible | Object Priority Lower X Coordinate |
-| :x: | ![failure image](images/dmg_acid2/14_right_mole.png) | Right mole visible | Object Priority Same X Coordinate |
+| :heavy_check_mark: | ![failure image](images/dmg_acid2/14_right_mole.png) | Right mole visible | Object Priority Same X Coordinate |
 | :heavy_check_mark: | ![failure image](images/dmg_acid2/15_hello_world.png) | Hello World missing exclaimation mark (!) | 10 object per line limit |
 | :heavy_check_mark: | ![failure image](images/dmg_acid2/16_half_mouth.png) | Half of mouth missing | Bit 0 of tile index for 8x16 objects should be ignored |
 

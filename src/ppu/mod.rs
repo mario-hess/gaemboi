@@ -234,7 +234,7 @@ impl Ppu {
                     return;
                 }
                 self.window_x = value
-            },
+            }
             _ => panic!(
                 "Unknown address: {:#X}. Can't write byte: {:#X}.",
                 address, value
@@ -377,17 +377,26 @@ impl Ppu {
         let ly = self.ly as i16;
         let tile_height = if self.lcd_control.object_size { 16 } else { 8 };
 
-        let mut sprite_counter = 0;
+        let mut sorted_sprites: Vec<(usize, i16)> = Vec::new();
 
         for i in 0..OAM_SIZE {
             let oam_entry = self.oam[i];
             let object_y = oam_entry.y_pos as i16 - 16;
             let object_x = oam_entry.x_pos as i16 - 8;
 
-            // Check if the current line is within the vertical range of the sprite
-            if ly < object_y || ly >= object_y + tile_height {
-                continue;
+            if ly >= object_y && ly < object_y + tile_height {
+                sorted_sprites.push((i, object_x));
             }
+        }
+
+        // Stable sort sprites based on X coordinate and index
+        sorted_sprites.sort_by(|a, b| a.1.cmp(&b.1).then(a.0.cmp(&b.0)));
+
+        for (index, x_offset) in sorted_sprites.iter().take(10).rev() {
+            let i = *index;
+
+            let oam_entry = self.oam[i];
+            let object_y = oam_entry.y_pos as i16 - 16;
 
             let mut object_index = oam_entry.tile_index;
             if tile_height == 16 {
@@ -410,7 +419,7 @@ impl Ppu {
             let tile_color = self.read_byte(tile_color_address);
 
             for x in 0..8 {
-                let x_offset = object_x + x as i16;
+                let x_offset = *x_offset + x as i16;
                 if !(0..VIEWPORT_WIDTH as i16).contains(&x_offset) {
                     continue;
                 }
@@ -442,11 +451,6 @@ impl Ppu {
                 // Calculate the offset for the current pixel and update the screen buffer
                 let offset = x_offset + ly * VIEWPORT_WIDTH as i16;
                 self.screen_buffer[offset as usize] = pixel;
-            }
-
-            sprite_counter += 1;
-            if sprite_counter >= 10 {
-                break;
             }
         }
     }
