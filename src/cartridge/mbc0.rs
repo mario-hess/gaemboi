@@ -2,7 +2,7 @@
  * @file    cartridge/mbc0.rs
  * @brief   MBC0 Memory Bank Controller implementation.
  * @author  Mario Hess
- * @date    October 20, 2023
+ * @date    January 16, 2024
  */
 use crate::cartridge::{core::Core, MemoryBankController, MASK_MSB, RAM_ADDRESS};
 
@@ -19,7 +19,11 @@ impl MemoryBankController for Mbc0 {
         match (address & MASK_MSB) >> 12 {
             // 0x0000 - 0x7FFF (Bank 00)
             0x0..=0x7 => core.rom_data[address as usize],
-            _ => panic!("Unknown address: {:#X}. Can't read byte.", address),
+            _ => {
+                eprintln!("Unknown address: {:#X}. Can't read byte.", address);
+
+                0xFF
+            }
         }
     }
 

@@ -2,7 +2,7 @@
  * @file    ppu/mod.rs
  * @brief   Handles the Picture Processing Unit for graphics rendering.
  * @author  Mario Hess
- * @date    November 07, 2023
+ * @date    January 16, 2024
  */
 mod lcd_control;
 mod lcd_status;
@@ -77,10 +77,10 @@ const FULL_WIDTH: usize = TILEMAP_WIDTH;
 #[allow(clippy::upper_case_acronyms, non_camel_case_types)]
 #[derive(Copy, Clone)]
 pub enum Mode {
-    HBlank = 0,
-    VBlank = 1,
     OAM = 2,
     Transfer = 3,
+    HBlank = 0,
+    VBlank = 1,
 }
 
 #[derive(Copy, Clone)]
@@ -145,6 +145,20 @@ impl Ppu {
         self.counter += t_cycles;
 
         match self.lcd_status.mode {
+            Mode::OAM => {
+                if self.counter >= CYCLES_OAM {
+                    self.lcd_status
+                        .set_mode(Mode::Transfer, &mut self.interrupts);
+                    self.counter %= CYCLES_OAM;
+                }
+            }
+            Mode::Transfer => {
+                if self.counter >= CYCLES_TRANSFER {
+                    self.render_scanline();
+                    self.lcd_status.set_mode(Mode::HBlank, &mut self.interrupts);
+                    self.counter %= CYCLES_TRANSFER;
+                }
+            }
             Mode::HBlank => {
                 if self.counter >= CYCLES_HBLANK {
                     self.counter %= CYCLES_HBLANK;
@@ -179,20 +193,6 @@ impl Ppu {
                     }
                 }
             }
-            Mode::OAM => {
-                if self.counter >= CYCLES_OAM {
-                    self.lcd_status
-                        .set_mode(Mode::Transfer, &mut self.interrupts);
-                    self.counter %= CYCLES_OAM;
-                }
-            }
-            Mode::Transfer => {
-                if self.counter >= CYCLES_TRANSFER {
-                    self.render_scanline();
-                    self.lcd_status.set_mode(Mode::HBlank, &mut self.interrupts);
-                    self.counter %= CYCLES_TRANSFER;
-                }
-            }
         }
     }
 
@@ -211,7 +211,11 @@ impl Ppu {
             TILE_PALETTE_1 => get_palette(&self.tile_palette1),
             WINDOW_Y => self.window_y,
             WINDOW_X => self.window_x,
-            _ => panic!("Unknown address: {:#X}. Can't read byte.", address),
+            _ => {
+                eprintln!("Unknown address: {:#X}. Can't read byte.", address);
+
+                0xFF
+            }
         }
     }
 
@@ -223,7 +227,7 @@ impl Ppu {
             LCD_STATUS => self.lcd_status.set(value),
             SCROLL_Y => self.scroll_y = value,
             SCROLL_X => self.scroll_x = value,
-            //LINE_Y => self.ly = value,
+            LINE_Y => {}, // Not used
             LINE_Y_COMPARE => self.set_lyc(value),
             BG_PALETTE => set_palette(&mut self.bg_palette, value),
             TILE_PALETTE_0 => set_palette(&mut self.tile_palette0, value),
@@ -235,7 +239,7 @@ impl Ppu {
                 }
                 self.window_x = value
             }
-            _ => panic!(
+            _ => eprintln!(
                 "Unknown address: {:#X}. Can't write byte: {:#X}.",
                 address, value
             ),
@@ -392,6 +396,7 @@ impl Ppu {
         // Stable sort sprites based on X coordinate and index
         sorted_sprites.sort_by(|a, b| a.1.cmp(&b.1).then(a.0.cmp(&b.0)));
 
+        // 10 Objects per line limit, reversed for correct overlapping
         for (index, x_offset) in sorted_sprites.iter().take(10).rev() {
             let i = *index;
 
@@ -399,6 +404,8 @@ impl Ppu {
             let object_y = oam_entry.y_pos as i16 - 16;
 
             let mut object_index = oam_entry.tile_index;
+
+            // Ignore last bit for 8x16 sprites
             if tile_height == 16 {
                 object_index &= 0b1111_1110;
             }
@@ -420,6 +427,8 @@ impl Ppu {
 
             for x in 0..8 {
                 let x_offset = *x_offset + x as i16;
+
+                // Skip pixels outside of viewport
                 if !(0..VIEWPORT_WIDTH as i16).contains(&x_offset) {
                     continue;
                 }
@@ -442,7 +451,7 @@ impl Ppu {
 
                 let pixel = get_pixel_color(&sprite_palette, color_index);
 
-                // Skip rendering tile if background overlaps
+                // Skip rendering pixel if background overlaps
                 let priority_offset = ly as usize + FULL_WIDTH * x_offset as usize;
                 if self.bg_has_priority(&oam_entry, priority_offset) {
                     continue;
@@ -571,32 +580,19 @@ fn get_color_index(first_byte: u8, second_byte: u8, pixel_index: u8) -> u8 {
     ((first_byte >> pixel_index) & 1) | ((second_byte >> pixel_index) & 1) << 1
 }
 
-fn get_palette(palette: &[u8]) -> u8 {
-    let mut value = 0u8;
-
-    for (i, &color) in palette.iter().enumerate() {
-        let color_data = match color {
-            0 => 0,
-            1 => 1,
-            2 => 2,
-            3 => 3,
-            _ => 3,
-        };
-
-        value |= (color_data & 3) << (i * 2);
-    }
-
-    value
-}
-
 fn set_palette(palette: &mut [u8], value: u8) {
     for (i, color_data) in (0..4).map(|i| (i, (value >> (i * 2) & 3))) {
-        palette[i] = match color_data {
-            0 => 0,
-            1 => 1,
-            2 => 2,
-            3 => 3,
+        palette[i] = color_data.min(3);
+    }
+}
+
+fn get_palette(palette: &[u8]) -> u8 {
+    palette.iter().enumerate().fold(0u8, |acc, (i, &color)| {
+        let color_data = match color {
+            0..=3 => color,
             _ => 3,
         };
-    }
+
+        acc | (color_data & 3) << (i * 2)
+    })
 }

@@ -2,7 +2,7 @@
  * @file    cartridge/mbc2.rs
  * @brief   MBC2 Memory Bank Controller implementation.
  * @author  Mario Hess
- * @date    October 30, 2023
+ * @date    January 16, 2024
  */
 use crate::cartridge::{core::Core, MemoryBankController, MASK_MSB, RAM_ADDRESS};
 
@@ -24,7 +24,11 @@ impl MemoryBankController for Mbc2 {
                 let offset = core.rom_offset * core.rom_bank as usize;
                 core.rom_data[(address as usize - core.rom_offset) + offset]
             }
-            _ => panic!("Unknown address: {:#X}. Can't read byte.", address),
+            _ => {
+                eprintln!("Unknown address: {:#X}. Can't read byte.", address);
+
+                0xFF
+            }
         }
     }
 
@@ -48,7 +52,7 @@ impl MemoryBankController for Mbc2 {
                 core.rom_bank = bank_number & 0xF;
             }
             0x4..=0x7 => {}
-            _ => panic!(
+            _ => eprintln!(
                 "Unknown address: {:#X}. Can't write byte: {:#X}.",
                 address, value
             ),

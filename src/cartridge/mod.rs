@@ -2,7 +2,7 @@
  * @file    cartridge/mod.rs
  * @brief   Module for constructing cartridges with memory bank controllers.
  * @author  Mario Hess
- * @date    October 20, 2023
+ * @date    January 16, 2024
  */
 mod core;
 mod mbc0;
@@ -55,7 +55,7 @@ impl Cartridge {
             0x0..=0x7 => self.mbc.read_rom(&self.core, address),
             0xA | 0xB => self.mbc.read_ram(&self.core, address),
             _ => {
-                println!("Unknown adress: {:#X} Can't read byte.", address);
+                eprintln!("Unknown adress: {:#X} Can't read byte.", address);
 
                 0x00
             }
@@ -66,7 +66,7 @@ impl Cartridge {
         match (address & MASK_MSB) >> 12 {
             0x0..=0x7 => self.mbc.write_rom(&mut self.core, address, value),
             0xA | 0xB => self.mbc.write_ram(&mut self.core, address, value),
-            _ => println!(
+            _ => eprintln!(
                 "Unknown address: {:#X} Can't write byte: {:#X}",
                 address, value
             ),
