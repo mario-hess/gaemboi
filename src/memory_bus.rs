@@ -6,7 +6,13 @@
  */
 use sdl2::{render::Canvas, video::Window};
 
-use crate::{cartridge::Cartridge, joypad::Joypad, ppu::Ppu, timer::Timer};
+use crate::{
+    apu::{Apu, AUDIO_END, AUDIO_START},
+    cartridge::Cartridge,
+    joypad::Joypad,
+    ppu::Ppu,
+    timer::Timer,
+};
 
 pub const CARTRIDGE_ROM_START: u16 = 0x0000;
 pub const CARTRIDGE_ROM_END: u16 = 0x7FFF;
@@ -38,11 +44,6 @@ const TIMER_END: u16 = 0xFF07;
 
 const INTERRUPT_FLAG: u16 = 0xFF0F;
 
-const AUDIO_START: u16 = 0xFF10;
-const AUDIO_END: u16 = 0xFF26;
-const WAVE_PATTERN_START: u16 = 0xFF30;
-const WAVE_PATTERN_END: u16 = 0xFF3F;
-
 const PPU_IO_START: u16 = 0xFF40;
 const LINE_Y_COMPARE: u16 = 0xFF45;
 const DMA: u16 = 0xFF46;
@@ -59,6 +60,7 @@ const INTERRUPT_ENABLE: u16 = 0xFFFF;
 pub struct MemoryBus {
     cartridge: Cartridge,
     pub ppu: Ppu,
+    apu: Apu,
     wram: [u8; 8192],
     hram: [u8; 128],
     pub interrupt_enable: u8,
@@ -67,8 +69,6 @@ pub struct MemoryBus {
     serial_sc: u8,
     pub timer: Timer,
     pub interrupt_flag: u8,
-    audio: [u8; 23],
-    wave_pattern: [u8; 16],
     speed_switch: u8,
 }
 
@@ -79,6 +79,7 @@ impl MemoryBus {
         Self {
             cartridge,
             ppu: Ppu::new(),
+            apu: Apu::new(),
             wram: [0; 8192],
             hram: [0; 128],
             interrupt_enable: 0,
@@ -87,8 +88,6 @@ impl MemoryBus {
             serial_sc: 0,
             timer: Timer::new(),
             interrupt_flag: 0xE1,
-            audio: [0; 23],
-            wave_pattern: [0; 16],
             speed_switch: 0,
         }
     }
@@ -137,12 +136,8 @@ impl MemoryBus {
             TIMER_START..=TIMER_END => self.timer.read_byte(address),
             // 0xFF0F (Interrupt Flag Register)
             INTERRUPT_FLAG => self.interrupt_flag,
-            // 0xFF10 - 0xFF26 (Audio Channel Control)
-            AUDIO_START..=AUDIO_END => self.audio[address as usize - AUDIO_START as usize],
-            // 0xFF30 - 0xFF3F (Audio Wave storage)
-            WAVE_PATTERN_START..=WAVE_PATTERN_END => {
-                self.wave_pattern[address as usize - WAVE_PATTERN_START as usize]
-            }
+            // 0xFF10 - 0xFF3F (APU)
+            AUDIO_START..=AUDIO_END => self.apu.read_byte(address),
             // 0xFF40 - 0xFF45 (PPU Registers)
             PPU_IO_START..=LINE_Y_COMPARE => self.ppu.read_byte(address),
             // 0xFF46 DMA Transfer (Write Only)
@@ -155,7 +150,11 @@ impl MemoryBus {
             HRAM_START..=HRAM_END => self.hram[address as usize - HRAM_START as usize],
             // 0xFFFF (Interrupt Enable Register)
             INTERRUPT_ENABLE => self.interrupt_enable,
-            _ => panic!("Unknown address: {:#X} Can't read byte.", address),
+            _ => {
+                eprintln!("Unknown address: {:#X} Can't read byte.", address);
+
+                0xFF
+            }
         }
     }
 
@@ -187,12 +186,8 @@ impl MemoryBus {
             TIMER_START..=TIMER_END => self.timer.write_byte(address, value),
             // 0xFF0F (Interrupt Flag Register)
             INTERRUPT_FLAG => self.interrupt_flag = value,
-            // 0xFF10 - 0xFF26 (Audio Channel Control)
-            AUDIO_START..=AUDIO_END => self.audio[address as usize - AUDIO_START as usize] = value,
-            // 0xFF30 - 0xFF3F (Audio Wave storage)
-            WAVE_PATTERN_START..=WAVE_PATTERN_END => {
-                self.wave_pattern[address as usize - WAVE_PATTERN_START as usize] = value;
-            }
+            // 0xFF10 - 0xFF3F (APU)
+            AUDIO_START..=AUDIO_END => self.apu.write_byte(address, value),
             // 0xFF40 - 0xFF45 (PPU Registers)
             PPU_IO_START..=LINE_Y_COMPARE => self.ppu.write_byte(address, value),
             // 0xFF46 DMA Transfer (Write Only)
@@ -205,7 +200,7 @@ impl MemoryBus {
             HRAM_START..=HRAM_END => self.hram[address as usize - HRAM_START as usize] = value,
             // 0xFFFF (Interrupt Enable Register)
             INTERRUPT_ENABLE => self.interrupt_enable = value,
-            _ => println!(
+            _ => eprintln!(
                 "Unknown address: {:#X} Can't write byte: {:#X}.",
                 address, value
             ),
