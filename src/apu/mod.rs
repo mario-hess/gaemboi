@@ -1,39 +1,20 @@
-mod channels;
+mod channel;
 
-use crate::apu::channels::noise_channel::NoiseChannel;
-use crate::apu::channels::pulse_channel::PulseChannel;
-use crate::apu::channels::wave_channel::WaveChannel;
+use crate::apu::channel::noise_channel::NoiseChannel;
+use crate::apu::channel::square_channel::{ChannelType, SquareChannel};
+use crate::apu::channel::wave_channel::WaveChannel;
 
-const CH1_SWEEP: u16 = 0xFF10; // NR10
-const CH1_LENGTH_TIMER: u16 = 0xFF11; // NR11
-const CH1_VOLUME_ENVELOPE: u16 = 0xFF12; // NR12
-const CH1_PERIOD_LOW: u16 = 0xFF13; // NR13
-const CH1_PERIOD_HIGH_CONTROL: u16 = 0xFF14; // NR14
-pub const AUDIO_START: u16 = CH1_SWEEP;
-pub const CH1_START: u16 = AUDIO_START;
-pub const CH1_END: u16 = CH1_PERIOD_HIGH_CONTROL;
+pub const CH1_START: u16 = 0xFF10;
+pub const CH1_END: u16 = 0xFF14;
 
-const CH2_LENGTH_TIMER: u16 = 0xFF16; // NR21
-const CH2_VOLUME_ENVELOPE: u16 = 0xFF17; // NR22
-const CH2_PERIOD_LOW: u16 = 0xFF18; // NR23
-const CH2_PERIOD_HIGH_CONTROL: u16 = 0xFF19; // NR24
-pub const CH2_START: u16 = CH2_LENGTH_TIMER;
-pub const CH2_END: u16 = CH2_PERIOD_HIGH_CONTROL;
+pub const CH2_START: u16 = 0xFF16;
+pub const CH2_END: u16 = 0xFF19;
 
-const CH3_DAC_ENABLE: u16 = 0xFF1A; // NR30
-const CH3_LENGTH_TIMER: u16 = 0xFF1B; // NR31
-const CH3_OUTPUT_LEVEL: u16 = 0xFF1C; // NR32
-const CH3_PERIOD_LOW: u16 = 0xFF1D; // NR33
-const CH3_PERIOD_HIGH_CONTROL: u16 = 0xFF1E; // NR34
-pub const CH3_START: u16 = CH3_DAC_ENABLE;
-pub const CH3_END: u16 = CH3_PERIOD_HIGH_CONTROL;
+pub const CH3_START: u16 = 0xFF1A;
+pub const CH3_END: u16 = 0xFF1E;
 
-const CH4_LENGTH_TIMER: u16 = 0xFF20; // NR41
-const CH4_VOLUME_ENVELOPE: u16 = 0xFF21; // NR42
-const CH4_FREQUENCY_RANDOMNESS: u16 = 0xFF22; // NR43
-const CH4_CHANNEL_CONTROL: u16 = 0xFF23; // NR44
-pub const CH4_START: u16 = CH4_LENGTH_TIMER;
-pub const CH4_END: u16 = CH4_CHANNEL_CONTROL;
+pub const CH4_START: u16 = 0xFF20;
+pub const CH4_END: u16 = 0xFF23;
 
 const MASTER_VOLUME: u16 = 0xFF24; // NR50
 const SOUND_PANNING: u16 = 0xFF25; // NR51
@@ -41,11 +22,13 @@ const MASTER_CONTROL: u16 = 0xFF26; // NR52
 
 const WAVE_PATTERN_START: u16 = 0xFF30;
 const WAVE_PATTERN_END: u16 = 0xFF3F;
+
+pub const AUDIO_START: u16 = CH1_START;
 pub const AUDIO_END: u16 = WAVE_PATTERN_END;
 
 pub struct Apu {
-    ch1: PulseChannel,
-    ch2: PulseChannel,
+    ch1: SquareChannel,
+    ch2: SquareChannel,
     ch3: WaveChannel,
     ch4: NoiseChannel,
     master_volume: u8,
@@ -57,8 +40,8 @@ pub struct Apu {
 impl Apu {
     pub fn new() -> Self {
         Self {
-            ch1: PulseChannel::new(),
-            ch2: PulseChannel::new(),
+            ch1: SquareChannel::new(ChannelType::Channel1),
+            ch2: SquareChannel::new(ChannelType::Channel2),
             ch3: WaveChannel::new(),
             ch4: NoiseChannel::new(),
             master_volume: 0,
@@ -73,14 +56,8 @@ impl Apu {
     }
 
     pub fn write_byte(&mut self, address: u16, value: u8) {
-        // Only MASTER_CONTROL (NR52) is accessible at all times
-        if address == MASTER_CONTROL {
-            self.set_master_control(value);
-            return;
-        }
-
-        // If MASTER_CONTROL (NR52) bit 7 is unset, all other registers are read-only
-        if !self.enabled {
+        // Even when disabled, MASTER_CONTROL (NR52) is accessible
+        if !self.enabled && address != MASTER_CONTROL {
             return;
         }
 
@@ -89,6 +66,7 @@ impl Apu {
             CH2_START..=CH2_END => self.ch2.write_byte(address, value),
             CH3_START..=CH3_END => self.ch3.write_byte(address, value),
             CH4_START..=CH4_END => self.ch4.write_byte(address, value),
+            MASTER_CONTROL => self.set_master_control(value),
             WAVE_PATTERN_START..=WAVE_PATTERN_END => self.ch3.write_wave_ram(address, value),
             _ => eprintln!(
                 "Unknown address: {:#X} Can't write byte: {:#X}.",
