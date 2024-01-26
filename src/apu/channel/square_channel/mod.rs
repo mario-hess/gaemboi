@@ -32,6 +32,10 @@ impl SquareChannel {
         }
     }
 
+    pub fn read_byte(&self, address: u16) -> u8 {
+        self.channel.read_byte(&self.core, address)
+    }
+
     pub fn write_byte(&mut self, address: u16, value: u8) {
         self.channel.write_byte(&mut self.core, address, value);
     }

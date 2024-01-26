@@ -2,7 +2,7 @@ mod channel;
 
 use crate::apu::channel::noise_channel::NoiseChannel;
 use crate::apu::channel::square_channel::{ChannelType, SquareChannel};
-use crate::apu::channel::wave_channel::WaveChannel;
+use crate::apu::channel::wave_channel::{WaveChannel, WAVE_PATTERN_END, WAVE_PATTERN_START};
 
 pub const CH1_START: u16 = 0xFF10;
 pub const CH1_END: u16 = 0xFF14;
@@ -19,9 +19,6 @@ pub const CH4_END: u16 = 0xFF23;
 const MASTER_VOLUME: u16 = 0xFF24; // NR50
 const SOUND_PANNING: u16 = 0xFF25; // NR51
 const MASTER_CONTROL: u16 = 0xFF26; // NR52
-
-const WAVE_PATTERN_START: u16 = 0xFF30;
-const WAVE_PATTERN_END: u16 = 0xFF3F;
 
 pub const AUDIO_START: u16 = CH1_START;
 pub const AUDIO_END: u16 = WAVE_PATTERN_END;
@@ -51,8 +48,22 @@ impl Apu {
         }
     }
 
+    pub fn tick(&mut self, m_cycles: u8) {}
+
     pub fn read_byte(&self, address: u16) -> u8 {
-        0xFF
+        match address {
+            CH1_START..=CH1_END => self.ch1.read_byte(address),
+            CH2_START..=CH2_END => self.ch2.read_byte(address),
+            CH3_START..=CH3_END => self.ch3.read_byte(address),
+            CH4_START..=CH4_END => self.ch4.read_byte(address),
+            MASTER_CONTROL => self.master_control,
+            WAVE_PATTERN_START..=WAVE_PATTERN_END => self.ch3.read_wave_ram(address),
+            _ => {
+                eprintln!("Unknown address: {:#X}. Can't read byte.", address);
+
+                0xFF
+            }
+        }
     }
 
     pub fn write_byte(&mut self, address: u16, value: u8) {
@@ -74,11 +85,6 @@ impl Apu {
             ),
         }
     }
-
-    // NR52
-    // |       7      | 6 | 5 | 4 |    3    |    2    |    1    |    0    |
-    // | Audio on/off |   |   |   | CH4 on? | CH3 on? | CH2 on? | CH1 on? |
-    // |  Read/Write  |   |   |   |  Read   |  Read   |  Read   |  Read   |
 
     fn set_master_control(&mut self, value: u8) {
         let enabled = value & 0b1000_0000;
