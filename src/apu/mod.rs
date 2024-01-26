@@ -37,8 +37,8 @@ pub struct Apu {
 impl Apu {
     pub fn new() -> Self {
         Self {
-            ch1: SquareChannel::new(ChannelType::Channel1),
-            ch2: SquareChannel::new(ChannelType::Channel2),
+            ch1: SquareChannel::new(ChannelType::CH1),
+            ch2: SquareChannel::new(ChannelType::CH2),
             ch3: WaveChannel::new(),
             ch4: NoiseChannel::new(),
             master_volume: 0,
@@ -52,8 +52,8 @@ impl Apu {
 
     pub fn read_byte(&self, address: u16) -> u8 {
         match address {
-            CH1_START..=CH1_END => self.ch1.read_byte(address),
-            CH2_START..=CH2_END => self.ch2.read_byte(address),
+            CH1_START..=CH1_END => self.ch1.read_byte(CH1_START, address),
+            CH2_START..=CH2_END => self.ch2.read_byte(CH2_START, address),
             CH3_START..=CH3_END => self.ch3.read_byte(address),
             CH4_START..=CH4_END => self.ch4.read_byte(address),
             MASTER_CONTROL => self.master_control,
@@ -73,8 +73,8 @@ impl Apu {
         }
 
         match address {
-            CH1_START..=CH1_END => self.ch1.write_byte(address, value),
-            CH2_START..=CH2_END => self.ch2.write_byte(address, value),
+            CH1_START..=CH1_END => self.ch1.write_byte(CH1_START, address, value),
+            CH2_START..=CH2_END => self.ch2.write_byte(CH2_START, address, value),
             CH3_START..=CH3_END => self.ch3.write_byte(address, value),
             CH4_START..=CH4_END => self.ch4.write_byte(address, value),
             MASTER_CONTROL => self.set_master_control(value),
