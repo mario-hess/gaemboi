@@ -100,6 +100,8 @@ impl MemoryBus {
         self.ppu.tick(m_cycles, canvas);
         self.interrupt_flag |= self.ppu.interrupts;
         self.ppu.reset_interrupts();
+
+        self.apu.tick(m_cycles);
     }
 
     pub fn get_interrupt_flag(&mut self) -> u8 {

@@ -10,7 +10,7 @@ pub enum ChannelType {
 }
 
 pub struct SquareChannel {
-    enabled: bool,
+    pub enabled: bool,
     convert: bool,
     envelope_enabled: bool,
     envelope_sequence: u8,
@@ -123,19 +123,19 @@ impl SquareChannel {
         self.sweep_sequence = Some(0);
     }
 
-    pub fn get_length_timer(&self) -> u8 {
+    fn get_length_timer(&self) -> u8 {
         let wave_duty = (self.wave_duty & 0x03) << 6;
         let length_timer = self.length_timer & 0x3F;
 
         wave_duty | length_timer
     }
 
-    pub fn set_length_timer(&mut self, value: u8) {
+    fn set_length_timer(&mut self, value: u8) {
         self.wave_duty = (value & 0xC0) >> 6;
         self.length_timer = value & 0x3F;
     }
 
-    pub fn get_volume_envelope(&self) -> u8 {
+    fn get_volume_envelope(&self) -> u8 {
         let pace = self.pace & 0x07;
         let direction = if self.direction { 0x08 } else { 0x00 };
         let volume = (self.volume & 0x0F) << 4;
@@ -143,7 +143,7 @@ impl SquareChannel {
         pace | direction | volume
     }
 
-    pub fn set_volume_envelope(&mut self, value: u8) {
+    fn set_volume_envelope(&mut self, value: u8) {
         self.pace = value & 0x07;
         self.direction = value & 0x08 != 0;
         self.volume = (value & 0xF0) >> 4;
@@ -157,7 +157,7 @@ impl SquareChannel {
         }
     }
 
-    pub fn get_period_high(&self) -> u8 {
+    fn get_period_high(&self) -> u8 {
         let period_high = self.period_high & 0x07;
         let length_enable = if self.length_enable { 0x40 } else { 0x00 };
         let triggered = if self.triggered { 0x80 } else { 0x00 };
@@ -165,7 +165,7 @@ impl SquareChannel {
         period_high | length_enable | triggered
     }
 
-    pub fn set_period_high(&mut self, value: u8) {
+    fn set_period_high(&mut self, value: u8) {
         self.period_high = value & 0x07;
         self.length_enable = value & 0x40 != 0;
         self.triggered = value & 0x80 != 0;

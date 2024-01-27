@@ -4,7 +4,7 @@ const FREQUENCY_RANDOMNESS: u16 = 0xFF22; // NR43
 const CONTROL: u16 = 0xFF23; // NR44
 
 pub struct NoiseChannel {
-    enabled: bool,
+    pub enabled: bool,
     convert: bool,
     envelope_enabled: bool,
     envelope_sequence: u8,
@@ -72,15 +72,15 @@ impl NoiseChannel {
         }
     }
 
-    pub fn get_length_timer(&self) -> u8 {
+    fn get_length_timer(&self) -> u8 {
         self.length_timer & 0x3F
     }
 
-    pub fn set_length_timer(&mut self, value: u8) {
+    fn set_length_timer(&mut self, value: u8) {
         self.length_timer = value & 0x3F;
     }
 
-    pub fn get_volume_envelope(&self) -> u8 {
+    fn get_volume_envelope(&self) -> u8 {
         let pace = self.pace & 0x07;
         let direction = if self.direction { 0x08 } else { 0x00 };
         let volume = (self.volume & 0x0F) << 4;
@@ -88,7 +88,7 @@ impl NoiseChannel {
         pace | direction | volume
     }
 
-    pub fn set_volume_envelope(&mut self, value: u8) {
+    fn set_volume_envelope(&mut self, value: u8) {
         self.pace = value & 0x07;
         self.direction = value & 0x08 != 0;
         self.volume = (value & 0xF0) >> 4;
@@ -102,7 +102,7 @@ impl NoiseChannel {
         }
     }
 
-    pub fn get_frequency_randomness(&self) -> u8 {
+    fn get_frequency_randomness(&self) -> u8 {
         let clock_divider = self.clock_divider & 0x07;
         let lfsr_width = if self.lfsr_width { 0x08 } else { 0x00 };
         let clock_shift = (self.clock_shift & 0x0F) << 4;
@@ -110,20 +110,20 @@ impl NoiseChannel {
         clock_divider | lfsr_width | clock_shift
     }
 
-    pub fn set_frequency_randomness(&mut self, value: u8) {
+    fn set_frequency_randomness(&mut self, value: u8) {
         self.clock_divider = value & 0x07;
         self.lfsr_width = value & 0x08 != 0;
         self.clock_shift = (value & 0xF0) >> 4;
     }
 
-    pub fn get_control(&self) -> u8 {
+    fn get_control(&self) -> u8 {
         let length_enable = if self.length_enable { 0x40 } else { 0x00 };
         let triggered = if self.triggered { 0x80 } else { 0x00 };
 
         length_enable | triggered
     }
 
-    pub fn set_control(&mut self, value: u8) {
+    fn set_control(&mut self, value: u8) {
         self.length_enable = value & 0x40 != 0;
         self.triggered = value & 0x80 != 0;
 

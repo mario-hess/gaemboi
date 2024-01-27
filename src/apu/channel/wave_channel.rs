@@ -8,7 +8,7 @@ pub const WAVE_PATTERN_START: u16 = 0xFF30;
 pub const WAVE_PATTERN_END: u16 = 0xFF3F;
 
 pub struct WaveChannel {
-    enabled: bool,
+    pub enabled: bool,
     volume: u8,
 
     // NR30
@@ -75,7 +75,7 @@ impl WaveChannel {
         }
     }
 
-    pub fn get_convert(&self) -> u8 {
+    fn get_convert(&self) -> u8 {
         if self.convert {
             0x80
         } else {
@@ -83,7 +83,7 @@ impl WaveChannel {
         }
     }
 
-    pub fn set_convert(&mut self, value: u8) {
+    fn set_convert(&mut self, value: u8) {
         self.convert = value & 0x80 != 0;
 
         // Setting bit 7 of this register to 0 turns the converter off (and thus, the channel as well)
@@ -92,11 +92,11 @@ impl WaveChannel {
         }
     }
 
-    pub fn get_output_level(&self) -> u8 {
+    fn get_output_level(&self) -> u8 {
         (self.output_level & 0x03) << 5
     }
 
-    pub fn set_output_level(&mut self, value: u8) {
+    fn set_output_level(&mut self, value: u8) {
         let value = (value & 0x60) >> 5;
         self.output_level = value;
 
@@ -109,7 +109,7 @@ impl WaveChannel {
         }
     }
 
-    pub fn get_period_high(&self) -> u8 {
+    fn get_period_high(&self) -> u8 {
         let period_high = self.period_high & 0x07;
         let length_enable = if self.length_enable { 0x40 } else { 0x00 };
         let triggered = if self.triggered { 0x80 } else { 0x00 };
@@ -117,7 +117,7 @@ impl WaveChannel {
         period_high | length_enable | triggered
     }
 
-    pub fn set_period_high(&mut self, value: u8) {
+    fn set_period_high(&mut self, value: u8) {
         self.period_high = value & 0x07;
         self.length_enable = value & 0x40 != 0;
         self.triggered = value & 0x80 != 0;
