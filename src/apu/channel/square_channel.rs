@@ -11,9 +11,9 @@ pub enum ChannelType {
 
 pub struct SquareChannel {
     enabled: bool,
+    convert: bool,
     envelope_enabled: bool,
     envelope_sequence: u8,
-    convert: bool,
 
     // NRx0
     sweep_sequence: Option<u8>,
@@ -29,9 +29,14 @@ pub struct SquareChannel {
     pace: u8,
     direction: bool,
     volume: u8,
-   
+
     // NRx3
     period_low: u8,
+
+    // NRx4
+    period_high: u8,
+    length_enable: bool,
+    triggered: bool,
 }
 
 impl SquareChannel {
@@ -48,9 +53,9 @@ impl SquareChannel {
 
         Self {
             enabled: false,
+            convert: false,
             envelope_enabled: false,
             envelope_sequence: 0,
-            convert: false,
             sweep_sequence,
             sweep_step,
             sweep_direction,
@@ -61,6 +66,9 @@ impl SquareChannel {
             direction: true,
             volume: 0,
             period_low: 0,
+            period_high: 0,
+            length_enable: false,
+            triggered: false,
         }
     }
 
@@ -68,15 +76,16 @@ impl SquareChannel {
         let address = address - base_address;
 
         match address {
-            SWEEP => return self.get_sweep(),
-            LENGTH_TIMER => return self.get_length_timer(),
-            VOLUME_ENVELOPE => return self.get_volume_envelope(),
-            PERIOD_LOW => return self.period_low,
-            PERIOD_HIGH => {}
-            _ => eprintln!("Unknown address: {:#X} Can't read byte.", address),
+            SWEEP => self.get_sweep(),
+            LENGTH_TIMER => self.get_length_timer(),
+            VOLUME_ENVELOPE => self.get_volume_envelope(),
+            PERIOD_LOW => self.period_low,
+            PERIOD_HIGH => self.get_period_high(),
+            _ => {
+                eprintln!("Unknown address: {:#X} Can't read byte.", address);
+                0xFF
+            }
         }
-
-        0xFF
     }
 
     pub fn write_byte(&mut self, base_address: u16, address: u16, value: u8) {
@@ -87,7 +96,7 @@ impl SquareChannel {
             LENGTH_TIMER => self.set_length_timer(value),
             VOLUME_ENVELOPE => self.set_volume_envelope(value),
             PERIOD_LOW => self.period_low = value,
-            PERIOD_HIGH => {}
+            PERIOD_HIGH => self.set_period_high(value),
             _ => eprintln!(
                 "Unknown address: {:#X} Can't write byte: {:#X}.",
                 address, value
@@ -115,7 +124,10 @@ impl SquareChannel {
     }
 
     pub fn get_length_timer(&self) -> u8 {
-        (self.wave_duty & 0x03) << 6 | self.length_timer & 0x3F
+        let wave_duty = (self.wave_duty & 0x03) << 6;
+        let length_timer = self.length_timer & 0x3F;
+
+        wave_duty | length_timer
     }
 
     pub fn set_length_timer(&mut self, value: u8) {
@@ -124,7 +136,11 @@ impl SquareChannel {
     }
 
     pub fn get_volume_envelope(&self) -> u8 {
-        (self.pace & 0x07) | if self.direction { 0x08 } else { 0x00 } | (self.volume & 0x0F) << 4
+        let pace = self.pace & 0x07;
+        let direction = if self.direction { 0x08 } else { 0x00 };
+        let volume = (self.volume & 0x0F) << 4;
+
+        pace | direction | volume
     }
 
     pub fn set_volume_envelope(&mut self, value: u8) {
@@ -138,6 +154,25 @@ impl SquareChannel {
         self.convert = value & 0b11111000 != 0x00;
         if !self.convert {
             self.enabled = false;
+        }
+    }
+
+    pub fn get_period_high(&self) -> u8 {
+        let period_high = self.period_high & 0x07;
+        let length_enable = if self.length_enable { 0x40 } else { 0x00 };
+        let triggered = if self.triggered { 0x80 } else { 0x00 };
+
+        period_high | length_enable | triggered
+    }
+
+    pub fn set_period_high(&mut self, value: u8) {
+        self.period_high = value & 0x07;
+        self.length_enable = value & 0x40 != 0;
+        self.triggered = value & 0x80 != 0;
+
+        // Triggering a channel causes it to turn on if it wasn’t
+        if self.triggered {
+            self.enabled = true;
         }
     }
 }
