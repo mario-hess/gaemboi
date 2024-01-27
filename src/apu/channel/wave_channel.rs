@@ -1,3 +1,5 @@
+use crate::apu::LENGTH_TIMER_MAX;
+
 const CONVERT_ENABLE: u16 = 0xFF1A; // NR30
 const LENGTH_TIMER: u16 = 0xFF1B; // NR31
 const OUTPUT_LEVEL: u16 = 0xFF1C; // NR32
@@ -10,6 +12,7 @@ pub const WAVE_PATTERN_END: u16 = 0xFF3F;
 pub struct WaveChannel {
     pub enabled: bool,
     volume: u8,
+    period: u16,
 
     // NR30
     convert: bool,
@@ -20,11 +23,7 @@ pub struct WaveChannel {
     // NR32
     output_level: u8,
 
-    // NR33
-    period_low: u8,
-
     // NR34
-    period_high: u8,
     length_enable: bool,
     triggered: bool,
 
@@ -36,14 +35,24 @@ impl WaveChannel {
         Self {
             enabled: false,
             volume: 0,
+            period: 0,
             convert: false,
             length_timer: 0,
             output_level: 0,
-            period_low: 0,
-            period_high: 0,
             length_enable: false,
             triggered: false,
             wave_ram: [0; 32],
+        }
+    }
+
+    pub fn tick_length_timer(&mut self) {
+        if !self.length_enable || self.length_timer >= LENGTH_TIMER_MAX {
+            return;
+        }
+
+        self.length_timer = self.length_timer.saturating_add(1);
+        if self.length_timer >= LENGTH_TIMER_MAX {
+            self.enabled = false;
         }
     }
 
@@ -52,7 +61,7 @@ impl WaveChannel {
             CONVERT_ENABLE => self.get_convert(),
             LENGTH_TIMER => self.length_timer,
             OUTPUT_LEVEL => self.get_output_level(),
-            PERIOD_LOW => self.period_low,
+            PERIOD_LOW => self.get_period_low(),
             PERIOD_HIGH => self.get_period_high(),
             _ => {
                 eprintln!("Unknown address: {:#X} Can't read byte.", address);
@@ -66,7 +75,7 @@ impl WaveChannel {
             CONVERT_ENABLE => self.set_convert(value),
             LENGTH_TIMER => self.length_timer = value,
             OUTPUT_LEVEL => self.set_output_level(value),
-            PERIOD_LOW => self.period_low = value,
+            PERIOD_LOW => self.set_period_low(value),
             PERIOD_HIGH => self.set_period_high(value),
             _ => eprintln!(
                 "Unknown address: {:#X} Can't write byte: {:#X}.",
@@ -109,8 +118,16 @@ impl WaveChannel {
         }
     }
 
+    fn get_period_low(&self) -> u8 {
+        self.period as u8
+    }
+
+    fn set_period_low(&mut self, value: u8) {
+        self.period = (self.period & 0x0700) | value as u16;
+    }
+
     fn get_period_high(&self) -> u8 {
-        let period_high = self.period_high & 0x07;
+        let period_high = ((self.period & 0x0700) >> 8) as u8;
         let length_enable = if self.length_enable { 0x40 } else { 0x00 };
         let triggered = if self.triggered { 0x80 } else { 0x00 };
 
@@ -118,7 +135,7 @@ impl WaveChannel {
     }
 
     fn set_period_high(&mut self, value: u8) {
-        self.period_high = value & 0x07;
+        self.period = (self.period & 0x00FF) | ((value & 0x07) as u16) << 8;
         self.length_enable = value & 0x40 != 0;
         self.triggered = value & 0x80 != 0;
 

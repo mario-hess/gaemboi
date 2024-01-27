@@ -1,3 +1,5 @@
+use crate::apu::LENGTH_TIMER_MAX;
+
 const SWEEP: u16 = 0;
 const LENGTH_TIMER: u16 = 1;
 const VOLUME_ENVELOPE: u16 = 2;
@@ -12,6 +14,7 @@ pub enum ChannelType {
 pub struct SquareChannel {
     pub enabled: bool,
     convert: bool,
+    period: u16,
     envelope_enabled: bool,
     envelope_sequence: u8,
 
@@ -30,11 +33,7 @@ pub struct SquareChannel {
     direction: bool,
     volume: u8,
 
-    // NRx3
-    period_low: u8,
-
     // NRx4
-    period_high: u8,
     length_enable: bool,
     triggered: bool,
 }
@@ -54,6 +53,7 @@ impl SquareChannel {
         Self {
             enabled: false,
             convert: false,
+            period: 0,
             envelope_enabled: false,
             envelope_sequence: 0,
             sweep_sequence,
@@ -65,10 +65,54 @@ impl SquareChannel {
             pace: 0,
             direction: true,
             volume: 0,
-            period_low: 0,
-            period_high: 0,
             length_enable: false,
             triggered: false,
+        }
+    }
+
+    pub fn tick_sweep(&mut self) {
+        if self.sweep_pace == Some(0) {
+            //self.enabled = false;
+            return;
+        }
+
+        if let Some(value) = self.sweep_sequence {
+            self.sweep_sequence = Some(value + 1);
+        }
+
+        if let (Some(sequence), Some(pace), Some(step)) =
+            (self.sweep_sequence, self.sweep_pace, self.sweep_step)
+        {
+            if sequence >= pace {
+                let divisor: u16 = 0x01 << step;
+                let delta = (self.period as f32 / divisor as f32) as u16;
+
+                if let Some(direction) = self.sweep_direction {
+                    if direction {
+                        self.period = self.period.saturating_add(delta);
+                    } else {
+                        self.period = self.period.saturating_sub(delta);
+                    }
+
+                    if self.period > 0x07FF {
+                        self.enabled = false;
+                        self.period = 0x7FF;
+                    }
+
+                    self.sweep_sequence = Some(0);
+                }
+            }
+        }
+    }
+
+    pub fn tick_length_timer(&mut self) {
+        if !self.length_enable || self.length_timer >= LENGTH_TIMER_MAX {
+            return;
+        }
+
+        self.length_timer = self.length_timer.saturating_add(1);
+        if self.length_timer >= LENGTH_TIMER_MAX {
+            self.enabled = false;
         }
     }
 
@@ -79,7 +123,7 @@ impl SquareChannel {
             SWEEP => self.get_sweep(),
             LENGTH_TIMER => self.get_length_timer(),
             VOLUME_ENVELOPE => self.get_volume_envelope(),
-            PERIOD_LOW => self.period_low,
+            PERIOD_LOW => self.get_period_low(),
             PERIOD_HIGH => self.get_period_high(),
             _ => {
                 eprintln!("Unknown address: {:#X} Can't read byte.", address);
@@ -95,7 +139,7 @@ impl SquareChannel {
             SWEEP => self.set_sweep(value),
             LENGTH_TIMER => self.set_length_timer(value),
             VOLUME_ENVELOPE => self.set_volume_envelope(value),
-            PERIOD_LOW => self.period_low = value,
+            PERIOD_LOW => self.set_period_low(value),
             PERIOD_HIGH => self.set_period_high(value),
             _ => eprintln!(
                 "Unknown address: {:#X} Can't write byte: {:#X}.",
@@ -151,14 +195,22 @@ impl SquareChannel {
         self.envelope_sequence = 0;
 
         // Setting bits 3-7 of this register all to 0 turns the converter off (and thus, the channel as well)
-        self.convert = value & 0b11111000 != 0x00;
+        self.convert = value & 0xF8 != 0x00;
         if !self.convert {
             self.enabled = false;
         }
     }
 
+    fn get_period_low(&self) -> u8 {
+        self.period as u8
+    }
+
+    fn set_period_low(&mut self, value: u8) {
+        self.period = (self.period & 0x0700) | value as u16;
+    }
+
     fn get_period_high(&self) -> u8 {
-        let period_high = self.period_high & 0x07;
+        let period_high = ((self.period & 0x0700) >> 8) as u8;
         let length_enable = if self.length_enable { 0x40 } else { 0x00 };
         let triggered = if self.triggered { 0x80 } else { 0x00 };
 
@@ -166,7 +218,7 @@ impl SquareChannel {
     }
 
     fn set_period_high(&mut self, value: u8) {
-        self.period_high = value & 0x07;
+        self.period = (self.period & 0x00FF) | ((value & 0x07) as u16) << 8;
         self.length_enable = value & 0x40 != 0;
         self.triggered = value & 0x80 != 0;
 

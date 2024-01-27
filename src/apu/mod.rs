@@ -6,6 +6,9 @@ use crate::apu::channel::square_channel::{ChannelType, SquareChannel};
 use crate::apu::channel::wave_channel::{WaveChannel, WAVE_PATTERN_END, WAVE_PATTERN_START};
 use crate::apu::mixer::Mixer;
 
+const STEP_FREQUENCY: u16 = 512 * 16;
+pub const LENGTH_TIMER_MAX: u8 = 64;
+
 pub const CH1_START: u16 = 0xFF10;
 pub const CH1_END: u16 = 0xFF14;
 
@@ -34,7 +37,8 @@ pub struct Apu {
     right_volume: u8,
     left_volume: u8,
     enabled: bool,
-    counter: u16,
+    clock: u16,
+    step: u8,
 }
 
 impl Apu {
@@ -48,13 +52,47 @@ impl Apu {
             right_volume: 0,
             left_volume: 0,
             enabled: false,
-            counter: 0,
+            clock: 0,
+            step: 0,
         }
     }
 
     pub fn tick(&mut self, m_cycles: u8) {
+        if !self.enabled {
+             return;
+        }
+
         let t_cycles = (m_cycles * 4) as u16;
-        // self.counter += t_cycles;
+        self.clock += t_cycles;
+        
+        if self.clock >= STEP_FREQUENCY {
+            match self.step {
+                0 => self.tick_length_timer_all(),
+                2 => {
+                    self.ch1.tick_sweep();
+                    self.tick_length_timer_all();
+                }
+                4 => self.tick_length_timer_all(),
+                6 => {
+                    self.ch1.tick_sweep();
+                    self.tick_length_timer_all();
+                } 
+                7 => {} // Tick envelope
+                _ => {}
+            }
+
+            self.clock -= STEP_FREQUENCY;
+            self.step = (self.step + 1) & 0x07;
+        }
+
+        // Tick channels
+    }
+
+    fn tick_length_timer_all(&mut self) {
+        self.ch1.tick_length_timer();
+        self.ch2.tick_length_timer();
+        self.ch3.tick_length_timer();
+        self.ch4.tick_length_timer();
     }
 
     pub fn read_byte(&self, address: u16) -> u8 {

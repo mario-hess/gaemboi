@@ -1,3 +1,5 @@
+use crate::apu::LENGTH_TIMER_MAX;
+
 const LENGTH_TIMER: u16 = 0xFF20; // NR41
 const VOLUME_ENVELOPE: u16 = 0xFF21; // NR42
 const FREQUENCY_RANDOMNESS: u16 = 0xFF22; // NR43
@@ -43,6 +45,17 @@ impl NoiseChannel {
             clock_shift: 0,
             length_enable: false,
             triggered: false,
+        }
+    }
+
+    pub fn tick_length_timer(&mut self) {
+        if !self.length_enable || self.length_timer >= LENGTH_TIMER_MAX {
+            return;
+        }
+
+        self.length_timer = self.length_timer.saturating_add(1);
+        if self.length_timer >= LENGTH_TIMER_MAX {
+            self.enabled = false;
         }
     }
 
