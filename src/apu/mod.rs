@@ -97,7 +97,7 @@ impl Apu {
                     self.tick_length_timers();
                 }
                 7 => {} // Tick envelope
-                _ => {}
+                _ => unreachable!()
             }
 
             self.clock -= CYCLES_DIV;
