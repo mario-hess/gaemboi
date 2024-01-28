@@ -10,6 +10,7 @@
  * - rfd: File dialog
  *      (https://docs.rs/rfd/latest/rfd/)
  */
+mod apu;
 mod boot_sequence;
 mod cartridge;
 mod clock;
@@ -26,6 +27,7 @@ mod menu;
 mod ppu;
 mod registers;
 mod timer;
+mod util;
 mod window;
 
 use std::{

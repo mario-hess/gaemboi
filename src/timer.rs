@@ -2,9 +2,10 @@
  * @file    timer.rs
  * @brief   Handles the timer and divider registers.
  * @author  Mario Hess
- * @date    September 23, 2023
+ * @date    January 28, 2024
  */
 use crate::interrupt::TIMER_MASK;
+use crate::clock::CPU_CLOCK_SPEED;
 
 const DIV: u16 = 0xFF04;
 const TIMA: u16 = 0xFF05;
@@ -14,7 +15,8 @@ const TAC: u16 = 0xFF07;
 const TIMER_ENABLE_MASK: u8 = 0x04;
 const TIMER_CONTROL_MASK: u8 = 0x03;
 
-const CYCLES_DIV: u16 = 256;
+const TIMER_CLOCK_SPEED: u16 = 16384;
+const CYCLES_DIV: u16 = (CPU_CLOCK_SPEED / TIMER_CLOCK_SPEED as u32) as u16;
 const CYCLES_TAC_0: u16 = 1024;
 const CYCLES_TAC_1: u16 = 16;
 const CYCLES_TAC_2: u16 = 64;
@@ -25,8 +27,8 @@ pub struct Timer {
     tima: u8,
     tma: u8,
     tac: u8,
-    div_counter: u16,
-    tima_counter: i64,
+    div_clock: u16,
+    tima_counter: u16,
     tima_overflowed: bool,
     tac_cycles: u16,
     enabled: bool,
@@ -40,7 +42,7 @@ impl Timer {
             tima: 0,
             tma: 0,
             tac: 0xF8,
-            div_counter: 0,
+            div_clock: 0,
             tima_counter: 0,
             tima_overflowed: false,
             tac_cycles: CYCLES_TAC_0,
@@ -51,11 +53,11 @@ impl Timer {
 
     pub fn tick(&mut self, m_cycles: u8) {
         let t_cycles = (m_cycles * 4) as u16;
-        self.div_counter += t_cycles;
+        self.div_clock += t_cycles;
 
-        while self.div_counter >= CYCLES_DIV {
-            self.div = self.div.wrapping_add(1);
-            self.div_counter -= CYCLES_DIV;
+        while self.div_clock >= CYCLES_DIV {
+            self.div = self.div.saturating_add(1);
+            self.div_clock -= CYCLES_DIV;
         }
 
         if !self.enabled {
@@ -68,17 +70,17 @@ impl Timer {
             self.tima_overflowed = false;
         }
 
-        self.tima_counter += t_cycles as i64;
+        self.tima_counter += t_cycles;
 
-        while self.tima_counter >= self.tac_cycles as i64 {
-            if self.tima == 255 {
+        while self.tima_counter >= self.tac_cycles {
+            if self.tima == u8::MAX {
                 self.tima_overflowed = true;
                 self.tima = 0;
                 return;
             }
 
-            self.tima = self.tima.wrapping_add(1);
-            self.tima_counter -= self.tac_cycles as i64;
+            self.tima = self.tima.saturating_add(1);
+            self.tima_counter -= self.tac_cycles;
         }
     }
 
@@ -100,7 +102,7 @@ impl Timer {
         match address {
             DIV => {
                 self.div = 0;
-                self.div_counter = 0;
+                self.div_clock = 0;
                 self.tima_counter = 0;
             }
             TIMA => self.tima = value,
@@ -113,7 +115,7 @@ impl Timer {
                     0x01 => CYCLES_TAC_1,
                     0x02 => CYCLES_TAC_2,
                     0x03 => CYCLES_TAC_3,
-                    _ => panic!("Invalid TAC value: {:#X}", self.tac),
+                    _ => unreachable!(),
                 };
 
                 self.enabled = (self.tac & TIMER_ENABLE_MASK) == TIMER_ENABLE_MASK;

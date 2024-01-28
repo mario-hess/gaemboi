@@ -72,7 +72,7 @@ impl Machine {
             viewport.canvas.present();
             debug_windows.present();
 
-            // Tick at the CPU frequency rate
+            // Tick at 60 Hz
             let elapsed_time = frame_start_time.elapsed();
             if elapsed_time < frame_duration {
                 std::thread::sleep(frame_duration - elapsed_time);

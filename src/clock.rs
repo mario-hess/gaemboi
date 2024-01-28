@@ -6,8 +6,7 @@
  */
 use crate::machine::FPS;
 
-// 4.194304 MHz
-pub const CLOCK_SPEED: u32 = 4194304;
+pub const CPU_CLOCK_SPEED: u32 = 4194304;
 
 pub struct Clock {
     pub cycles_per_frame: u32,
@@ -16,7 +15,7 @@ pub struct Clock {
 
 impl Clock {
     pub fn new() -> Self {
-        let cycles_per_frame = CLOCK_SPEED / FPS as u32;
+        let cycles_per_frame = CPU_CLOCK_SPEED / FPS as u32;
 
         Self {
             cycles_per_frame,
