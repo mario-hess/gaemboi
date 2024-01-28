@@ -1,11 +1,11 @@
-use crate::clock::CPU_CLOCK_SPEED;
 /**
  * @file    timer.rs
  * @brief   Handles the timer and divider registers.
  * @author  Mario Hess
- * @date    September 23, 2023
+ * @date    January 28, 2024
  */
 use crate::interrupt::TIMER_MASK;
+use crate::clock::CPU_CLOCK_SPEED;
 
 const DIV: u16 = 0xFF04;
 const TIMA: u16 = 0xFF05;
