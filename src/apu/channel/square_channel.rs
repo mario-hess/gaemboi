@@ -92,7 +92,7 @@ impl SquareChannel {
             // Overflow check
             if self.period > 0x07FF {
                 self.enabled = false;
-                self.period = 0x7FF;
+                self.period = 0x07FF;
             }
 
             self.sweep_sequence = Some(0);
