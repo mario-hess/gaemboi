@@ -1,10 +1,10 @@
-use crate::apu::LENGTH_TIMER_MAX;
+use crate::apu::{CH3_START, CH3_END ,LENGTH_TIMER_MAX};
 
-const CONVERT_ENABLE: u16 = 0xFF1A; // NR30
+const CONVERT_ENABLE: u16 = CH3_START; // NR30
 const LENGTH_TIMER: u16 = 0xFF1B; // NR31
 const OUTPUT_LEVEL: u16 = 0xFF1C; // NR32
 const PERIOD_LOW: u16 = 0xFF1D; // NR33
-const PERIOD_HIGH: u16 = 0xFF1E; // NR34
+const PERIOD_HIGH: u16 = CH3_END; // NR34
 
 pub const WAVE_PATTERN_START: u16 = 0xFF30;
 pub const WAVE_PATTERN_END: u16 = 0xFF3F;

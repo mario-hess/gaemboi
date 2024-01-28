@@ -1,9 +1,9 @@
-use crate::apu::LENGTH_TIMER_MAX;
+use crate::apu::{CH4_START, CH4_END  ,LENGTH_TIMER_MAX};
 
-const LENGTH_TIMER: u16 = 0xFF20; // NR41
+const LENGTH_TIMER: u16 = CH4_START; // NR41
 const VOLUME_ENVELOPE: u16 = 0xFF21; // NR42
 const FREQUENCY_RANDOMNESS: u16 = 0xFF22; // NR43
-const CONTROL: u16 = 0xFF23; // NR44
+const CONTROL: u16 = CH4_END; // NR44
 
 pub struct NoiseChannel {
     pub enabled: bool,

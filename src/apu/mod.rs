@@ -5,15 +5,18 @@ use crate::apu::channel::noise_channel::NoiseChannel;
 use crate::apu::channel::square_channel::{ChannelType, SquareChannel};
 use crate::apu::channel::wave_channel::{WaveChannel, WAVE_PATTERN_END, WAVE_PATTERN_START};
 use crate::apu::mixer::Mixer;
+use crate::clock::CPU_CLOCK_SPEED;
 
-const STEP_FREQUENCY: u16 = 512 * 16;
+const APU_CLOCK_SPEED: u16 = 512;
+const CYCLES_DIV: u16 = (CPU_CLOCK_SPEED / APU_CLOCK_SPEED as u32) as u16;
+
 pub const LENGTH_TIMER_MAX: u8 = 64;
 
-pub const CH1_START: u16 = 0xFF10;
-pub const CH1_END: u16 = 0xFF14;
+const CH1_START: u16 = 0xFF10;
+const CH1_END: u16 = 0xFF14;
 
-pub const CH2_START: u16 = 0xFF16;
-pub const CH2_END: u16 = 0xFF19;
+const CH2_START: u16 = 0xFF16;
+const CH2_END: u16 = 0xFF19;
 
 pub const CH3_START: u16 = 0xFF1A;
 pub const CH3_END: u16 = 0xFF1E;
@@ -38,7 +41,7 @@ pub struct Apu {
     left_volume: u8,
     enabled: bool,
     clock: u16,
-    step: u8,
+    sequencer_tick: u8,
 }
 
 impl Apu {
@@ -53,42 +56,60 @@ impl Apu {
             left_volume: 0,
             enabled: false,
             clock: 0,
-            step: 0,
+            sequencer_tick: 0,
         }
     }
 
     pub fn tick(&mut self, m_cycles: u8) {
         if !self.enabled {
-             return;
+            return;
         }
 
         let t_cycles = (m_cycles * 4) as u16;
         self.clock += t_cycles;
-        
-        if self.clock >= STEP_FREQUENCY {
-            match self.step {
-                0 => self.tick_length_timer_all(),
+
+        /*
+        Every 8192 T-cycles (512 Hz) the frame sequencer is stepped and might clock other units
+        Step   Length Ctr  Vol Env     Sweep
+        ---------------------------------------
+        0      Clock       -           -
+        1      -           -           -
+        2      Clock       -           Clock
+        3      -           -           -
+        4      Clock       -           -
+        5      -           -           -
+        6      Clock       -           Clock
+        7      -           Clock       -
+        ---------------------------------------
+        Rate   256 Hz      64 Hz       128 Hz
+        */
+
+        if self.clock >= CYCLES_DIV {
+            match self.sequencer_tick {
+                0 => self.tick_length_timers(),
                 2 => {
                     self.ch1.tick_sweep();
-                    self.tick_length_timer_all();
+                    self.tick_length_timers();
                 }
-                4 => self.tick_length_timer_all(),
+                4 => self.tick_length_timers(),
                 6 => {
                     self.ch1.tick_sweep();
-                    self.tick_length_timer_all();
-                } 
+                    self.tick_length_timers();
+                }
                 7 => {} // Tick envelope
                 _ => {}
             }
 
-            self.clock -= STEP_FREQUENCY;
-            self.step = (self.step + 1) & 0x07;
+            self.clock -= CYCLES_DIV;
+
+            // Repeat step 0-7 without reset
+            self.sequencer_tick = (self.sequencer_tick + 1) & 0x07;
         }
 
         // Tick channels
     }
 
-    fn tick_length_timer_all(&mut self) {
+    fn tick_length_timers(&mut self) {
         self.ch1.tick_length_timer();
         self.ch2.tick_length_timer();
         self.ch3.tick_length_timer();
@@ -107,7 +128,6 @@ impl Apu {
             WAVE_PATTERN_START..=WAVE_PATTERN_END => self.ch3.read_wave_ram(address),
             _ => {
                 eprintln!("Unknown address: {:#X}. Can't read byte.", address);
-
                 0xFF
             }
         }

@@ -20,7 +20,7 @@ pub struct SquareChannel {
 
     // NRx0
     sweep_sequence: Option<u8>,
-    sweep_step: Option<u8>,
+    sweep_shift: Option<u8>,
     sweep_direction: Option<bool>,
     sweep_pace: Option<u8>,
 
@@ -46,7 +46,7 @@ impl SquareChannel {
         };
 
         let sweep_sequence = if sweep_enabled { Some(0) } else { None };
-        let sweep_step = if sweep_enabled { Some(0) } else { None };
+        let sweep_shift = if sweep_enabled { Some(0) } else { None };
         let sweep_direction = if sweep_enabled { Some(true) } else { None };
         let sweep_pace = if sweep_enabled { Some(0) } else { None };
 
@@ -57,7 +57,7 @@ impl SquareChannel {
             envelope_enabled: false,
             envelope_sequence: 0,
             sweep_sequence,
-            sweep_step,
+            sweep_shift,
             sweep_direction,
             sweep_pace,
             length_timer: 0,
@@ -80,28 +80,22 @@ impl SquareChannel {
             self.sweep_sequence = Some(value + 1);
         }
 
-        if let (Some(sequence), Some(pace), Some(step)) =
-            (self.sweep_sequence, self.sweep_pace, self.sweep_step)
-        {
-            if sequence >= pace {
-                let divisor: u16 = 0x01 << step;
-                let delta = (self.period as f32 / divisor as f32) as u16;
+        if self.sweep_sequence.unwrap() >= self.sweep_pace.unwrap() {
+            let delta = self.period >> self.sweep_shift.unwrap();
 
-                if let Some(direction) = self.sweep_direction {
-                    if direction {
-                        self.period = self.period.saturating_add(delta);
-                    } else {
-                        self.period = self.period.saturating_sub(delta);
-                    }
+            self.period = if self.sweep_direction.unwrap() {
+                self.period.saturating_add(delta)
+            } else {
+                self.period.saturating_sub(delta)
+            };
 
-                    if self.period > 0x07FF {
-                        self.enabled = false;
-                        self.period = 0x7FF;
-                    }
-
-                    self.sweep_sequence = Some(0);
-                }
+            // Overflow check
+            if self.period > 0x07FF {
+                self.enabled = false;
+                self.period = 0x7FF;
             }
+
+            self.sweep_sequence = Some(0);
         }
     }
 
@@ -149,7 +143,7 @@ impl SquareChannel {
     }
 
     fn get_sweep(&self) -> u8 {
-        let step = self.sweep_step.unwrap() & 0x07;
+        let step = self.sweep_shift.unwrap() & 0x07;
         let direction = if self.sweep_direction.unwrap() {
             0x08
         } else {
@@ -161,7 +155,7 @@ impl SquareChannel {
     }
 
     fn set_sweep(&mut self, value: u8) {
-        self.sweep_step = Some(value & 0x07);
+        self.sweep_shift = Some(value & 0x07);
         self.sweep_direction = Some(value & 0x08 == 0x00);
         self.sweep_pace = Some(value & 0x70);
         self.sweep_sequence = Some(0);
