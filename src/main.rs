@@ -27,7 +27,6 @@ mod menu;
 mod ppu;
 mod registers;
 mod timer;
-mod util;
 mod window;
 
 use std::{
