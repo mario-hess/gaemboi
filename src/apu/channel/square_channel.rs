@@ -6,6 +6,13 @@ const VOLUME_ENVELOPE: u16 = 2;
 const PERIOD_LOW: u16 = 3;
 const PERIOD_HIGH: u16 = 4;
 
+const DUTY_TABLE: [[u8; 8]; 4] = [
+    [0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 1, 1, 1],
+    [0, 1, 1, 1, 1, 1, 1, 0],
+];
+
 pub enum ChannelType {
     CH1,
     CH2,
@@ -13,6 +20,9 @@ pub enum ChannelType {
 
 pub struct SquareChannel {
     pub enabled: bool,
+    timer: i16,
+    sequence: u8,
+    pub output: u8,
     convert: bool,
     period: u16,
     envelope_enabled: bool,
@@ -31,7 +41,7 @@ pub struct SquareChannel {
     // NRx2
     pace: u8,
     direction: bool,
-    volume: u8,
+    pub volume: u8,
 
     // NRx4
     length_enable: bool,
@@ -52,6 +62,9 @@ impl SquareChannel {
 
         Self {
             enabled: false,
+            timer: 0,
+            sequence: 0,
+            output: 0,
             convert: false,
             period: 0,
             envelope_enabled: false,
@@ -70,9 +83,30 @@ impl SquareChannel {
         }
     }
 
+    pub fn tick(&mut self, m_cycles: u8) {
+        let t_cycles = (m_cycles * 4) as u16;
+        self.timer = self.timer.saturating_sub(t_cycles as i16);
+
+        if self.timer > 0 {
+            return;
+        }
+
+        if self.enabled {
+            self.output = if DUTY_TABLE[self.wave_duty as usize][self.sequence as usize] == 1 {
+                self.volume
+            } else {
+                0
+            };
+        } else {
+            self.output = 0;
+        }
+
+        self.timer += ((2048 - self.period) << 2) as i16;
+        self.sequence = (self.sequence + 1) & 0x07;
+    }
+
     pub fn tick_sweep(&mut self) {
         if self.sweep_pace == Some(0) {
-            //self.enabled = false;
             return;
         }
 
@@ -110,8 +144,46 @@ impl SquareChannel {
         }
     }
 
+    pub fn tick_envelope(&mut self) {
+        if !self.enabled || !self.envelope_enabled {
+            return;
+        }
+
+        self.envelope_sequence += 1;
+
+        if self.envelope_sequence >= self.pace {
+            self.volume = if self.direction {
+                self.volume.saturating_add(1)
+            } else {
+                self.volume.saturating_sub(1)
+            };
+
+            if self.volume == 0 || self.volume == 15 {
+                self.envelope_enabled = false;
+            }
+
+            self.envelope_sequence = 0;
+        }
+    }
+
+    pub fn trigger(&mut self, sequencer_tick: &mut u8) {
+        self.timer = ((2048 - self.period) << 2) as i16;
+        self.envelope_sequence = 0;
+
+        if self.sweep_sequence.is_some() {
+            self.sweep_sequence = Some(0);
+        }
+
+        if self.length_timer >= LENGTH_TIMER_MAX {
+            self.length_timer = 0;
+            if self.length_enable && *sequencer_tick % 2 == 1 {
+                self.tick_length_timer();
+            }
+        }
+    }
+
     pub fn read_byte(&self, base_address: u16, address: u16) -> u8 {
-        let address = address - base_address;
+        let address = if address < 0xFF16 {address - base_address} else {(address - base_address) + 1};
 
         match address {
             SWEEP => self.get_sweep(),
@@ -126,15 +198,21 @@ impl SquareChannel {
         }
     }
 
-    pub fn write_byte(&mut self, base_address: u16, address: u16, value: u8) {
-        let address = address - base_address;
+    pub fn write_byte(
+        &mut self,
+        base_address: u16,
+        address: u16,
+        value: u8,
+        sequencer_tick: &mut u8,
+    ) {
+        let address = if address < 0xFF16 {address - base_address} else {(address - base_address) + 1};
 
         match address {
             SWEEP => self.set_sweep(value),
             LENGTH_TIMER => self.set_length_timer(value),
             VOLUME_ENVELOPE => self.set_volume_envelope(value),
             PERIOD_LOW => self.set_period_low(value),
-            PERIOD_HIGH => self.set_period_high(value),
+            PERIOD_HIGH => self.set_period_high(value, sequencer_tick),
             _ => eprintln!(
                 "Unknown address: {:#X} Can't write byte: {:#X}.",
                 address, value
@@ -156,8 +234,8 @@ impl SquareChannel {
 
     fn set_sweep(&mut self, value: u8) {
         self.sweep_shift = Some(value & 0x07);
-        self.sweep_direction = Some(value & 0x08 == 0x00);
-        self.sweep_pace = Some(value & 0x70);
+        self.sweep_direction = Some((value & 0x08) == 0x00);
+        self.sweep_pace = Some((value & 0x70) >> 4);
         self.sweep_sequence = Some(0);
     }
 
@@ -211,14 +289,46 @@ impl SquareChannel {
         period_high | length_enable | triggered
     }
 
-    fn set_period_high(&mut self, value: u8) {
+    fn set_period_high(&mut self, value: u8, sequencer_tick: &mut u8) {
+        let length_enable = value & 0x40 != 0;
+        let triggered = value & 0x80 != 0;
+        let length_edge = length_enable && !self.length_enable;
         self.period = (self.period & 0x00FF) | ((value & 0x07) as u16) << 8;
-        self.length_enable = value & 0x40 != 0;
-        self.triggered = value & 0x80 != 0;
+        self.length_enable = length_enable;
+        self.enabled |= triggered;
 
-        // Triggering a channel causes it to turn on if it wasn’t
-        if self.triggered {
-            self.enabled = true;
+        if length_edge && *sequencer_tick % 2 == 1 {
+            self.tick_length_timer();
         }
+
+        if triggered {
+            self.trigger(sequencer_tick);
+        }
+
+        if length_enable && self.length_timer >= LENGTH_TIMER_MAX {
+            self.enabled = false;
+        }
+    }
+
+    pub fn reset(&mut self) {
+        self.enabled = false;
+        self.timer = 0;
+        self.sequence = 0;
+        self.output = 0;
+        self.convert = false;
+        self.period = 0;
+        self.envelope_enabled = false;
+        self.envelope_sequence = 0;
+        self.sweep_sequence = Some(0);
+        self.sweep_shift = Some(0);
+        self.sweep_direction = Some(true);
+        self.sweep_pace = Some(0);
+        self.length_timer = 0;
+        self.wave_duty = 0;
+        self.pace = 0;
+        self.direction = true;
+        self.volume = 0;
+        self.length_enable = false;
+        self.triggered = false;
     }
 }

@@ -60,7 +60,7 @@ const INTERRUPT_ENABLE: u16 = 0xFFFF;
 pub struct MemoryBus {
     cartridge: Cartridge,
     pub ppu: Ppu,
-    apu: Apu,
+    pub apu: Apu,
     wram: [u8; 8192],
     hram: [u8; 128],
     pub interrupt_enable: u8,

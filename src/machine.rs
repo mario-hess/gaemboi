@@ -4,7 +4,7 @@
  * @author  Mario Hess
  * @date    November 06, 2023
  */
-use sdl2::{pixels::Color, ttf::Sdl2TtfContext, EventPump, VideoSubsystem};
+use sdl2::{audio::AudioQueue, pixels::Color, ttf::Sdl2TtfContext, EventPump, VideoSubsystem};
 
 use crate::{
     clock::Clock,
@@ -40,6 +40,7 @@ impl Machine {
         video_subsystem: &VideoSubsystem,
         ttf_context: &Sdl2TtfContext,
         viewport: &mut Window,
+        audio_device: &mut AudioQueue<f32>,
     ) {
         let frame_duration = std::time::Duration::from_millis((1000.0 / FPS) as u64);
         let mut debug_windows = DebugWindows::build(video_subsystem, ttf_context, config);
@@ -64,6 +65,16 @@ impl Machine {
                 let m_cycles = self.cpu.tick();
                 self.cpu.memory_bus.tick(m_cycles, &mut viewport.canvas);
                 self.clock.tick(m_cycles);
+                let audio_buffer = self
+                    .cpu
+                    .memory_bus
+                    .apu
+                    .audio_buffer
+                    .iter()
+                    .map(|v| (*v as f32) / 64.0)
+                    .collect::<Vec<f32>>();
+                audio_device.queue_audio(audio_buffer.as_slice()).unwrap();
+                self.cpu.memory_bus.apu.audio_buffer.clear();
             }
 
             self.clock.reset();

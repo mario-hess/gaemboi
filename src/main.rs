@@ -35,6 +35,7 @@ use std::{
     io::{Error, Read},
 };
 
+use sdl2::audio::{AudioQueue, AudioSpecDesired};
 use sdl2::ttf::init;
 
 use crate::{
@@ -60,6 +61,19 @@ fn main() -> Result<(), Error> {
     // Initialize SDL2
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
+
+    let audio_subsystem = sdl_context.audio().unwrap();
+    let desired_spec = AudioSpecDesired {
+        freq: Some(44100),
+        channels: Some(2),
+        samples: Some(4096),
+    };
+
+    let mut audio_device = audio_subsystem
+        .open_queue::<f32, _>(None, &desired_spec)
+        .unwrap();
+    audio_device.resume();
+
     let controller_subsystem = sdl_context.game_controller().unwrap();
 
     // Initialize gamepad
@@ -138,6 +152,7 @@ fn main() -> Result<(), Error> {
                     &video_subsystem,
                     &ttf_context,
                     &mut viewport,
+                    &mut audio_device,
                 );
 
                 machine

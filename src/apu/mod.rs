@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 mod channel;
 mod mixer;
 
@@ -32,6 +34,7 @@ pub const AUDIO_START: u16 = CH1_START;
 pub const AUDIO_END: u16 = WAVE_PATTERN_END;
 
 pub struct Apu {
+    sampling_rate: u16,
     ch1: SquareChannel,
     ch2: SquareChannel,
     ch3: WaveChannel,
@@ -42,11 +45,17 @@ pub struct Apu {
     enabled: bool,
     clock: u16,
     sequencer_tick: u8,
+    output_timer: i16,
+    pub audio_buffer: VecDeque<u8>,
+    audio_buffer_max: usize,
 }
 
 impl Apu {
     pub fn new() -> Self {
+        let sampling_rate = 44100;
+
         Self {
+            sampling_rate,
             ch1: SquareChannel::new(ChannelType::CH1),
             ch2: SquareChannel::new(ChannelType::CH2),
             ch3: WaveChannel::new(),
@@ -57,6 +66,9 @@ impl Apu {
             enabled: false,
             clock: 0,
             sequencer_tick: 0,
+            output_timer: 0,
+            audio_buffer: VecDeque::with_capacity(sampling_rate as usize),
+            audio_buffer_max: sampling_rate as usize,
         }
     }
 
@@ -96,8 +108,8 @@ impl Apu {
                     self.ch1.tick_sweep();
                     self.tick_length_timers();
                 }
-                7 => {} // Tick envelope
-                _ => unreachable!()
+                7 => self.tick_envelopes(),
+                _ => {}
             }
 
             self.clock -= CYCLES_DIV;
@@ -106,7 +118,34 @@ impl Apu {
             self.sequencer_tick = (self.sequencer_tick + 1) & 0x07;
         }
 
-        // Tick channels
+        self.tick_channels(m_cycles);
+
+        self.output_timer = self.output_timer.saturating_sub(t_cycles as i16);
+        if self.output_timer <= 0 {
+            let (output_left, output_right) = self.mixer.mix(
+                &self.ch1,
+                &self.ch2,
+                &self.ch3,
+                &self.ch4,
+            );
+
+            if self.audio_buffer.len() >= self.audio_buffer_max {
+                self.audio_buffer.pop_front();
+                self.audio_buffer.pop_front();
+            }
+
+            self.audio_buffer.push_back(output_left);
+            self.audio_buffer.push_back(output_right);
+
+            self.output_timer += (CPU_CLOCK_SPEED as f32 / self.sampling_rate as f32) as i16;
+        }
+    }
+
+    fn tick_channels(&mut self, m_cycles: u8) {
+        self.ch1.tick(m_cycles);
+        self.ch2.tick(m_cycles);
+        self.ch3.tick(m_cycles);
+        self.ch4.tick(m_cycles);
     }
 
     fn tick_length_timers(&mut self) {
@@ -114,6 +153,12 @@ impl Apu {
         self.ch2.tick_length_timer();
         self.ch3.tick_length_timer();
         self.ch4.tick_length_timer();
+    }
+
+    fn tick_envelopes(&mut self) {
+        self.ch1.tick_envelope();
+        self.ch2.tick_envelope();
+        self.ch4.tick_envelope();
     }
 
     pub fn read_byte(&self, address: u16) -> u8 {
@@ -140,10 +185,20 @@ impl Apu {
         }
 
         match address {
-            CH1_START..=CH1_END => self.ch1.write_byte(CH1_START, address, value),
-            CH2_START..=CH2_END => self.ch2.write_byte(CH2_START, address, value),
-            CH3_START..=CH3_END => self.ch3.write_byte(address, value),
-            CH4_START..=CH4_END => self.ch4.write_byte(address, value),
+            CH1_START..=CH1_END => {
+                self.ch1
+                    .write_byte(CH1_START, address, value, &mut self.sequencer_tick)
+            }
+            CH2_START..=CH2_END => {
+                self.ch2
+                    .write_byte(CH2_START, address, value, &mut self.sequencer_tick)
+            }
+            CH3_START..=CH3_END => self
+                .ch3
+                .write_byte(address, value, &mut self.sequencer_tick),
+            CH4_START..=CH4_END => self
+                .ch4
+                .write_byte(address, value, &mut self.sequencer_tick),
             MASTER_VOLUME => self.set_master_volume(value),
             PANNING => self.mixer.set_panning(value),
             MASTER_CONTROL => self.set_master_control(value),
@@ -169,7 +224,7 @@ impl Apu {
         self.enabled = value & 0x80 != 0;
 
         if !self.enabled {
-            // TODO: Clear all registers
+            self.reset();
         }
     }
 
@@ -183,5 +238,20 @@ impl Apu {
     fn set_master_volume(&mut self, value: u8) {
         self.right_volume = (value & 0x07) + 1;
         self.left_volume = ((value & 0x70) >> 4) + 1;
+    }
+
+    fn reset(&mut self) {
+        self.ch1.reset();
+        self.ch2.reset();
+        self.ch3.reset();
+        self.ch4.reset();
+        self.mixer.reset();
+
+        self.left_volume = 0;
+        self.right_volume = 0;
+        self.clock = 0;
+        self.sequencer_tick = 0;
+        self.output_timer = 0;
+        self.audio_buffer.clear();
     }
 }
