@@ -1,16 +1,18 @@
-use std::collections::VecDeque;
-
 mod channel;
+mod frame_sequencer;
 mod mixer;
+
+use std::collections::VecDeque;
 
 use crate::apu::channel::noise_channel::NoiseChannel;
 use crate::apu::channel::square_channel::{ChannelType, SquareChannel};
 use crate::apu::channel::wave_channel::{WaveChannel, WAVE_PATTERN_END, WAVE_PATTERN_START};
+use crate::apu::frame_sequencer::FrameSequencer;
 use crate::apu::mixer::Mixer;
+use crate::audio::SAMPLING_FREQUENCY;
 use crate::clock::CPU_CLOCK_SPEED;
 
-const APU_CLOCK_SPEED: u16 = 512;
-const CYCLES_DIV: u16 = (CPU_CLOCK_SPEED / APU_CLOCK_SPEED as u32) as u16;
+pub const APU_CLOCK_SPEED: u16 = 512;
 
 pub const LENGTH_TIMER_MAX: u8 = 64;
 
@@ -33,42 +35,47 @@ const MASTER_CONTROL: u16 = 0xFF26; // NR52
 pub const AUDIO_START: u16 = CH1_START;
 pub const AUDIO_END: u16 = WAVE_PATTERN_END;
 
+pub enum AudioBuffer {
+    Buffer1,
+    Buffer2,
+}
+
 pub struct Apu {
-    sampling_rate: u16,
     ch1: SquareChannel,
     ch2: SquareChannel,
     ch3: WaveChannel,
     ch4: NoiseChannel,
+    frame_sequencer: FrameSequencer,
     mixer: Mixer,
     right_volume: u8,
     left_volume: u8,
     enabled: bool,
-    clock: u16,
     sequencer_tick: u8,
-    output_timer: i16,
-    pub audio_buffer: VecDeque<u8>,
-    audio_buffer_max: usize,
+    output_timer: f32,
+    pub audio_buffer1: VecDeque<u8>,
+    pub audio_buffer2: VecDeque<u8>,
+    pub current_audio_buffer: AudioBuffer,
+    pub buffer_full: bool,
 }
 
 impl Apu {
     pub fn new() -> Self {
-        let sampling_rate = 44100;
-
         Self {
-            sampling_rate,
             ch1: SquareChannel::new(ChannelType::CH1),
             ch2: SquareChannel::new(ChannelType::CH2),
             ch3: WaveChannel::new(),
             ch4: NoiseChannel::new(),
+            frame_sequencer: FrameSequencer::new(),
             mixer: Mixer::default(),
             right_volume: 0,
             left_volume: 0,
             enabled: false,
-            clock: 0,
             sequencer_tick: 0,
-            output_timer: 0,
-            audio_buffer: VecDeque::with_capacity(sampling_rate as usize),
-            audio_buffer_max: sampling_rate as usize,
+            output_timer: 0.0,
+            audio_buffer1: VecDeque::new(),
+            audio_buffer2: VecDeque::new(),
+            current_audio_buffer: AudioBuffer::Buffer1,
+            buffer_full: false,
         }
     }
 
@@ -78,66 +85,52 @@ impl Apu {
         }
 
         let t_cycles = (m_cycles * 4) as u16;
-        self.clock += t_cycles;
 
-        /*
-        Every 8192 T-cycles (512 Hz) the frame sequencer is stepped and might clock other units
-        Step   Length Ctr  Vol Env     Sweep
-        ---------------------------------------
-        0      Clock       -           -
-        1      -           -           -
-        2      Clock       -           Clock
-        3      -           -           -
-        4      Clock       -           -
-        5      -           -           -
-        6      Clock       -           Clock
-        7      -           Clock       -
-        ---------------------------------------
-        Rate   256 Hz      64 Hz       128 Hz
-        */
-
-        if self.clock >= CYCLES_DIV {
-            match self.sequencer_tick {
-                0 => self.tick_length_timers(),
-                2 => {
-                    self.ch1.tick_sweep();
-                    self.tick_length_timers();
-                }
-                4 => self.tick_length_timers(),
-                6 => {
-                    self.ch1.tick_sweep();
-                    self.tick_length_timers();
-                }
-                7 => self.tick_envelopes(),
-                _ => {}
-            }
-
-            self.clock -= CYCLES_DIV;
-
-            // Repeat step 0-7 without reset
-            self.sequencer_tick = (self.sequencer_tick + 1) & 0x07;
-        }
+        self.frame_sequencer.tick(
+            t_cycles,
+            &mut self.ch1,
+            &mut self.ch2,
+            &mut self.ch3,
+            &mut self.ch4,
+        );
 
         self.tick_channels(m_cycles);
 
-        self.output_timer = self.output_timer.saturating_sub(t_cycles as i16);
-        if self.output_timer <= 0 {
-            let (output_left, output_right) = self.mixer.mix(
-                &self.ch1,
-                &self.ch2,
-                &self.ch3,
-                &self.ch4,
-            );
+        self.output_timer += t_cycles as f32;
+        while self.output_timer >= (CPU_CLOCK_SPEED as f32 / SAMPLING_FREQUENCY as f32) {
+            let (output_left, output_right) =
+                self.mixer.mix(&self.ch1, &self.ch2, &self.ch3, &self.ch4);
 
-            if self.audio_buffer.len() >= self.audio_buffer_max {
-                self.audio_buffer.pop_front();
-                self.audio_buffer.pop_front();
+            self.audio_buffer1.push_back(output_left);
+            self.audio_buffer1.push_back(output_right);
+            //println!("{:?}", self.audio_buffer1.len());
+            /*
+            match self.current_audio_buffer {
+                AudioBuffer::Buffer1 => {
+                    self.audio_buffer1.push_back(output_left);
+                    self.audio_buffer1.push_back(output_right);
+
+                    if self.audio_buffer1.len() >= 8192 {
+                        self.audio_buffer2.clear();
+                        self.current_audio_buffer = AudioBuffer::Buffer2;
+                        println!("B1 Full");
+                        self.buffer_full = true;
+                    }
+                }
+                AudioBuffer::Buffer2 => {
+                    self.audio_buffer2.push_back(output_left);
+                    self.audio_buffer2.push_back(output_right);
+
+                    if self.audio_buffer2.len() >= 8192 {
+                        self.audio_buffer1.clear();
+                        self.current_audio_buffer = AudioBuffer::Buffer1;
+                        println!("B2 Full");
+                    }
+                }
             }
+            */
 
-            self.audio_buffer.push_back(output_left);
-            self.audio_buffer.push_back(output_right);
-
-            self.output_timer += (CPU_CLOCK_SPEED as f32 / self.sampling_rate as f32) as i16;
+            self.output_timer -= CPU_CLOCK_SPEED as f32 / SAMPLING_FREQUENCY as f32;
         }
     }
 
@@ -146,19 +139,6 @@ impl Apu {
         self.ch2.tick(m_cycles);
         self.ch3.tick(m_cycles);
         self.ch4.tick(m_cycles);
-    }
-
-    fn tick_length_timers(&mut self) {
-        self.ch1.tick_length_timer();
-        self.ch2.tick_length_timer();
-        self.ch3.tick_length_timer();
-        self.ch4.tick_length_timer();
-    }
-
-    fn tick_envelopes(&mut self) {
-        self.ch1.tick_envelope();
-        self.ch2.tick_envelope();
-        self.ch4.tick_envelope();
     }
 
     pub fn read_byte(&self, address: u16) -> u8 {
@@ -245,13 +225,14 @@ impl Apu {
         self.ch2.reset();
         self.ch3.reset();
         self.ch4.reset();
+        self.frame_sequencer.reset();
         self.mixer.reset();
 
         self.left_volume = 0;
         self.right_volume = 0;
-        self.clock = 0;
         self.sequencer_tick = 0;
-        self.output_timer = 0;
-        self.audio_buffer.clear();
+        self.output_timer = 0.0;
+        self.audio_buffer1.clear();
+        self.audio_buffer2.clear();
     }
 }

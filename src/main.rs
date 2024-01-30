@@ -11,6 +11,7 @@
  *      (https://docs.rs/rfd/latest/rfd/)
  */
 mod apu;
+mod audio;
 mod boot_sequence;
 mod cartridge;
 mod clock;
@@ -62,17 +63,19 @@ fn main() -> Result<(), Error> {
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
-    let audio_subsystem = sdl_context.audio().unwrap();
+    let mut audio_subsystem = sdl_context.audio().unwrap();
+    /*
     let desired_spec = AudioSpecDesired {
         freq: Some(44100),
         channels: Some(2),
-        samples: Some(4096),
+        samples: Some(256),
     };
 
     let mut audio_device = audio_subsystem
         .open_queue::<f32, _>(None, &desired_spec)
         .unwrap();
     audio_device.resume();
+    */
 
     let controller_subsystem = sdl_context.game_controller().unwrap();
 
@@ -152,7 +155,8 @@ fn main() -> Result<(), Error> {
                     &video_subsystem,
                     &ttf_context,
                     &mut viewport,
-                    &mut audio_device,
+                    //&mut audio_device,
+                    &mut audio_subsystem,
                 );
 
                 machine

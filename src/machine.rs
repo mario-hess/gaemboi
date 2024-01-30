@@ -4,9 +4,16 @@
  * @author  Mario Hess
  * @date    November 06, 2023
  */
-use sdl2::{audio::AudioQueue, pixels::Color, ttf::Sdl2TtfContext, EventPump, VideoSubsystem};
+use sdl2::{
+    audio::{AudioCallback, AudioQueue, AudioSpecDesired},
+    pixels::Color,
+    ttf::Sdl2TtfContext,
+    AudioSubsystem, EventPump, VideoSubsystem,
+};
 
 use crate::{
+    apu::AudioBuffer,
+    audio::{Audio, SAMPLING_RATE, SAMPLING_FREQUENCY},
     clock::Clock,
     config::Config,
     cpu::Cpu,
@@ -17,7 +24,7 @@ use crate::{
     MachineState,
 };
 
-pub const FPS: f32 = 60.0;
+pub const FPS: f32 = 59.73;
 
 pub struct Machine {
     pub cpu: Cpu,
@@ -40,13 +47,33 @@ impl Machine {
         video_subsystem: &VideoSubsystem,
         ttf_context: &Sdl2TtfContext,
         viewport: &mut Window,
-        audio_device: &mut AudioQueue<f32>,
+        //audio_device: &mut AudioQueue<f32>,
+        audio_subsystem: &mut AudioSubsystem,
     ) {
+        let device = AudioSpecDesired {
+            freq: Some(SAMPLING_FREQUENCY as i32),
+            samples: Some(SAMPLING_RATE),
+            channels: Some(2),
+        };
+        let current_buffer = &self.cpu.memory_bus.apu.current_audio_buffer;
+        let audio_buffer1 = &mut self.cpu.memory_bus.apu.audio_buffer1;
+        let audio_buffer2 = &mut self.cpu.memory_bus.apu.audio_buffer2;
+        let audio = Audio::new(current_buffer, audio_buffer1, audio_buffer2);
+
+        let audio_device = audio_subsystem
+            .open_playback(None, &device, |_spec| audio)
+            .unwrap();
+
+
         let frame_duration = std::time::Duration::from_millis((1000.0 / FPS) as u64);
         let mut debug_windows = DebugWindows::build(video_subsystem, ttf_context, config);
 
+        audio_device.resume();
+
         // Core emulation loop
         while !event_handler.pressed_escape {
+            let frame_start_time = std::time::Instant::now();
+
             event_handler.poll(event_pump);
             event_handler.check_resized(&mut viewport.canvas);
             self.cpu.memory_bus.joypad.handle_input(event_handler);
@@ -56,8 +83,6 @@ impl Machine {
                 break;
             }
 
-            let frame_start_time = std::time::Instant::now();
-
             debug_windows.clear();
 
             // Component tick
@@ -65,16 +90,6 @@ impl Machine {
                 let m_cycles = self.cpu.tick();
                 self.cpu.memory_bus.tick(m_cycles, &mut viewport.canvas);
                 self.clock.tick(m_cycles);
-                let audio_buffer = self
-                    .cpu
-                    .memory_bus
-                    .apu
-                    .audio_buffer
-                    .iter()
-                    .map(|v| (*v as f32) / 64.0)
-                    .collect::<Vec<f32>>();
-                audio_device.queue_audio(audio_buffer.as_slice()).unwrap();
-                self.cpu.memory_bus.apu.audio_buffer.clear();
             }
 
             self.clock.reset();
@@ -83,7 +98,7 @@ impl Machine {
             viewport.canvas.present();
             debug_windows.present();
 
-            // Tick at 60 Hz
+            // Tick at 59.73 Hz
             let elapsed_time = frame_start_time.elapsed();
             if elapsed_time < frame_duration {
                 std::thread::sleep(frame_duration - elapsed_time);

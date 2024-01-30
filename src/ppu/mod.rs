@@ -297,7 +297,7 @@ impl Ppu {
     fn set_lcd_control(&mut self, value: u8) {
         self.lcd_control.set(value);
 
-        if self.enabled && !self.lcd_control.lcd_enabled {
+        if !self.lcd_control.lcd_enabled {
             self.clear_screen();
             self.lyw = 0;
             self.set_ly(0);
