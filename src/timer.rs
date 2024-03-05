@@ -56,7 +56,7 @@ impl Timer {
         self.div_clock += t_cycles;
 
         while self.div_clock >= CYCLES_DIV {
-            self.div = self.div.saturating_add(1);
+            self.div = self.div.wrapping_add(1);
             self.div_clock -= CYCLES_DIV;
         }
 
@@ -79,7 +79,7 @@ impl Timer {
                 return;
             }
 
-            self.tima = self.tima.saturating_add(1);
+            self.tima = self.tima.wrapping_add(1);
             self.tima_counter -= self.tac_cycles;
         }
     }

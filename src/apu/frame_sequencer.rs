@@ -5,7 +5,7 @@ const CYCLES_DIV: u16 = (CPU_CLOCK_SPEED / APU_CLOCK_SPEED as u32) as u16;
 
 pub struct FrameSequencer {
     clock: u16,
-    step: u8,
+    pub step: u8,
 }
 
 impl FrameSequencer {
@@ -57,7 +57,7 @@ impl FrameSequencer {
 
             self.clock -= CYCLES_DIV;
 
-            // Repeat step 0-7 without reset
+            // Repeat step 0-7
             self.step = (self.step + 1) & 0x07;
         }
     }

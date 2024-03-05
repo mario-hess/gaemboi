@@ -9,12 +9,13 @@ use crate::apu::channel::square_channel::{ChannelType, SquareChannel};
 use crate::apu::channel::wave_channel::{WaveChannel, WAVE_PATTERN_END, WAVE_PATTERN_START};
 use crate::apu::frame_sequencer::FrameSequencer;
 use crate::apu::mixer::Mixer;
-use crate::audio::SAMPLING_FREQUENCY;
+use crate::audio::{SAMPLING_FREQUENCY, SAMPLING_RATE};
 use crate::clock::CPU_CLOCK_SPEED;
 
 pub const APU_CLOCK_SPEED: u16 = 512;
-
 pub const LENGTH_TIMER_MAX: u8 = 64;
+
+const AUDIO_BUFFER_SIZE: usize = SAMPLING_RATE as usize * 2 + 2048;
 
 const CH1_START: u16 = 0xFF10;
 const CH1_END: u16 = 0xFF14;
@@ -35,11 +36,6 @@ const MASTER_CONTROL: u16 = 0xFF26; // NR52
 pub const AUDIO_START: u16 = CH1_START;
 pub const AUDIO_END: u16 = WAVE_PATTERN_END;
 
-pub enum AudioBuffer {
-    Buffer1,
-    Buffer2,
-}
-
 pub struct Apu {
     ch1: SquareChannel,
     ch2: SquareChannel,
@@ -50,12 +46,8 @@ pub struct Apu {
     right_volume: u8,
     left_volume: u8,
     enabled: bool,
-    sequencer_tick: u8,
     output_timer: f32,
-    pub audio_buffer1: VecDeque<u8>,
-    pub audio_buffer2: VecDeque<u8>,
-    pub current_audio_buffer: AudioBuffer,
-    pub buffer_full: bool,
+    pub audio_buffer: VecDeque<u8>,
 }
 
 impl Apu {
@@ -70,12 +62,8 @@ impl Apu {
             right_volume: 0,
             left_volume: 0,
             enabled: false,
-            sequencer_tick: 0,
             output_timer: 0.0,
-            audio_buffer1: VecDeque::new(),
-            audio_buffer2: VecDeque::new(),
-            current_audio_buffer: AudioBuffer::Buffer1,
-            buffer_full: false,
+            audio_buffer: VecDeque::with_capacity(AUDIO_BUFFER_SIZE),
         }
     }
 
@@ -101,34 +89,14 @@ impl Apu {
             let (output_left, output_right) =
                 self.mixer.mix(&self.ch1, &self.ch2, &self.ch3, &self.ch4);
 
-            self.audio_buffer1.push_back(output_left);
-            self.audio_buffer1.push_back(output_right);
-            //println!("{:?}", self.audio_buffer1.len());
-            /*
-            match self.current_audio_buffer {
-                AudioBuffer::Buffer1 => {
-                    self.audio_buffer1.push_back(output_left);
-                    self.audio_buffer1.push_back(output_right);
-
-                    if self.audio_buffer1.len() >= 8192 {
-                        self.audio_buffer2.clear();
-                        self.current_audio_buffer = AudioBuffer::Buffer2;
-                        println!("B1 Full");
-                        self.buffer_full = true;
-                    }
-                }
-                AudioBuffer::Buffer2 => {
-                    self.audio_buffer2.push_back(output_left);
-                    self.audio_buffer2.push_back(output_right);
-
-                    if self.audio_buffer2.len() >= 8192 {
-                        self.audio_buffer1.clear();
-                        self.current_audio_buffer = AudioBuffer::Buffer1;
-                        println!("B2 Full");
-                    }
-                }
+            // Synchronize CPU clocks speed with audio frequency
+            while self.audio_buffer.len() >= AUDIO_BUFFER_SIZE - 1 {
+                let duration = std::time::Duration::from_millis(1);
+                std::thread::sleep(duration);
             }
-            */
+
+            self.audio_buffer.push_back(output_left);
+            self.audio_buffer.push_back(output_right);
 
             self.output_timer -= CPU_CLOCK_SPEED as f32 / SAMPLING_FREQUENCY as f32;
         }
@@ -167,18 +135,18 @@ impl Apu {
         match address {
             CH1_START..=CH1_END => {
                 self.ch1
-                    .write_byte(CH1_START, address, value, &mut self.sequencer_tick)
+                    .write_byte(CH1_START, address, value, &mut self.frame_sequencer.step)
             }
             CH2_START..=CH2_END => {
                 self.ch2
-                    .write_byte(CH2_START, address, value, &mut self.sequencer_tick)
+                    .write_byte(CH2_START, address, value, &mut self.frame_sequencer.step)
             }
             CH3_START..=CH3_END => self
                 .ch3
-                .write_byte(address, value, &mut self.sequencer_tick),
+                .write_byte(address, value, &mut self.frame_sequencer.step),
             CH4_START..=CH4_END => self
                 .ch4
-                .write_byte(address, value, &mut self.sequencer_tick),
+                .write_byte(address, value, &mut self.frame_sequencer.step),
             MASTER_VOLUME => self.set_master_volume(value),
             PANNING => self.mixer.set_panning(value),
             MASTER_CONTROL => self.set_master_control(value),
@@ -208,6 +176,9 @@ impl Apu {
         }
     }
 
+    // NR50: Master volume
+    // A value of 0 is treated as a volume of 1 (very quiet),
+    // and a value of 7 is treated as a volume of 8 
     fn get_master_volume(&self) -> u8 {
         let right_volume = self.right_volume - 1;
         let left_volume = (self.left_volume - 1) << 4;
@@ -230,9 +201,7 @@ impl Apu {
 
         self.left_volume = 0;
         self.right_volume = 0;
-        self.sequencer_tick = 0;
         self.output_timer = 0.0;
-        self.audio_buffer1.clear();
-        self.audio_buffer2.clear();
+        self.audio_buffer.clear();
     }
 }

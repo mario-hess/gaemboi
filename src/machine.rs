@@ -12,7 +12,6 @@ use sdl2::{
 };
 
 use crate::{
-    apu::AudioBuffer,
     audio::{Audio, SAMPLING_RATE, SAMPLING_FREQUENCY},
     clock::Clock,
     config::Config,
@@ -39,6 +38,7 @@ impl Machine {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn run(
         &mut self,
         config: &mut Config,
@@ -47,7 +47,6 @@ impl Machine {
         video_subsystem: &VideoSubsystem,
         ttf_context: &Sdl2TtfContext,
         viewport: &mut Window,
-        //audio_device: &mut AudioQueue<f32>,
         audio_subsystem: &mut AudioSubsystem,
     ) {
         let device = AudioSpecDesired {
@@ -55,10 +54,8 @@ impl Machine {
             samples: Some(SAMPLING_RATE),
             channels: Some(2),
         };
-        let current_buffer = &self.cpu.memory_bus.apu.current_audio_buffer;
-        let audio_buffer1 = &mut self.cpu.memory_bus.apu.audio_buffer1;
-        let audio_buffer2 = &mut self.cpu.memory_bus.apu.audio_buffer2;
-        let audio = Audio::new(current_buffer, audio_buffer1, audio_buffer2);
+        let audio_buffer = &mut self.cpu.memory_bus.apu.audio_buffer;
+        let audio = Audio::new(audio_buffer);
 
         let audio_device = audio_subsystem
             .open_playback(None, &device, |_spec| audio)

@@ -50,28 +50,28 @@ impl Mixer {
             &mut output_right,
             self.ch1_left,
             self.ch1_right,
-            ch1.output,
+            ch1.get_output(),
         );
         mix_channel(
             &mut output_left,
             &mut output_right,
             self.ch2_left,
             self.ch2_right,
-            ch2.output,
+            ch2.get_output(),
         );
         mix_channel(
             &mut output_left,
             &mut output_right,
             self.ch3_left,
             self.ch3_right,
-            ch3.output,
+            ch3.get_output(),
         );
         mix_channel(
             &mut output_left,
             &mut output_right,
             self.ch4_left,
             self.ch4_right,
-            ch4.output,
+            ch4.get_output(),
         );
 
         (output_left / 4, output_right / 4)
@@ -122,17 +122,17 @@ impl std::convert::From<Mixer> for u8 {
 }
 
 fn mix_channel(
-    buffer_left: &mut u8,
-    buffer_right: &mut u8,
+    output_left: &mut u8,
+    output_right: &mut u8,
     ch_left: bool,
     ch_right: bool,
     output: u8,
 ) {
     if ch_left {
-        *buffer_left += output;
+        *output_left += output;
     }
 
     if ch_right {
-        *buffer_right += output;
+        *output_right += output;
     }
 }
