@@ -4,9 +4,10 @@
  * @author  Mario Hess
  * @date    October 20, 2023
  */
-use sdl2::{render::Canvas, video::Window};
+use sdl2::{render::Canvas, video::Window, audio::AudioDevice, AudioSubsystem};
 
 use crate::{
+    audio::Audio,
     apu::{Apu, AUDIO_END, AUDIO_START},
     cartridge::Cartridge,
     joypad::Joypad,
@@ -60,7 +61,7 @@ const INTERRUPT_ENABLE: u16 = 0xFFFF;
 pub struct MemoryBus {
     cartridge: Cartridge,
     pub ppu: Ppu,
-    apu: Apu,
+    pub apu: Apu,
     wram: [u8; 8192],
     hram: [u8; 128],
     pub interrupt_enable: u8,

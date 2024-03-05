@@ -11,6 +11,7 @@
  *      (https://docs.rs/rfd/latest/rfd/)
  */
 mod apu;
+mod audio;
 mod boot_sequence;
 mod cartridge;
 mod clock;
@@ -27,7 +28,6 @@ mod menu;
 mod ppu;
 mod registers;
 mod timer;
-mod util;
 mod window;
 
 use std::{
@@ -61,6 +61,8 @@ fn main() -> Result<(), Error> {
     // Initialize SDL2
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
+
+    let mut audio_subsystem = sdl_context.audio().unwrap();
     let controller_subsystem = sdl_context.game_controller().unwrap();
 
     // Initialize gamepad
@@ -139,6 +141,7 @@ fn main() -> Result<(), Error> {
                     &video_subsystem,
                     &ttf_context,
                     &mut viewport,
+                    &mut audio_subsystem,
                 );
 
                 machine

@@ -1,31 +1,28 @@
-use crate::apu::{CH4_START, CH4_END  ,LENGTH_TIMER_MAX};
+use crate::apu::{CH4_END, CH4_START, LENGTH_TIMER_MAX};
 
 const LENGTH_TIMER: u16 = CH4_START; // NR41
 const VOLUME_ENVELOPE: u16 = 0xFF21; // NR42
 const FREQUENCY_RANDOMNESS: u16 = 0xFF22; // NR43
 const CONTROL: u16 = CH4_END; // NR44
 
+const DIVISORS: [u8; 8] = [8, 16, 32, 48, 64, 80, 96, 112];
+
 pub struct NoiseChannel {
     pub enabled: bool,
+    output: u8,
+    timer: i32,
+    lfsr: u16,
     convert: bool,
     envelope_enabled: bool,
     envelope_sequence: u8,
-
-    // NR41
     length_timer: u8,
-
-    // NR42
     pace: u8,
     direction: bool,
-    volume: u8,
-
-    // NR43
+    pub volume: u8,
     clock_divider: u8,
     lfsr_width: bool,
     clock_shift: u8,
-
-    // NR44
-    length_enable: bool,
+    length_enabled: bool,
     triggered: bool,
 }
 
@@ -33,6 +30,9 @@ impl NoiseChannel {
     pub fn new() -> Self {
         Self {
             enabled: false,
+            timer: 0,
+            output: 0,
+            lfsr: 0,
             convert: false,
             envelope_enabled: false,
             envelope_sequence: 0,
@@ -43,19 +43,79 @@ impl NoiseChannel {
             clock_divider: 0,
             lfsr_width: false,
             clock_shift: 0,
-            length_enable: false,
+            length_enabled: false,
             triggered: false,
         }
     }
 
+    pub fn tick(&mut self, m_cycles: u8) {
+        let t_cycles = (m_cycles * 4) as u16;
+        self.timer = self.timer.saturating_sub(t_cycles as i32);
+
+        if self.timer > 0 {
+            return;
+        }
+
+        if self.enabled {
+            let result = ((self.lfsr & 0x01) ^ ((self.lfsr >> 1) & 0x01)) != 0;
+
+            self.lfsr >>= 1;
+            self.lfsr |= if result { 0x01 << 14 } else { 0x00 };
+
+            if self.lfsr_width {
+                self.lfsr &= 0xBF;
+                self.lfsr |= if result { 0x40 } else { 0x00 };
+            }
+
+            self.output = if result { self.volume } else { 0x00 };
+        } else {
+            self.output = 0;
+        }
+
+        self.timer += ((DIVISORS[self.clock_divider as usize] as u16) << self.clock_shift) as i32;
+    }
+
     pub fn tick_length_timer(&mut self) {
-        if !self.length_enable || self.length_timer >= LENGTH_TIMER_MAX {
+        if !self.length_enabled || self.length_timer >= LENGTH_TIMER_MAX {
             return;
         }
 
         self.length_timer = self.length_timer.saturating_add(1);
         if self.length_timer >= LENGTH_TIMER_MAX {
             self.enabled = false;
+        }
+    }
+
+    pub fn tick_envelope(&mut self) {
+        if !self.enabled || !self.envelope_enabled {
+            return;
+        }
+
+        self.envelope_sequence += 1;
+        if self.envelope_sequence >= self.pace {
+            self.volume = if self.direction {
+                self.volume.saturating_add(1)
+            } else {
+                self.volume.saturating_sub(1)
+            };
+            if self.volume == 0 || self.volume == 15 {
+                self.envelope_enabled = false;
+            }
+
+            self.envelope_sequence = 0;
+        }
+    }
+
+    pub fn trigger(&mut self, sequencer_step: &mut u8) {
+        self.timer = ((DIVISORS[self.clock_divider as usize] as u16) << self.clock_shift) as i32;
+        self.lfsr = 0x7FF1;
+        self.envelope_sequence = 0;
+
+        if self.length_timer >= LENGTH_TIMER_MAX {
+            self.length_timer = 0;
+            if self.length_enabled && *sequencer_step % 2 == 1 {
+                self.tick_length_timer();
+            }
         }
     }
 
@@ -72,17 +132,21 @@ impl NoiseChannel {
         }
     }
 
-    pub fn write_byte(&mut self, address: u16, value: u8) {
+    pub fn write_byte(&mut self, address: u16, value: u8, sequencer_step: &mut u8) {
         match address {
             LENGTH_TIMER => self.set_length_timer(value),
             VOLUME_ENVELOPE => self.set_volume_envelope(value),
             FREQUENCY_RANDOMNESS => self.set_frequency_randomness(value),
-            CONTROL => self.set_control(value),
+            CONTROL => self.set_control(value, sequencer_step),
             _ => eprintln!(
                 "Unknown address: {:#X} Can't write byte: {:#X}.",
                 address, value
             ),
         }
+    }
+
+    pub fn get_output(&self) -> u8 {
+        if self.enabled { self.output } else { 0 }
     }
 
     fn get_length_timer(&self) -> u8 {
@@ -130,19 +194,54 @@ impl NoiseChannel {
     }
 
     fn get_control(&self) -> u8 {
-        let length_enable = if self.length_enable { 0x40 } else { 0x00 };
+        let length_enabled = if self.length_enabled { 0x40 } else { 0x00 };
         let triggered = if self.triggered { 0x80 } else { 0x00 };
 
-        length_enable | triggered
+        length_enabled | triggered
     }
 
-    fn set_control(&mut self, value: u8) {
-        self.length_enable = value & 0x40 != 0;
-        self.triggered = value & 0x80 != 0;
+    fn set_control(&mut self, value: u8, sequencer_step: &mut u8) {
+        let length_enabled = value & 0x40 != 0;
+        let triggered = value & 0x80 != 0;
+        let length_edge = length_enabled && !self.length_enabled;
+        self.length_enabled = length_enabled;
+        self.enabled |= triggered;
 
-        // Triggering a channel causes it to turn on if it wasn’t
-        if self.triggered {
-            self.enabled = true;
+        if length_edge && *sequencer_step % 2 == 1 {
+            self.tick_length_timer();
         }
+
+        if triggered {
+            self.trigger(sequencer_step);
+        }
+
+        if length_enabled && self.length_timer >= LENGTH_TIMER_MAX {
+            self.enabled = false;
+        }
+    }
+
+    pub fn reset(&mut self) {
+        self.enabled = false;
+        self.timer = 0;
+        self.output = 0;
+        self.lfsr = 0;
+        self.convert = false;
+        self.envelope_enabled = false;
+        self.envelope_sequence = 0;
+        self.length_timer = 0;
+        self.pace = 0;
+        self.direction = true;
+        self.volume = 0;
+        self.clock_divider = 0;
+        self.lfsr_width = false;
+        self.clock_shift = 0;
+        self.length_enabled = false;
+        self.triggered = false;
+    }
+}
+
+impl Default for NoiseChannel {
+    fn default() -> Self {
+        Self::new()
     }
 }

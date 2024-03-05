@@ -4,9 +4,15 @@
  * @author  Mario Hess
  * @date    November 06, 2023
  */
-use sdl2::{pixels::Color, ttf::Sdl2TtfContext, EventPump, VideoSubsystem};
+use sdl2::{
+    audio::{AudioCallback, AudioQueue, AudioSpecDesired},
+    pixels::Color,
+    ttf::Sdl2TtfContext,
+    AudioSubsystem, EventPump, VideoSubsystem,
+};
 
 use crate::{
+    audio::{Audio, SAMPLING_RATE, SAMPLING_FREQUENCY},
     clock::Clock,
     config::Config,
     cpu::Cpu,
@@ -17,7 +23,7 @@ use crate::{
     MachineState,
 };
 
-pub const FPS: f32 = 60.0;
+pub const FPS: f32 = 59.73;
 
 pub struct Machine {
     pub cpu: Cpu,
@@ -32,6 +38,7 @@ impl Machine {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn run(
         &mut self,
         config: &mut Config,
@@ -40,12 +47,30 @@ impl Machine {
         video_subsystem: &VideoSubsystem,
         ttf_context: &Sdl2TtfContext,
         viewport: &mut Window,
+        audio_subsystem: &mut AudioSubsystem,
     ) {
+        let device = AudioSpecDesired {
+            freq: Some(SAMPLING_FREQUENCY as i32),
+            samples: Some(SAMPLING_RATE),
+            channels: Some(2),
+        };
+        let audio_buffer = &mut self.cpu.memory_bus.apu.audio_buffer;
+        let audio = Audio::new(audio_buffer);
+
+        let audio_device = audio_subsystem
+            .open_playback(None, &device, |_spec| audio)
+            .unwrap();
+
+
         let frame_duration = std::time::Duration::from_millis((1000.0 / FPS) as u64);
         let mut debug_windows = DebugWindows::build(video_subsystem, ttf_context, config);
 
+        audio_device.resume();
+
         // Core emulation loop
         while !event_handler.pressed_escape {
+            let frame_start_time = std::time::Instant::now();
+
             event_handler.poll(event_pump);
             event_handler.check_resized(&mut viewport.canvas);
             self.cpu.memory_bus.joypad.handle_input(event_handler);
@@ -54,8 +79,6 @@ impl Machine {
                 event_handler.machine_state = MachineState::Boot;
                 break;
             }
-
-            let frame_start_time = std::time::Instant::now();
 
             debug_windows.clear();
 
@@ -72,7 +95,7 @@ impl Machine {
             viewport.canvas.present();
             debug_windows.present();
 
-            // Tick at 60 Hz
+            // Tick at 59.73 Hz
             let elapsed_time = frame_start_time.elapsed();
             if elapsed_time < frame_duration {
                 std::thread::sleep(frame_duration - elapsed_time);

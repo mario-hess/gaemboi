@@ -1,68 +1,97 @@
-use crate::apu::{CH3_START, CH3_END ,LENGTH_TIMER_MAX};
+use crate::apu::{CH3_END, CH3_START};
 
-const CONVERT_ENABLE: u16 = CH3_START; // NR30
+const DAC_ENABLE: u16 = CH3_START; // NR30
 const LENGTH_TIMER: u16 = 0xFF1B; // NR31
-const OUTPUT_LEVEL: u16 = 0xFF1C; // NR32
-const PERIOD_LOW: u16 = 0xFF1D; // NR33
-const PERIOD_HIGH: u16 = CH3_END; // NR34
+const VOLUME: u16 = 0xFF1C; // NR32
+const FREQUENCY_LOW: u16 = 0xFF1D; // NR33
+const FREQUENCY_HIGH: u16 = CH3_END; // NR34
 
 pub const WAVE_PATTERN_START: u16 = 0xFF30;
 pub const WAVE_PATTERN_END: u16 = 0xFF3F;
 
 pub struct WaveChannel {
     pub enabled: bool,
+    output: u8,
+    timer: i16,
+    frequency: u16,
+    dac_enabled: bool,
     volume: u8,
-    period: u16,
-
-    // NR30
-    convert: bool,
-
-    // NR31
-    length_timer: u8,
-
-    // NR32
-    output_level: u8,
-
-    // NR34
-    length_enable: bool,
+    length_timer: u16,
+    length_enabled: bool,
     triggered: bool,
-
     wave_ram: [u8; 32],
+    wave_ram_position: u8,
 }
 
 impl WaveChannel {
     pub fn new() -> Self {
         Self {
             enabled: false,
-            volume: 0,
-            period: 0,
-            convert: false,
+            output: 0,
+            timer: 0,
+            frequency: 0,
+            dac_enabled: false,
             length_timer: 0,
-            output_level: 0,
-            length_enable: false,
+            volume: 0,
+            length_enabled: false,
             triggered: false,
             wave_ram: [0; 32],
+            wave_ram_position: 0,
         }
     }
 
+    pub fn tick(&mut self, m_cycles: u8) {
+        let t_cycles = (m_cycles * 4) as u16;
+        self.timer = self.timer.saturating_sub(t_cycles as i16);
+
+        if self.timer > 0 {
+            return;
+        }
+
+        if self.enabled && self.dac_enabled {
+            let wave_index = self.wave_ram_position / 2;
+            let output = self.wave_ram[wave_index as usize];
+
+            self.output = output >> self.volume_shift();
+        } else {
+            self.output = 0;
+        }
+
+        self.timer += ((2048 - self.frequency) * 2) as i16;
+        self.wave_ram_position = (self.wave_ram_position + 1) & 0x1F;
+    }
+
     pub fn tick_length_timer(&mut self) {
-        if !self.length_enable || self.length_timer >= LENGTH_TIMER_MAX {
+        if !self.length_enabled || self.length_timer >= 256 {
             return;
         }
 
         self.length_timer = self.length_timer.saturating_add(1);
-        if self.length_timer >= LENGTH_TIMER_MAX {
+        if self.length_timer >= 256 {
             self.enabled = false;
+        }
+    }
+
+    pub fn trigger(&mut self, sequencer_step: &mut u8) {
+        self.timer = (2048 - self.frequency as i16) * 2;
+        self.wave_ram_position = 0;
+
+        if self.length_timer >= 256 {
+            self.length_timer = 0;
+
+            if self.length_enabled && *sequencer_step % 2 == 1 {
+                self.tick_length_timer();
+            }
         }
     }
 
     pub fn read_byte(&self, address: u16) -> u8 {
         match address {
-            CONVERT_ENABLE => self.get_convert(),
-            LENGTH_TIMER => self.length_timer,
-            OUTPUT_LEVEL => self.get_output_level(),
-            PERIOD_LOW => self.get_period_low(),
-            PERIOD_HIGH => self.get_period_high(),
+            DAC_ENABLE => self.get_dac_enable(),
+            LENGTH_TIMER => self.length_timer as u8,
+            VOLUME => self.get_output_level(),
+            FREQUENCY_LOW => self.get_frequency_low(),
+            FREQUENCY_HIGH => self.get_frequency_high(),
             _ => {
                 eprintln!("Unknown address: {:#X} Can't read byte.", address);
                 0xFF
@@ -70,13 +99,13 @@ impl WaveChannel {
         }
     }
 
-    pub fn write_byte(&mut self, address: u16, value: u8) {
+    pub fn write_byte(&mut self, address: u16, value: u8, sequencer_step: &mut u8) {
         match address {
-            CONVERT_ENABLE => self.set_convert(value),
-            LENGTH_TIMER => self.length_timer = value,
-            OUTPUT_LEVEL => self.set_output_level(value),
-            PERIOD_LOW => self.set_period_low(value),
-            PERIOD_HIGH => self.set_period_high(value),
+            DAC_ENABLE => self.set_dac_enable(value),
+            LENGTH_TIMER => self.length_timer = value as u16,
+            VOLUME => self.set_output_level(value),
+            FREQUENCY_LOW => self.set_frequency_low(value),
+            FREQUENCY_HIGH => self.set_frequency_high(value, sequencer_step),
             _ => eprintln!(
                 "Unknown address: {:#X} Can't write byte: {:#X}.",
                 address, value
@@ -84,64 +113,84 @@ impl WaveChannel {
         }
     }
 
-    fn get_convert(&self) -> u8 {
-        if self.convert {
+    pub fn get_output(&self) -> u8 {
+        if self.enabled {
+            self.output
+        } else {
+            0
+        }
+    }
+
+    fn get_dac_enable(&self) -> u8 {
+        if self.dac_enabled {
             0x80
         } else {
             0x00
         }
     }
 
-    fn set_convert(&mut self, value: u8) {
-        self.convert = value & 0x80 != 0;
+    fn set_dac_enable(&mut self, value: u8) {
+        self.dac_enabled = value & 0x80 != 0;
 
-        // Setting bit 7 of this register to 0 turns the converter off (and thus, the channel as well)
-        if !self.convert {
+        // Setting bit 7 of this register to 0 turns dac_enabled off (and thus, the channel as well)
+    
+        if !self.dac_enabled {
             self.enabled = false;
         }
     }
 
     fn get_output_level(&self) -> u8 {
-        (self.output_level & 0x03) << 5
+        (self.volume & 0x03) << 5
     }
 
     fn set_output_level(&mut self, value: u8) {
-        let value = (value & 0x60) >> 5;
-        self.output_level = value;
+        self.volume = (value & 0x60) >> 5;
+    }
 
-        match value {
-            0x00 => self.volume = 0,
-            0x01 => self.volume = 100,
-            0x02 => self.volume = 50,
-            0x03 => self.volume = 25,
+    fn volume_shift(&self) -> u8 {
+        match self.volume {
+            0x00 => 4, // 0%
+            0x01 => 0, // 100%
+            0x02 => 1, // 50%
+            0x03 => 2, // 25%
             _ => unreachable!(),
         }
     }
 
-    fn get_period_low(&self) -> u8 {
-        self.period as u8
+    fn get_frequency_low(&self) -> u8 {
+        self.frequency as u8
     }
 
-    fn set_period_low(&mut self, value: u8) {
-        self.period = (self.period & 0x0700) | value as u16;
+    fn set_frequency_low(&mut self, value: u8) {
+        self.frequency = (self.frequency & 0x0700) | value as u16;
     }
 
-    fn get_period_high(&self) -> u8 {
-        let period_high = ((self.period & 0x0700) >> 8) as u8;
-        let length_enable = if self.length_enable { 0x40 } else { 0x00 };
+    fn get_frequency_high(&self) -> u8 {
+        let frequency_high = ((self.frequency & 0x0700) >> 8) as u8;
+        let length_enabled = if self.length_enabled { 0x40 } else { 0x00 };
         let triggered = if self.triggered { 0x80 } else { 0x00 };
 
-        period_high | length_enable | triggered
+        frequency_high | length_enabled | triggered
     }
 
-    fn set_period_high(&mut self, value: u8) {
-        self.period = (self.period & 0x00FF) | ((value & 0x07) as u16) << 8;
-        self.length_enable = value & 0x40 != 0;
-        self.triggered = value & 0x80 != 0;
+    fn set_frequency_high(&mut self, value: u8, sequencer_step: &mut u8) {
+        let length_enabled = value & 0x40 != 0;
+        let triggered = value & 0x80 != 0;
+        let length_edge = length_enabled && !self.length_enabled;
+        self.frequency = (self.frequency & 0x00FF) | ((value & 0x07) as u16) << 8;
+        self.length_enabled = length_enabled;
+        self.enabled |= triggered;
 
-        // Triggering a channel causes it to turn on if it wasn’t
-        if self.triggered {
-            self.enabled = true;
+        if length_edge && *sequencer_step % 2 == 1 {
+            self.tick_length_timer();
+        }
+
+        if triggered {
+            self.trigger(sequencer_step);
+        }
+
+        if length_enabled && self.length_timer >= 256 {
+            self.enabled = false;
         }
     }
 
@@ -152,6 +201,27 @@ impl WaveChannel {
 
     pub fn write_wave_ram(&mut self, address: u16, value: u8) {
         let index = address - WAVE_PATTERN_START;
-        self.wave_ram[index as usize] = value;
+        self.wave_ram[index as usize] = (value & 0xF0) >> 4;
+        self.wave_ram[index as usize + 1] = value & 0xF;
+    }
+
+    pub fn reset(&mut self) {
+        self.enabled = false;
+        self.output = 0;
+        self.timer = 0;
+        self.volume = 0;
+        self.wave_ram_position = 0;
+        self.frequency = 0;
+        self.dac_enabled = false;
+        self.length_timer = 0;
+        self.length_enabled = false;
+        self.triggered = false;
+        self.wave_ram = [0; 32];
+    }
+}
+
+impl Default for WaveChannel {
+    fn default() -> Self {
+        Self::new()
     }
 }

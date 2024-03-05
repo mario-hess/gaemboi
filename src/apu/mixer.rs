@@ -1,3 +1,5 @@
+use crate::apu::{NoiseChannel, SquareChannel, WaveChannel};
+
 const CH1_RIGHT_POS: u8 = 0x01;
 const CH2_RIGHT_POS: u8 = 0x02;
 const CH3_RIGHT_POS: u8 = 0x04;
@@ -9,14 +11,14 @@ const CH4_LEFT_POS: u8 = 0x80;
 
 #[derive(Copy, Clone)]
 pub struct Mixer {
-    ch1_right: bool,
-    ch1_left: bool,
-    ch2_right: bool,
-    ch2_left: bool,
-    ch3_right: bool,
-    ch3_left: bool,
-    ch4_right: bool,
-    ch4_left: bool,
+    pub ch1_right: bool,
+    pub ch1_left: bool,
+    pub ch2_right: bool,
+    pub ch2_left: bool,
+    pub ch3_right: bool,
+    pub ch3_left: bool,
+    pub ch4_right: bool,
+    pub ch4_left: bool,
 }
 
 impl Mixer {
@@ -33,6 +35,48 @@ impl Mixer {
         }
     }
 
+    pub fn mix(
+        &self,
+        ch1: &SquareChannel,
+        ch2: &SquareChannel,
+        ch3: &WaveChannel,
+        ch4: &NoiseChannel,
+    )-> (u8, u8) {
+        let mut output_left = 0;
+        let mut output_right = 0;
+
+        mix_channel(
+            &mut output_left,
+            &mut output_right,
+            self.ch1_left,
+            self.ch1_right,
+            ch1.get_output(),
+        );
+        mix_channel(
+            &mut output_left,
+            &mut output_right,
+            self.ch2_left,
+            self.ch2_right,
+            ch2.get_output(),
+        );
+        mix_channel(
+            &mut output_left,
+            &mut output_right,
+            self.ch3_left,
+            self.ch3_right,
+            ch3.get_output(),
+        );
+        mix_channel(
+            &mut output_left,
+            &mut output_right,
+            self.ch4_left,
+            self.ch4_right,
+            ch4.get_output(),
+        );
+
+        (output_left / 4, output_right / 4)
+    }
+
     pub fn set_panning(&mut self, value: u8) {
         self.ch1_right = value & CH1_RIGHT_POS != 0;
         self.ch2_right = value & CH2_RIGHT_POS != 0;
@@ -42,6 +86,17 @@ impl Mixer {
         self.ch2_left = value & CH2_LEFT_POS != 0;
         self.ch3_left = value & CH3_LEFT_POS != 0;
         self.ch4_left = value & CH4_LEFT_POS != 0;
+    }
+
+    pub fn reset(&mut self) {
+        self.ch1_right = false;
+        self.ch2_right = false;
+        self.ch3_right = false;
+        self.ch4_right = false;
+        self.ch1_left = false;
+        self.ch2_left = false;
+        self.ch3_left = false;
+        self.ch4_left = false;
     }
 }
 
@@ -63,5 +118,21 @@ impl std::convert::From<Mixer> for u8 {
         let ch4_left = if mixer.ch4_left { CH3_LEFT_POS } else { 0x00 };
 
         ch1_right | ch2_right | ch3_right | ch4_right | ch1_left | ch2_left | ch3_left | ch4_left
+    }
+}
+
+fn mix_channel(
+    output_left: &mut u8,
+    output_right: &mut u8,
+    ch_left: bool,
+    ch_right: bool,
+    output: u8,
+) {
+    if ch_left {
+        *output_left += output;
+    }
+
+    if ch_right {
+        *output_right += output;
     }
 }
