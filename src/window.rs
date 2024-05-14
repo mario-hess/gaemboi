@@ -43,6 +43,7 @@ impl<'a> Window<'a> {
                 height as u32 * scale as u32,
             )
             .position_centered()
+            .resizable()
             .build()
             .unwrap();
 
