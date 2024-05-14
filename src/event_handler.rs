@@ -6,7 +6,7 @@
  */
 use sdl2::{
     controller::Button, event::Event, keyboard::Keycode, render::Canvas,
-    video::Window as SDL_Window, EventPump,
+    video::{Window as SDL_Window, WindowPos}, EventPump,
 };
 
 use crate::{
@@ -161,6 +161,8 @@ impl EventHandler {
                 (VIEWPORT_HEIGHT as u32) * self.window_scale,
             )
             .unwrap();
+
+        canvas.window_mut().set_position(WindowPos::Centered, WindowPos::Centered);
 
         self.window_resized = false;
     }
