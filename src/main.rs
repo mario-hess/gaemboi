@@ -98,7 +98,7 @@ fn main() -> Result<(), Error> {
     let mut viewport = Window::build(
         &video_subsystem,
         &ttf_context,
-        "Viewport",
+        "gaemboi",
         VIEWPORT_WIDTH,
         VIEWPORT_HEIGHT,
         event_handler.window_scale as usize,
