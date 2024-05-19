@@ -1,3 +1,9 @@
+/**
+ * @file    apu/channel/wave_channel.rs
+ * @brief   Wave channel.
+ * @author  Mario Hess
+ * @date    May 19, 2024
+ */
 use crate::apu::{CH3_END, CH3_START};
 
 const DAC_ENABLE: u16 = CH3_START; // NR30
@@ -133,7 +139,6 @@ impl WaveChannel {
         self.dac_enabled = value & 0x80 != 0;
 
         // Setting bit 7 of this register to 0 turns dac_enabled off (and thus, the channel as well)
-    
         if !self.dac_enabled {
             self.enabled = false;
         }

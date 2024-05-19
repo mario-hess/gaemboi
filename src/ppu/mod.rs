@@ -2,7 +2,7 @@
  * @file    ppu/mod.rs
  * @brief   Handles the Picture Processing Unit for graphics rendering.
  * @author  Mario Hess
- * @date    January 16, 2024
+ * @date    May 19, 2024
  */
 mod lcd_control;
 mod lcd_status;
@@ -69,7 +69,7 @@ pub const TILETABLE_HEIGHT: usize = 192;
 pub const TILEMAP_WIDTH: usize = 256;
 pub const TILEMAP_HEIGHT: usize = TILEMAP_WIDTH;
 
-pub const SCALE: usize = 3;
+pub const SCALE: usize = 2;
 pub const BUFFER_SIZE: usize = VIEWPORT_WIDTH * VIEWPORT_HEIGHT;
 
 const FULL_WIDTH: usize = TILEMAP_WIDTH;
@@ -96,9 +96,9 @@ pub struct Ppu {
     lcd_status: LCD_status,
     scroll_y: u8,
     scroll_x: u8,
-    ly: u8,
-    lyc: u8,
-    lyw: u8,
+    line_y: u8,
+    line_y_compare: u8,
+    line_y_window: u8,
     bg_palette: [u8; 4],
     tile_palette0: [u8; 4],
     tile_palette1: [u8; 4],
@@ -120,9 +120,9 @@ impl Ppu {
             lcd_status: LCD_status::new(),
             scroll_y: 0,
             scroll_x: 0,
-            ly: 0,
-            lyc: 0,
-            lyw: 0,
+            line_y: 0,
+            line_y_compare: 0,
+            line_y_window: 0,
             bg_palette: [0, 1, 2, 3],
             tile_palette0: [0, 1, 2, 3],
             tile_palette1: [0, 1, 2, 3],
@@ -163,7 +163,7 @@ impl Ppu {
                 if self.counter >= CYCLES_HBLANK {
                     self.counter %= CYCLES_HBLANK;
 
-                    if self.ly >= LINES_Y {
+                    if self.line_y >= LINES_Y {
                         self.lcd_status.set_mode(Mode::VBlank, &mut self.interrupts);
                         self.draw_viewport(canvas);
                         self.interrupts |= VBLANK_MASK;
@@ -172,24 +172,24 @@ impl Ppu {
                         if self.lcd_control.window_enabled
                             && self.window_x - 7 < VIEWPORT_WIDTH as u8
                             && self.window_y < VIEWPORT_HEIGHT as u8
-                            && self.ly >= self.window_y
+                            && self.line_y >= self.window_y
                         {
-                            self.lyw += 1;
+                            self.line_y_window += 1;
                         }
-                        self.set_ly(self.ly + 1);
+                        self.set_line_y(self.line_y + 1);
                         self.lcd_status.set_mode(Mode::OAM, &mut self.interrupts);
                     }
                 }
             }
             Mode::VBlank => {
                 if self.counter >= CYCLES_VBLANK {
-                    self.set_ly(self.ly + 1);
+                    self.set_line_y(self.line_y + 1);
                     self.counter %= CYCLES_VBLANK;
 
-                    if self.ly > MAX_LINES_Y {
+                    if self.line_y > MAX_LINES_Y {
                         self.lcd_status.set_mode(Mode::OAM, &mut self.interrupts);
-                        self.lyw = 0;
-                        self.set_ly(0);
+                        self.line_y_window = 0;
+                        self.set_line_y(0);
                     }
                 }
             }
@@ -204,8 +204,8 @@ impl Ppu {
             LCD_STATUS => self.lcd_status.get(),
             SCROLL_Y => self.scroll_y,
             SCROLL_X => self.scroll_x,
-            LINE_Y => self.ly,
-            LINE_Y_COMPARE => self.lyc,
+            LINE_Y => self.line_y,
+            LINE_Y_COMPARE => self.line_y_compare,
             BG_PALETTE => get_palette(&self.bg_palette),
             TILE_PALETTE_0 => get_palette(&self.tile_palette0),
             TILE_PALETTE_1 => get_palette(&self.tile_palette1),
@@ -228,7 +228,7 @@ impl Ppu {
             SCROLL_Y => self.scroll_y = value,
             SCROLL_X => self.scroll_x = value,
             LINE_Y => {}, // Not used
-            LINE_Y_COMPARE => self.set_lyc(value),
+            LINE_Y_COMPARE => self.set_line_y_compare(value),
             BG_PALETTE => set_palette(&mut self.bg_palette, value),
             TILE_PALETTE_0 => set_palette(&mut self.tile_palette0, value),
             TILE_PALETTE_1 => set_palette(&mut self.tile_palette1, value),
@@ -272,20 +272,20 @@ impl Ppu {
         }
     }
 
-    fn set_ly(&mut self, value: u8) {
-        self.ly = value;
+    fn set_line_y(&mut self, value: u8) {
+        self.line_y = value;
         self.compare_line();
     }
 
-    pub fn set_lyc(&mut self, value: u8) {
-        self.lyc = value;
+    pub fn set_line_y_compare(&mut self, value: u8) {
+        self.line_y_compare = value;
         self.compare_line();
     }
 
     fn compare_line(&mut self) {
         self.lcd_status.compare_flag = false;
 
-        if self.lyc == self.ly {
+        if self.line_y_compare == self.line_y {
             self.lcd_status.compare_flag = true;
 
             if self.lcd_status.interrupt_stat {
@@ -299,8 +299,8 @@ impl Ppu {
 
         if !self.lcd_control.lcd_enabled {
             self.clear_screen();
-            self.lyw = 0;
-            self.set_ly(0);
+            self.line_y_window = 0;
+            self.set_line_y(0);
             self.lcd_status.mode = Mode::HBlank;
             self.counter = 0;
             self.enabled = false;
@@ -318,8 +318,8 @@ impl Ppu {
     }
 
     fn render_bg_line(&mut self) {
-        let bg_offset_y = self.ly.wrapping_add(self.scroll_y);
-        let row_is_window = self.lcd_control.window_enabled && self.ly >= self.window_y;
+        let bg_offset_y = self.line_y.wrapping_add(self.scroll_y);
+        let row_is_window = self.lcd_control.window_enabled && self.line_y >= self.window_y;
 
         for x in 0..VIEWPORT_WIDTH as u8 {
             let bg_offset_x = x.wrapping_add(self.scroll_x);
@@ -329,7 +329,7 @@ impl Ppu {
             // Determine the address of the tile data based on whether it's in the window or background
             let tile_address = if row_is_window && col_is_window {
                 let address = self.lcd_control.get_window_address();
-                let y_offset = self.lyw;
+                let y_offset = self.line_y_window;
                 let x_offset = x.wrapping_sub(self.window_x.wrapping_sub(7));
 
                 calculate_address(address, y_offset, x_offset)
@@ -343,7 +343,7 @@ impl Ppu {
 
             // Calculate the offset within the tile data for the current row
             let y_tile_address_offset = if row_is_window && col_is_window {
-                (self.ly - self.window_y) % TILE_HEIGHT as u8 * 2
+                (self.line_y - self.window_y) % TILE_HEIGHT as u8 * 2
             } else {
                 bg_offset_y % TILE_HEIGHT as u8 * 2
             } as u16;
@@ -362,7 +362,7 @@ impl Ppu {
             };
 
             let color_index = get_color_index(tile_data, tile_color, pixel_index);
-            let priority_offset = self.ly as usize + FULL_WIDTH * x as usize;
+            let priority_offset = self.line_y as usize + FULL_WIDTH * x as usize;
 
             if color_index == 0 {
                 self.priority_map[priority_offset] = Priority::Overlap
@@ -371,14 +371,14 @@ impl Ppu {
             let pixel = get_pixel_color(&self.bg_palette, color_index);
 
             // Calculate the offset for the current pixel and update the screen buffer
-            let offset = x as usize + self.ly as usize * VIEWPORT_WIDTH;
+            let offset = x as usize + self.line_y as usize * VIEWPORT_WIDTH;
             self.screen_buffer[offset] = pixel;
         }
     }
 
     fn render_tile_line(&mut self) {
-        // Convert ly to an i16 and determine the height of the sprite (8x8 or 8x16)
-        let ly = self.ly as i16;
+        // Convert line_y to an i16 and determine the height of the sprite (8x8 or 8x16)
+        let line_y = self.line_y as i16;
         let tile_height = if self.lcd_control.object_size { 16 } else { 8 };
 
         let mut sorted_sprites: Vec<(usize, i16)> = Vec::new();
@@ -388,7 +388,7 @@ impl Ppu {
             let object_y = oam_entry.y_pos as i16 - 16;
             let object_x = oam_entry.x_pos as i16 - 8;
 
-            if ly >= object_y && ly < object_y + tile_height {
+            if line_y >= object_y && line_y < object_y + tile_height {
                 sorted_sprites.push((i, object_x));
             }
         }
@@ -412,11 +412,11 @@ impl Ppu {
 
             let tile_begin_address = TILE_DATA_START + (object_index as u16 * 16);
 
-            // Check if tile is vertically mirrored
+            // Check if tile is verticalline_y mirrored
             let line_offset = if oam_entry.y_flip_enabled() {
-                tile_height - 1 - (ly - object_y)
+                tile_height - 1 - (line_y - object_y)
             } else {
-                ly - object_y
+                line_y - object_y
             };
 
             let tile_data_address = tile_begin_address + (line_offset * 2) as u16;
@@ -433,7 +433,7 @@ impl Ppu {
                     continue;
                 }
 
-                // Check if pixel is horizontally mirrored
+                // Check if pixel is horizontalline_y mirrored
                 let pixel_index = if oam_entry.x_flip_enabled() { x } else { 7 - x };
 
                 let sprite_palette = if oam_entry.palette_enabled() {
@@ -452,13 +452,13 @@ impl Ppu {
                 let pixel = get_pixel_color(&sprite_palette, color_index);
 
                 // Skip rendering pixel if background overlaps
-                let priority_offset = ly as usize + FULL_WIDTH * x_offset as usize;
+                let priority_offset = line_y as usize + FULL_WIDTH * x_offset as usize;
                 if self.bg_has_priority(&oam_entry, priority_offset) {
                     continue;
                 }
 
                 // Calculate the offset for the current pixel and update the screen buffer
-                let offset = x_offset + ly * VIEWPORT_WIDTH as i16;
+                let offset = x_offset + line_y * VIEWPORT_WIDTH as i16;
                 self.screen_buffer[offset as usize] = pixel;
             }
         }
@@ -581,7 +581,7 @@ fn get_color_index(first_byte: u8, second_byte: u8, pixel_index: u8) -> u8 {
 }
 
 fn set_palette(palette: &mut [u8], value: u8) {
-    for (i, color_data) in (0..4).map(|i| (i, (value >> (i * 2) & 3))) {
+    for (i, color_data) in (0..4).map(|i| (i, (value >> (i * 2) & 0x03))) {
         palette[i] = color_data.min(3);
     }
 }
@@ -593,6 +593,6 @@ fn get_palette(palette: &[u8]) -> u8 {
             _ => 3,
         };
 
-        acc | (color_data & 3) << (i * 2)
+        acc | (color_data & 0x03) << (i * 2)
     })
 }

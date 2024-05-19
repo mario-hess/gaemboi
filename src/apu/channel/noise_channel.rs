@@ -1,3 +1,9 @@
+/**
+ * @file    apu/channel/noise_channel.rs
+ * @brief   Noise channel.
+ * @author  Mario Hess
+ * @date    May 19, 2024
+ */
 use crate::apu::{CH4_END, CH4_START, LENGTH_TIMER_MAX};
 
 const LENGTH_TIMER: u16 = CH4_START; // NR41
@@ -146,7 +152,11 @@ impl NoiseChannel {
     }
 
     pub fn get_output(&self) -> u8 {
-        if self.enabled { self.output } else { 0 }
+        if self.enabled {
+            self.output
+        } else {
+            0
+        }
     }
 
     fn get_length_timer(&self) -> u8 {

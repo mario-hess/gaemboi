@@ -2,10 +2,10 @@
  * @file    machine.rs
  * @brief   Orchestrates the emulation loop, utilizing SDL2 for rendering and input handling.
  * @author  Mario Hess
- * @date    November 06, 2023
+ * @date    May 19, 2024
  */
 use sdl2::{
-    audio::{AudioCallback, AudioQueue, AudioSpecDesired},
+    audio::AudioSpecDesired,
     pixels::Color,
     ttf::Sdl2TtfContext,
     AudioSubsystem, EventPump, VideoSubsystem,
@@ -23,7 +23,7 @@ use crate::{
     MachineState,
 };
 
-pub const FPS: f32 = 59.73;
+pub const FPS: f32 = 59.7275;
 
 pub struct Machine {
     pub cpu: Cpu,
@@ -61,8 +61,9 @@ impl Machine {
             .open_playback(None, &device, |_spec| audio)
             .unwrap();
 
+        let frame_duration_nanos = (1_000_000_000.0 / FPS) as u64;
+        let frame_duration = std::time::Duration::from_nanos(frame_duration_nanos);
 
-        let frame_duration = std::time::Duration::from_millis((1000.0 / FPS) as u64);
         let mut debug_windows = DebugWindows::build(video_subsystem, ttf_context, config);
 
         audio_device.resume();
@@ -95,11 +96,15 @@ impl Machine {
             viewport.canvas.present();
             debug_windows.present();
 
-            // Tick at 59.73 Hz
+            // Tick at 59.7275 Hz using a busy-wait loop 
+            while frame_start_time.elapsed() < frame_duration {}
+
+            /* This isn't precise enough as thread scheduling is OS-dependent
             let elapsed_time = frame_start_time.elapsed();
             if elapsed_time < frame_duration {
                 std::thread::sleep(frame_duration - elapsed_time);
             }
+            */
         }
 
         event_handler.pressed_escape = false;

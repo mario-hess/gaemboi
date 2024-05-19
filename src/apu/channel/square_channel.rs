@@ -1,3 +1,9 @@
+/**
+ * @file    apu/channel/square_channel.rs
+ * @brief   Square channel.
+ * @author  Mario Hess
+ * @date    May 19, 2024
+ */
 use crate::apu::LENGTH_TIMER_MAX;
 
 const SWEEP: u16 = 0;
@@ -6,6 +12,14 @@ const VOLUME_ENVELOPE: u16 = 2;
 const FREQUENCY_LOW: u16 = 3;
 const FREQUENCY_HIGH: u16 = 4;
 
+/* https://gbdev.gg8.se/wiki/articles/Gameboy_sound_hardware
+Duty   Waveform    Ratio
+-------------------------
+0      00000001    12.5%
+1      10000001    25%
+2      10000111    50%
+3      01111110    75%
+*/
 const DUTY_TABLE: [[u8; 8]; 4] = [
     [0, 0, 0, 0, 0, 0, 0, 1],
     [1, 0, 0, 0, 0, 0, 0, 1],
@@ -175,7 +189,11 @@ impl SquareChannel {
     }
 
     pub fn read_byte(&self, base_address: u16, address: u16) -> u8 {
-        let address = if address < 0xFF16 {address - base_address} else {(address - base_address) + 1};
+        let address = if address < 0xFF16 {
+            address - base_address
+        } else {
+            (address - base_address) + 1
+        };
 
         match address {
             SWEEP => self.get_sweep(),
@@ -197,7 +215,11 @@ impl SquareChannel {
         value: u8,
         sequencer_step: &mut u8,
     ) {
-        let address = if address < 0xFF16 {address - base_address} else {(address - base_address) + 1};
+        let address = if address < 0xFF16 {
+            address - base_address
+        } else {
+            (address - base_address) + 1
+        };
 
         match address {
             SWEEP => self.set_sweep(value),
@@ -213,7 +235,11 @@ impl SquareChannel {
     }
 
     pub fn get_output(&self) -> u8 {
-        if self.enabled { self.output } else { 0 }
+        if self.enabled {
+            self.output
+        } else {
+            0
+        }
     }
 
     fn get_sweep(&self) -> u8 {

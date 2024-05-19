@@ -1,3 +1,9 @@
+/**
+ * @file    apu/mixer.rs
+ * @brief   Responsible for mixing the channels outputs.
+ * @author  Mario Hess
+ * @date    May 19, 2024
+ */
 use crate::apu::{NoiseChannel, SquareChannel, WaveChannel};
 
 const CH1_RIGHT_POS: u8 = 0x01;
@@ -52,6 +58,7 @@ impl Mixer {
             self.ch1_right,
             ch1.get_output(),
         );
+
         mix_channel(
             &mut output_left,
             &mut output_right,
@@ -59,6 +66,7 @@ impl Mixer {
             self.ch2_right,
             ch2.get_output(),
         );
+
         mix_channel(
             &mut output_left,
             &mut output_right,
@@ -66,6 +74,7 @@ impl Mixer {
             self.ch3_right,
             ch3.get_output(),
         );
+
         mix_channel(
             &mut output_left,
             &mut output_right,

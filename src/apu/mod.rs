@@ -1,3 +1,9 @@
+/**
+ * @file    apu/mod.rs
+ * @brief   Implementation of the Audio Processing Unit.
+ * @author  Mario Hess
+ * @date    May 19, 2024
+ */
 mod channel;
 mod frame_sequencer;
 mod mixer;
@@ -15,7 +21,7 @@ use crate::clock::CPU_CLOCK_SPEED;
 pub const APU_CLOCK_SPEED: u16 = 512;
 pub const LENGTH_TIMER_MAX: u8 = 64;
 
-const AUDIO_BUFFER_SIZE: usize = SAMPLING_RATE as usize * 2 + 2048;
+const AUDIO_BUFFER_SIZE: usize = SAMPLING_RATE as usize * 2;
 
 const CH1_START: u16 = 0xFF10;
 const CH1_END: u16 = 0xFF14;
@@ -89,10 +95,14 @@ impl Apu {
             let (output_left, output_right) =
                 self.mixer.mix(&self.ch1, &self.ch2, &self.ch3, &self.ch4);
 
-            // Synchronize CPU clocks speed with audio frequency
-            while self.audio_buffer.len() >= AUDIO_BUFFER_SIZE - 1 {
-                let duration = std::time::Duration::from_millis(1);
+            // Synchronize CPU clock speed with audio frequency
+            while self.audio_buffer.len() > AUDIO_BUFFER_SIZE {
+                // This is completely mental T_T
+                // t(ms) = sample rate / sample frequency = 2048 / 44100 = 0.046...s = approx.
+                // 46.34ms => 40ms
+                let duration = std::time::Duration::from_millis(40);
                 std::thread::sleep(duration);
+                println!("{:?}: Slept for 40ms", std::time::Instant::now());
             }
 
             self.audio_buffer.push_back(output_left);
@@ -141,12 +151,14 @@ impl Apu {
                 self.ch2
                     .write_byte(CH2_START, address, value, &mut self.frame_sequencer.step)
             }
-            CH3_START..=CH3_END => self
-                .ch3
-                .write_byte(address, value, &mut self.frame_sequencer.step),
-            CH4_START..=CH4_END => self
-                .ch4
-                .write_byte(address, value, &mut self.frame_sequencer.step),
+            CH3_START..=CH3_END => {
+                self.ch3
+                    .write_byte(address, value, &mut self.frame_sequencer.step)
+            }
+            CH4_START..=CH4_END => {
+                self.ch4
+                    .write_byte(address, value, &mut self.frame_sequencer.step)
+            }
             MASTER_VOLUME => self.set_master_volume(value),
             PANNING => self.mixer.set_panning(value),
             MASTER_CONTROL => self.set_master_control(value),
@@ -178,7 +190,7 @@ impl Apu {
 
     // NR50: Master volume
     // A value of 0 is treated as a volume of 1 (very quiet),
-    // and a value of 7 is treated as a volume of 8 
+    // and a value of 7 is treated as a volume of 8
     fn get_master_volume(&self) -> u8 {
         let right_volume = self.right_volume - 1;
         let left_volume = (self.left_volume - 1) << 4;

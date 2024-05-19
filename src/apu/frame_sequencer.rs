@@ -1,3 +1,9 @@
+/**
+ * @file    apu/frame_sequencer.rs
+ * @brief   Implementation of the APU frame sequencer.
+ * @author  Mario Hess
+ * @date    May 19, 2024
+ */
 use crate::apu::{NoiseChannel, SquareChannel, WaveChannel, APU_CLOCK_SPEED};
 use crate::clock::CPU_CLOCK_SPEED;
 
@@ -21,9 +27,7 @@ impl FrameSequencer {
         ch3: &mut WaveChannel,
         ch4: &mut NoiseChannel,
     ) {
-        self.clock += t_cycles;
-
-        /*
+        /* https://gbdev.gg8.se/wiki/articles/Gameboy_sound_hardware
         Every 8192 T-cycles (512 Hz) the frame sequencer is stepped and might clock other units
         Step   Length Ctr  Vol Env     Sweep
         ---------------------------------------
@@ -38,6 +42,8 @@ impl FrameSequencer {
         ---------------------------------------
         Rate   256 Hz      64 Hz       128 Hz
         */
+
+        self.clock += t_cycles;
 
         if self.clock >= CYCLES_DIV {
             match self.step {
