@@ -21,7 +21,7 @@ use crate::clock::CPU_CLOCK_SPEED;
 pub const APU_CLOCK_SPEED: u16 = 512;
 pub const LENGTH_TIMER_MAX: u8 = 64;
 
-const AUDIO_BUFFER_SIZE: usize = SAMPLING_RATE as usize * 2;
+const AUDIO_BUFFER_SIZE: usize = SAMPLING_RATE as usize * 4;
 
 const CH1_START: u16 = 0xFF10;
 const CH1_END: u16 = 0xFF14;
