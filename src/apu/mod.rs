@@ -98,9 +98,9 @@ impl Apu {
             // Synchronize CPU clock speed with audio frequency
             while self.audio_buffer.len() > AUDIO_BUFFER_SIZE {
                 // This is completely mental T_T
-                // t(ms) = sample rate / sample frequency = 2048 / 44100 = 0.046...s = approx.
-                // 46.34ms => 40ms
-                let duration = std::time::Duration::from_millis(40);
+                // t(ms) = sample rate / sample frequency = 512 * 2 / 44100 = 0.023...s = approx.
+                // 23.21ms => 20ms
+                let duration = std::time::Duration::from_millis(20);
                 std::thread::sleep(duration);
                 println!("{:?}: Slept for 40ms", std::time::Instant::now());
             }

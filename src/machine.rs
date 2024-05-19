@@ -23,7 +23,7 @@ use crate::{
     MachineState,
 };
 
-pub const FPS: f32 = 59.7275;
+pub const FPS: f32 = 59.73;
 
 pub struct Machine {
     pub cpu: Cpu,
@@ -96,7 +96,7 @@ impl Machine {
             viewport.canvas.present();
             debug_windows.present();
 
-            // Tick at 59.7275 Hz using a busy-wait loop 
+            // Tick at 59.73 Hz using a busy-wait loop 
             while frame_start_time.elapsed() < frame_duration {}
 
             /* This isn't precise enough as thread scheduling is OS-dependent
