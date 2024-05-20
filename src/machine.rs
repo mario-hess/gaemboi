@@ -55,7 +55,10 @@ impl Machine {
             samples: Some(SAMPLING_RATE),
             channels: Some(2),
         };
-        let audio = Audio::new(&mut self.cpu.memory_bus.apu.audio_buffer);
+
+        let left_volume = &self.cpu.memory_bus.apu.left_volume;
+        let right_volume = &self.cpu.memory_bus.apu.right_volume;
+        let audio = Audio::new(&mut self.cpu.memory_bus.apu.audio_buffer, left_volume, right_volume);
         let audio_device = audio_subsystem
             .open_playback(None, &device, |_spec| audio)
             .unwrap();
