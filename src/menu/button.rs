@@ -2,12 +2,13 @@
  * @file    menu/button.rs
  * @brief   Handles menu buttons.
  * @author  Mario Hess
- * @date    October 30, 2023
+ * @date    May 20, 2024
  */
-use sdl2::rect::Rect;
-use sdl2::render::Canvas;
-use sdl2::render::Texture;
-use sdl2::video::Window as SDL_Window;
+use sdl2::{
+    rect::Rect,
+    render::{Canvas, Texture},
+    video::Window as SDL_Window,
+};
 
 pub const BTN_WIDTH: i32 = 32;
 pub const BTN_HEIGHT: i32 = 16;

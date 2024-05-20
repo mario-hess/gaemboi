@@ -2,7 +2,7 @@
  * @file    ppu/lcd_control.rs
  * @brief   Handles the PPU's LCD Control register.
  * @author  Mario Hess
- * @date    October 16, 2023
+ * @date    May 20, 2024
  */
 use crate::ppu::{TILEMAP_START_0, TILEMAP_START_1};
 
@@ -12,6 +12,7 @@ pub const TILE_BLOCK_2: u16 = 0x9000;
 
 const TILE_OFFSET: u16 = 16;
 
+// https://gbdev.io/pandocs/LCDC.html
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone)]
 pub struct LCD_control {
@@ -86,6 +87,7 @@ impl LCD_control {
         }
     }
 
+    // https://gbdev.io/pandocs/Tile_Data.html#vram-tile-data
     pub fn get_address(self, tile_index: u8) -> u16 {
         if self.addressing_mode {
             TILE_BLOCK_0 + (tile_index as u16 * TILE_OFFSET)

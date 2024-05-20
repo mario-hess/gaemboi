@@ -2,7 +2,7 @@
  * @file    machine.rs
  * @brief   Orchestrates the emulation loop, utilizing SDL2 for rendering and input handling.
  * @author  Mario Hess
- * @date    May 19, 2024
+ * @date    May 20, 2024
  */
 use sdl2::{
     audio::AudioSpecDesired,
@@ -12,7 +12,7 @@ use sdl2::{
 };
 
 use crate::{
-    audio::{Audio, SAMPLING_RATE, SAMPLING_FREQUENCY},
+    apu::audio::{Audio, SAMPLING_RATE, SAMPLING_FREQUENCY},
     clock::Clock,
     config::Config,
     cpu::Cpu,
@@ -49,14 +49,13 @@ impl Machine {
         viewport: &mut Window,
         audio_subsystem: &mut AudioSubsystem,
     ) {
+        // Create audio device
         let device = AudioSpecDesired {
             freq: Some(SAMPLING_FREQUENCY as i32),
             samples: Some(SAMPLING_RATE),
             channels: Some(2),
         };
-        let audio_buffer = &mut self.cpu.memory_bus.apu.audio_buffer;
-        let audio = Audio::new(audio_buffer);
-
+        let audio = Audio::new(&mut self.cpu.memory_bus.apu.audio_buffer);
         let audio_device = audio_subsystem
             .open_playback(None, &device, |_spec| audio)
             .unwrap();
@@ -76,6 +75,7 @@ impl Machine {
             event_handler.check_resized(&mut viewport.canvas);
             self.cpu.memory_bus.joypad.handle_input(event_handler);
 
+            // Boot new game on file-drop
             if event_handler.file_path.is_some() {
                 event_handler.machine_state = MachineState::Boot;
                 break;

@@ -4,7 +4,7 @@ use std::collections::VecDeque;
 
 pub const SAMPLING_RATE: u16 = 4096;
 pub const SAMPLING_FREQUENCY: u16 = 44100;
-const VOLUME: f32 = 50.0;
+const VOLUME: f32 = 0.1;
 
 pub struct Audio<'a> {
     pub audio_buffer: &'a mut VecDeque<u8>,
@@ -22,7 +22,7 @@ impl AudioCallback for Audio<'_> {
     fn callback(&mut self, out: &mut [f32]) {
         for x in out.iter_mut() {
             if !self.audio_buffer.is_empty() {
-                *x = (self.audio_buffer.pop_front().unwrap() as f32) / VOLUME;
+                *x = (self.audio_buffer.pop_front().unwrap() as f32) * VOLUME;
             }
         }
     }

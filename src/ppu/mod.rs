@@ -2,7 +2,7 @@
  * @file    ppu/mod.rs
  * @brief   Handles the Picture Processing Unit for graphics rendering.
  * @author  Mario Hess
- * @date    May 19, 2024
+ * @date    May 20, 2024
  */
 mod lcd_control;
 mod lcd_status;
@@ -31,7 +31,6 @@ const TILE_DATA_END: u16 = 0x97FF;
 
 pub const TILEMAP_START_0: u16 = 0x9800;
 pub const TILEMAP_END_0: u16 = 0x9BFF;
-
 pub const TILEMAP_START_1: u16 = 0x9C00;
 pub const TILEMAP_END_1: u16 = VRAM_END;
 
@@ -74,6 +73,7 @@ pub const BUFFER_SIZE: usize = VIEWPORT_WIDTH * VIEWPORT_HEIGHT;
 
 const FULL_WIDTH: usize = TILEMAP_WIDTH;
 
+// https://gbdev.io/pandocs/Graphics.html
 #[allow(clippy::upper_case_acronyms, non_camel_case_types)]
 #[derive(Copy, Clone)]
 pub enum Mode {
@@ -90,49 +90,49 @@ enum Priority {
 }
 
 pub struct Ppu {
+    enabled: bool,
+    pub interrupts: u8,
     video_ram: [u8; VRAM_SIZE],
     oam: [OAM; OAM_SIZE],
     lcd_control: LCD_control,
     lcd_status: LCD_status,
-    scroll_y: u8,
     scroll_x: u8,
+    scroll_y: u8,
+    window_x: u8,
+    window_y: u8,
     line_y: u8,
     line_y_compare: u8,
-    line_y_window: u8,
+    window_line_counter: u8,
     bg_palette: [u8; 4],
     tile_palette0: [u8; 4],
     tile_palette1: [u8; 4],
-    window_y: u8,
-    window_x: u8,
     counter: u16,
     priority_map: [Priority; PRIORITY_MAP_SIZE],
     pub screen_buffer: [Color; BUFFER_SIZE],
-    enabled: bool,
-    pub interrupts: u8,
 }
 
 impl Ppu {
     pub fn new() -> Self {
         Self {
-            video_ram: [0; VRAM_SIZE],
+            enabled: true,
+            interrupts: 0x00,
+            video_ram: [0x00; VRAM_SIZE],
             oam: [OAM::new(); OAM_SIZE],
             lcd_control: LCD_control::new(),
             lcd_status: LCD_status::new(),
-            scroll_y: 0,
-            scroll_x: 0,
-            line_y: 0,
-            line_y_compare: 0,
-            line_y_window: 0,
+            scroll_x: 0x00,
+            scroll_y: 0x00,
+            window_x: 0x00,
+            window_y: 0x00,
+            line_y: 0x00,
+            line_y_compare: 0x00,
+            window_line_counter: 0x00,
             bg_palette: [0, 1, 2, 3],
             tile_palette0: [0, 1, 2, 3],
             tile_palette1: [0, 1, 2, 3],
-            window_y: 0,
-            window_x: 0,
-            counter: 0,
+            counter: 0x00,
             priority_map: [Priority::None; PRIORITY_MAP_SIZE],
             screen_buffer: [WHITE; BUFFER_SIZE],
-            enabled: true,
-            interrupts: 0,
         }
     }
 
@@ -144,6 +144,7 @@ impl Ppu {
         let t_cycles = (m_cycles * 4) as u16;
         self.counter += t_cycles;
 
+        // https://gbdev.io/pandocs/Rendering.html
         match self.lcd_status.mode {
             Mode::OAM => {
                 if self.counter >= CYCLES_OAM {
@@ -161,8 +162,6 @@ impl Ppu {
             }
             Mode::HBlank => {
                 if self.counter >= CYCLES_HBLANK {
-                    self.counter %= CYCLES_HBLANK;
-
                     if self.line_y >= LINES_Y {
                         self.lcd_status.set_mode(Mode::VBlank, &mut self.interrupts);
                         self.draw_viewport(canvas);
@@ -174,23 +173,26 @@ impl Ppu {
                             && self.window_y < VIEWPORT_HEIGHT as u8
                             && self.line_y >= self.window_y
                         {
-                            self.line_y_window += 1;
+                            self.window_line_counter += 1;
                         }
                         self.set_line_y(self.line_y + 1);
                         self.lcd_status.set_mode(Mode::OAM, &mut self.interrupts);
                     }
+
+                    self.counter %= CYCLES_HBLANK;
                 }
             }
             Mode::VBlank => {
                 if self.counter >= CYCLES_VBLANK {
                     self.set_line_y(self.line_y + 1);
-                    self.counter %= CYCLES_VBLANK;
 
                     if self.line_y > MAX_LINES_Y {
                         self.lcd_status.set_mode(Mode::OAM, &mut self.interrupts);
-                        self.line_y_window = 0;
+                        self.window_line_counter = 0;
                         self.set_line_y(0);
                     }
+
+                    self.counter %= CYCLES_VBLANK;
                 }
             }
         }
@@ -227,7 +229,7 @@ impl Ppu {
             LCD_STATUS => self.lcd_status.set(value),
             SCROLL_Y => self.scroll_y = value,
             SCROLL_X => self.scroll_x = value,
-            LINE_Y => {}, // Not used
+            LINE_Y => {} // Not used
             LINE_Y_COMPARE => self.set_line_y_compare(value),
             BG_PALETTE => set_palette(&mut self.bg_palette, value),
             TILE_PALETTE_0 => set_palette(&mut self.tile_palette0, value),
@@ -299,7 +301,7 @@ impl Ppu {
 
         if !self.lcd_control.lcd_enabled {
             self.clear_screen();
-            self.line_y_window = 0;
+            self.window_line_counter = 0;
             self.set_line_y(0);
             self.lcd_status.mode = Mode::HBlank;
             self.counter = 0;
@@ -329,7 +331,7 @@ impl Ppu {
             // Determine the address of the tile data based on whether it's in the window or background
             let tile_address = if row_is_window && col_is_window {
                 let address = self.lcd_control.get_window_address();
-                let y_offset = self.line_y_window;
+                let y_offset = self.window_line_counter;
                 let x_offset = x.wrapping_sub(self.window_x.wrapping_sub(7));
 
                 calculate_address(address, y_offset, x_offset)

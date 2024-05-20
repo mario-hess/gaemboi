@@ -2,7 +2,7 @@
  * @file    main.rs
  * @brief   Initializes the emulator by loading the ROM and delegating control to the core emulation loop.
  * @author  Mario Hess
- * @date    November 11, 2023
+ * @date    May 20, 2024
  *
  * Dependencies:
  * - SDL2: Audio, input, and display handling.
@@ -11,7 +11,6 @@
  *      (https://docs.rs/rfd/latest/rfd/)
  */
 mod apu;
-mod audio;
 mod boot_sequence;
 mod cartridge;
 mod clock;
@@ -61,7 +60,6 @@ fn main() -> Result<(), Error> {
     // Initialize SDL2
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
-
     let mut audio_subsystem = sdl_context.audio().unwrap();
     let controller_subsystem = sdl_context.game_controller().unwrap();
 
@@ -95,6 +93,7 @@ fn main() -> Result<(), Error> {
     let mut event_pump = sdl_context.event_pump().unwrap();
     let mut event_handler = EventHandler::new();
 
+    // Build viewport window
     let mut viewport = Window::build(
         &video_subsystem,
         &ttf_context,
@@ -127,6 +126,7 @@ fn main() -> Result<(), Error> {
 
                 let mut machine = Machine::new(rom_data);
 
+                // Try to load a save file
                 match read_file(file_path.replace(".gb", ".sav")) {
                     Ok(data) => machine.cpu.memory_bus.load_game(data),
                     Err(_) => println!("Couldn't load game progress."),
@@ -134,6 +134,7 @@ fn main() -> Result<(), Error> {
 
                 event_handler.file_path = None;
 
+                // Delegate control to the core emulation loop
                 machine.run(
                     &mut config,
                     &mut event_pump,
@@ -144,11 +145,13 @@ fn main() -> Result<(), Error> {
                     &mut audio_subsystem,
                 );
 
+                // Try to create a save file
                 machine
                     .cpu
                     .memory_bus
                     .save_game(&file_path.replace(".gb", ".sav"));
 
+                // Back to menu
                 event_handler.machine_state = MachineState::Menu;
             }
         }

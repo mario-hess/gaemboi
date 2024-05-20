@@ -2,21 +2,28 @@
  * @file    apu/mod.rs
  * @brief   Implementation of the Audio Processing Unit.
  * @author  Mario Hess
- * @date    May 19, 2024
+ * @date    May 20, 2024
  */
+pub mod audio;
 mod channel;
 mod frame_sequencer;
 mod mixer;
 
 use std::collections::VecDeque;
 
-use crate::apu::channel::noise_channel::NoiseChannel;
-use crate::apu::channel::square_channel::{ChannelType, SquareChannel};
-use crate::apu::channel::wave_channel::{WaveChannel, WAVE_PATTERN_END, WAVE_PATTERN_START};
-use crate::apu::frame_sequencer::FrameSequencer;
-use crate::apu::mixer::Mixer;
-use crate::audio::{SAMPLING_FREQUENCY, SAMPLING_RATE};
-use crate::clock::CPU_CLOCK_SPEED;
+use crate::{
+    apu::{
+        audio::{SAMPLING_FREQUENCY, SAMPLING_RATE},
+        channel::{
+            noise_channel::NoiseChannel,
+            square_channel::{ChannelType, SquareChannel},
+            wave_channel::{WaveChannel, WAVE_PATTERN_END, WAVE_PATTERN_START},
+        },
+        frame_sequencer::FrameSequencer,
+        mixer::Mixer,
+    },
+    clock::CPU_CLOCK_SPEED,
+};
 
 pub const APU_CLOCK_SPEED: u16 = 512;
 pub const LENGTH_TIMER_MAX: u8 = 64;
@@ -91,13 +98,15 @@ impl Apu {
         self.tick_channels(m_cycles);
 
         self.output_timer += t_cycles as f32;
+
         while self.output_timer >= (CPU_CLOCK_SPEED as f32 / SAMPLING_FREQUENCY as f32) {
             let (output_left, output_right) =
                 self.mixer.mix(&self.ch1, &self.ch2, &self.ch3, &self.ch4);
 
+            // This is completely mental (T_T)
             // Synchronize CPU clock speed with audio frequency
+            // It's a precautionary measure and shouldn't fire under normal circumstances
             while self.audio_buffer.len() > AUDIO_BUFFER_SIZE {
-                // This is completely mental T_T
                 // t(ms) = sample rate / sample frequency = 4096 * 2 / 44100 = 0.092...s = approx.
                 // 92.88ms => 90ms
                 let duration = std::time::Duration::from_millis(90);

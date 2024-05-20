@@ -2,10 +2,12 @@
  * @file    apu/frame_sequencer.rs
  * @brief   Implementation of the APU frame sequencer.
  * @author  Mario Hess
- * @date    May 19, 2024
+ * @date    May 20, 2024
  */
-use crate::apu::{NoiseChannel, SquareChannel, WaveChannel, APU_CLOCK_SPEED};
-use crate::clock::CPU_CLOCK_SPEED;
+use crate::{
+    apu::{NoiseChannel, SquareChannel, WaveChannel, APU_CLOCK_SPEED},
+    clock::CPU_CLOCK_SPEED,
+};
 
 const CYCLES_DIV: u16 = (CPU_CLOCK_SPEED / APU_CLOCK_SPEED as u32) as u16;
 

@@ -2,7 +2,7 @@
  * @file    interrupt.rs
  * @brief   Handles CPU interrupts.
  * @author  Mario Hess
- * @date    September 20, 2023
+ * @date    May 20, 2024
  */
 use crate::cpu::Cpu;
 
@@ -21,6 +21,7 @@ const SERIAL_ISR: u16 = 0x0058;
 const JOYPAD_MASK: u8 = 0x10;
 const JOYPAD_ISR: u16 = 0x0060;
 
+// https://gbdev.io/pandocs/Interrupts.html#interrupt-handling
 #[derive(Copy, Clone)]
 pub struct Interrupt {
     interrupts: [(u8, u16); 5], // (bit_position, isr_address)
@@ -39,9 +40,9 @@ impl Interrupt {
         }
     }
 
-    pub fn interrupt_enabled(self, i_enable: u8, i_flag: u8) -> bool {
+    pub fn interrupt_enabled(self, interrupt_enabled: u8, interrupt_flag: u8) -> bool {
         for (interrupt, _) in self.interrupts {
-            if self.is_enabled(i_enable, i_flag, interrupt) {
+            if self.is_enabled(interrupt_enabled, interrupt_flag, interrupt) {
                 return true;
             }
         }
@@ -49,9 +50,9 @@ impl Interrupt {
         false
     }
 
-    pub fn is_enabled(self, i_enable: u8, i_flag: u8, value: u8) -> bool {
-        let is_requested = i_flag & value;
-        let is_enabled = i_enable & value;
+    pub fn is_enabled(self, interrupt_enabled: u8, interrupt_flag: u8, value: u8) -> bool {
+        let is_enabled = interrupt_enabled & value;
+        let is_requested = interrupt_flag & value;
 
         is_requested == value && is_enabled == value
     }
@@ -67,10 +68,10 @@ impl Interrupt {
     }
 
     fn handle_interrupt(self, cpu: &mut Cpu, value: u8, isr_address: u16) -> bool {
-        let i_enable = cpu.memory_bus.interrupt_enable;
-        let i_flag = cpu.memory_bus.interrupt_flag;
+        let interrupt_enabled = cpu.memory_bus.interrupt_enabled;
+        let interrupt_flag = cpu.memory_bus.interrupt_flag;
 
-        if !self.is_enabled(i_enable, i_flag, value) {
+        if !self.is_enabled(interrupt_enabled, interrupt_flag, value) {
             return false;
         }
 

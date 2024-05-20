@@ -2,12 +2,11 @@
  * @file    memory_bus.rs
  * @brief   Manages memory access and address decoding.
  * @author  Mario Hess
- * @date    October 20, 2023
+ * @date    May 20, 2024
  */
-use sdl2::{render::Canvas, video::Window, audio::AudioDevice, AudioSubsystem};
+use sdl2::{render::Canvas, video::Window};
 
 use crate::{
-    audio::Audio,
     apu::{Apu, AUDIO_END, AUDIO_START},
     cartridge::Cartridge,
     joypad::Joypad,
@@ -64,12 +63,12 @@ pub struct MemoryBus {
     pub apu: Apu,
     wram: [u8; 8192],
     hram: [u8; 128],
-    pub interrupt_enable: u8,
+    pub interrupt_enabled: u8,
+    pub interrupt_flag: u8,
+    pub timer: Timer,
     pub joypad: Joypad,
     serial_sb: u8,
     serial_sc: u8,
-    pub timer: Timer,
-    pub interrupt_flag: u8,
     speed_switch: u8,
 }
 
@@ -83,13 +82,13 @@ impl MemoryBus {
             apu: Apu::new(),
             wram: [0; 8192],
             hram: [0; 128],
-            interrupt_enable: 0,
-            joypad: Joypad::default(),
-            serial_sb: 0,
-            serial_sc: 0,
-            timer: Timer::new(),
+            interrupt_enabled: 0x00,
             interrupt_flag: 0xE1,
-            speed_switch: 0,
+            joypad: Joypad::default(),
+            serial_sb: 0x00,
+            serial_sc: 0x00,
+            timer: Timer::new(),
+            speed_switch: 0x00,
         }
     }
 
@@ -109,8 +108,8 @@ impl MemoryBus {
         self.interrupt_flag
     }
 
-    pub fn get_interrupt_enable(&mut self) -> u8 {
-        self.interrupt_enable
+    pub fn get_interrupt_enabled(&mut self) -> u8 {
+        self.interrupt_enabled
     }
 
     pub fn read_byte(&mut self, address: u16) -> u8 {
@@ -152,7 +151,7 @@ impl MemoryBus {
             // 0xFF80 - 0xFFFE (High RAM)
             HRAM_START..=HRAM_END => self.hram[address as usize - HRAM_START as usize],
             // 0xFFFF (Interrupt Enable Register)
-            INTERRUPT_ENABLE => self.interrupt_enable,
+            INTERRUPT_ENABLE => self.interrupt_enabled,
             _ => {
                 eprintln!("Unknown address: {:#X} Can't read byte.", address);
 
@@ -202,7 +201,7 @@ impl MemoryBus {
             // 0xFF80 - 0xFFFE (High RAM)
             HRAM_START..=HRAM_END => self.hram[address as usize - HRAM_START as usize] = value,
             // 0xFFFF (Interrupt Enable Register)
-            INTERRUPT_ENABLE => self.interrupt_enable = value,
+            INTERRUPT_ENABLE => self.interrupt_enabled = value,
             _ => eprintln!(
                 "Unknown address: {:#X} Can't write byte: {:#X}.",
                 address, value

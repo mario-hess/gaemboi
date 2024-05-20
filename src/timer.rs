@@ -2,10 +2,9 @@
  * @file    timer.rs
  * @brief   Handles the timer and divider registers.
  * @author  Mario Hess
- * @date    January 28, 2024
+ * @date    May 20, 2024
  */
-use crate::interrupt::TIMER_MASK;
-use crate::clock::CPU_CLOCK_SPEED;
+use crate::{clock::CPU_CLOCK_SPEED, interrupt::TIMER_MASK};
 
 const DIV: u16 = 0xFF04;
 const TIMA: u16 = 0xFF05;
@@ -22,6 +21,7 @@ const CYCLES_TAC_1: u16 = 16;
 const CYCLES_TAC_2: u16 = 64;
 const CYCLES_TAC_3: u16 = 256;
 
+// https://gbdev.io/pandocs/Timer_and_Divider_Registers.html
 pub struct Timer {
     div: u8,
     tima: u8,
@@ -39,15 +39,15 @@ impl Timer {
     pub fn new() -> Self {
         Self {
             div: 0xAB,
-            tima: 0,
-            tma: 0,
+            tima: 0x00,
+            tma: 0x00,
             tac: 0xF8,
-            div_clock: 0,
-            tima_counter: 0,
+            div_clock: 0x00,
+            tima_counter: 0x00,
             tima_overflowed: false,
             tac_cycles: CYCLES_TAC_0,
             enabled: false,
-            interrupt: 0,
+            interrupt: 0x00,
         }
     }
 
@@ -55,37 +55,39 @@ impl Timer {
         let t_cycles = (m_cycles * 4) as u16;
         self.div_clock += t_cycles;
 
+        // DIV (0xFF04) is incremented at a rate of 16384Hz
         while self.div_clock >= CYCLES_DIV {
             self.div = self.div.wrapping_add(1);
             self.div_clock -= CYCLES_DIV;
         }
 
+        // Controls whether TIMA (0xFF05) is incremented. DIV (0xFF04)
+        // is always counting, regardless of this bit (0xFF07 & 0x04)
         if !self.enabled {
             return;
         }
 
+        // TIMA (0xFF05) overflow is handled on the next cycle iteration
         if self.tima_overflowed {
             self.interrupt = TIMER_MASK;
             self.tima = self.tma;
             self.tima_overflowed = false;
         }
 
+        // TIMA (0xFF05) is incremented at the clock frequency specified by the
+        // TAC (0xFF07) register. When the value overflows (exceeds 0xFF), it is
+        // reset to the value specified in TMA (0xFF06) and an interrupt is requested
         self.tima_counter += t_cycles;
 
         while self.tima_counter >= self.tac_cycles {
             if self.tima == u8::MAX {
                 self.tima_overflowed = true;
-                self.tima = 0;
                 return;
             }
 
             self.tima = self.tima.wrapping_add(1);
             self.tima_counter -= self.tac_cycles;
         }
-    }
-
-    pub fn reset_interrupt(&mut self) {
-        self.interrupt = 0;
     }
 
     pub fn read_byte(&self, address: u16) -> u8 {
@@ -100,27 +102,29 @@ impl Timer {
 
     pub fn write_byte(&mut self, address: u16, value: u8) {
         match address {
-            DIV => {
-                self.div = 0;
-                self.div_clock = 0;
-                self.tima_counter = 0;
-            }
+            DIV => self.div = 0x00,
             TIMA => self.tima = value,
             TMA => self.tma = value,
-            TAC => {
-                self.tac = value;
-
-                self.tac_cycles = match value & TIMER_CONTROL_MASK {
-                    0x00 => CYCLES_TAC_0,
-                    0x01 => CYCLES_TAC_1,
-                    0x02 => CYCLES_TAC_2,
-                    0x03 => CYCLES_TAC_3,
-                    _ => unreachable!(),
-                };
-
-                self.enabled = (self.tac & TIMER_ENABLE_MASK) == TIMER_ENABLE_MASK;
-            }
+            TAC => self.set_tac(value),
             _ => unreachable!(),
         }
+    }
+
+    fn set_tac(&mut self, value: u8) {
+        self.tac = value;
+
+        self.tac_cycles = match value & TIMER_CONTROL_MASK {
+            0x00 => CYCLES_TAC_0,
+            0x01 => CYCLES_TAC_1,
+            0x02 => CYCLES_TAC_2,
+            0x03 => CYCLES_TAC_3,
+            _ => unreachable!(),
+        };
+
+        self.enabled = (self.tac & TIMER_ENABLE_MASK) == TIMER_ENABLE_MASK;
+    }
+
+    pub fn reset_interrupt(&mut self) {
+        self.interrupt = 0x00;
     }
 }

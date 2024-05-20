@@ -2,7 +2,7 @@
  * @file    cpu/mod.rs
  * @brief   Overarching construct, facilitates instruction execution coordination.
  * @author  Mario Hess
- * @date    November 11, 2023
+ * @date    May 20, 2024
  */
 mod arithmetic;
 mod bit_ops;
@@ -41,11 +41,11 @@ impl Cpu {
         // If the header checksum is 0x00, then the carry and
         // half-carry flags are clear; otherwise, they are both set
 
-        let flags_enable = rom_data[HEADER_CHECKSUM_ADDRESS] != 0x00;
+        let flags_enabled = rom_data[HEADER_CHECKSUM_ADDRESS] != 0x00;
 
         Self {
             memory_bus: MemoryBus::new(rom_data),
-            registers: Registers::new(flags_enable),
+            registers: Registers::new(flags_enabled),
             program_counter: ProgramCounter::new(),
             stack_pointer: STACK_POINTER_START,
             interrupt: Interrupt::new(),
@@ -57,10 +57,12 @@ impl Cpu {
     }
 
     pub fn tick(&mut self) -> u8 {
-        let i_enable = self.memory_bus.get_interrupt_enable();
-        let i_flag = self.memory_bus.get_interrupt_flag();
+        let interrupt_enabled = self.memory_bus.get_interrupt_enabled();
+        let interrupt_flag = self.memory_bus.get_interrupt_flag();
 
-        if self.halted && self.interrupt.interrupt_enabled(i_enable, i_flag) {
+        // The HALT instruction gives the game the ability to stop the CPU
+        // from executing any more instructions until an interrupt gets enabled
+        if self.halted && self.interrupt.interrupt_enabled(interrupt_enabled, interrupt_flag) {
             self.halted = false;
         } else if self.halted {
             // Halt consumes 1 m_cycle
@@ -80,23 +82,27 @@ impl Cpu {
         let byte = self.memory_bus.read_byte(self.program_counter.next());
         self.instruction = Some(Instruction::from_byte(byte));
 
+        // Check if mnemonic refers to the prefix table
         let m_cycles = match self.instruction.unwrap().mnemonic {
             Mnemonic::Prefix => self.prefix_step(),
             _ => self.execute_instruction(self.instruction.unwrap()),
         };
 
+        // Check if the instruction returned default or optional m_cycles
         match m_cycles {
             CycleDuration::Default => self.instruction.unwrap().m_cycles,
             CycleDuration::Optional => self.instruction.unwrap().opt_m_cycles.unwrap(),
         }
     }
 
+    // Handle next instruction from prefix table
     fn prefix_step(&mut self) -> CycleDuration {
         let byte = self.memory_bus.read_byte(self.program_counter.next());
         self.instruction = Some(Instruction::from_prefix_byte(byte));
         self.execute_prefix(self.instruction.unwrap())
     }
 
+    // Multi-byte data is handled in little-endian format
     fn get_nn_little_endian(&mut self) -> u16 {
         let low_byte = self.memory_bus.read_byte(self.program_counter.next()) as u16;
         let high_byte = self.memory_bus.read_byte(self.program_counter.next()) as u16;
@@ -104,6 +110,7 @@ impl Cpu {
         (high_byte << 8) | low_byte
     }
 
+    // Stack grows downwards
     fn pop_stack(&mut self) -> u16 {
         let low_byte = self.memory_bus.read_byte(self.stack_pointer) as u16;
         self.stack_pointer = self.stack_pointer.wrapping_add(1);
@@ -125,6 +132,7 @@ impl Cpu {
         self.memory_bus.write_byte(self.stack_pointer, low_byte);
     }
 
+    // https://gbdev.io/pandocs/Interrupts.html#interrupt-handling
     pub fn interrupt_service_routine(&mut self, isr_address: u16, value: u8) {
         self.ime = false;
         self.push_stack(self.program_counter.get());
