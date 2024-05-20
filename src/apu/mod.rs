@@ -103,17 +103,6 @@ impl Apu {
             let (output_left, output_right) =
                 self.mixer.mix(&self.ch1, &self.ch2, &self.ch3, &self.ch4);
 
-            // This is completely mental (T_T)
-            // Synchronize CPU clock speed with audio frequency
-            // It's a precautionary measure and shouldn't fire under normal circumstances
-            while self.audio_buffer.len() > AUDIO_BUFFER_SIZE {
-                // t(ms) = sample rate / sample frequency = 4096 * 2 / 44100 = 0.092...s = approx.
-                // 92.88ms => 90ms
-                let duration = std::time::Duration::from_millis(90);
-                std::thread::sleep(duration);
-                println!("{:?}: Slept for 90ms", std::time::Instant::now());
-            }
-
             self.audio_buffer.push_back(output_left);
             self.audio_buffer.push_back(output_right);
 
