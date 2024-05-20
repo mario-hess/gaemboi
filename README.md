@@ -59,7 +59,7 @@ sudo apt-get install libsdl2-dev libsdl-image1.2 libsdl-image1.2-dev libsdl-ttf2
 #### Fedora
 
 ```
-sudo dnf install SDL2-devel install SDL2_image SDL2_image-devel SDL2_ttf SDL2_ttf-devel
+sudo dnf install SDL2-devel SDL2_image SDL2_image-devel SDL2_ttf SDL2_ttf-devel
 ```
 
 
