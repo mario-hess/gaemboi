@@ -215,9 +215,9 @@ impl NoiseChannel {
     }
 
     fn set_control(&mut self, value: u8) {
-        let triggered = value & 0x80 != 0;
-        self.enabled |= triggered;
-        if triggered {
+        self.triggered = value & 0x80 != 0;
+        self.enabled |= self.triggered;
+        if self.triggered {
             self.trigger();
         }
 
