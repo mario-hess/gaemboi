@@ -101,15 +101,11 @@ impl SquareChannel {
             return;
         }
 
-        if self.enabled {
-            self.output = if DUTY_TABLE[self.wave_duty as usize][self.sequence as usize] == 1 {
-                self.volume
-            } else {
-                0
-            };
+        self.output = if DUTY_TABLE[self.wave_duty as usize][self.sequence as usize] == 1 {
+            self.volume
         } else {
-            self.output = 0;
-        }
+            0
+        };
 
         self.timer += ((2048 - self.frequency) * 4) as i16;
         self.sequence = (self.sequence + 1) & 0x07;
@@ -213,12 +209,7 @@ impl SquareChannel {
         }
     }
 
-    pub fn write_byte(
-        &mut self,
-        base_address: u16,
-        address: u16,
-        value: u8,
-    ) {
+    pub fn write_byte(&mut self, base_address: u16, address: u16, value: u8) {
         let address = if address < 0xFF16 {
             address - base_address
         } else {

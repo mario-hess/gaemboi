@@ -58,14 +58,10 @@ impl WaveChannel {
             return;
         }
 
-        if self.enabled {
-            let wave_index = self.wave_ram_position / 2;
-            let output = self.wave_ram[wave_index as usize];
+        let wave_index = self.wave_ram_position / 2;
+        let output = self.wave_ram[wave_index as usize];
 
-            self.output = output >> self.volume_shift();
-        } else {
-            self.output = 0;
-        }
+        self.output = output >> self.volume_shift();
 
         self.timer += ((2048 - self.frequency) * 2) as i16;
         self.wave_ram_position = (self.wave_ram_position + 1) & 0x1F;

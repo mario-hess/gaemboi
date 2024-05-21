@@ -66,21 +66,17 @@ impl NoiseChannel {
             return;
         }
 
-        if self.enabled {
-            let result = ((self.lfsr & 0x01) ^ ((self.lfsr >> 1) & 0x01)) != 0;
+        let result = ((self.lfsr & 0x01) ^ ((self.lfsr >> 1) & 0x01)) != 0;
 
-            self.lfsr >>= 1;
-            self.lfsr |= if result { 0x01 << 14 } else { 0x00 };
+        self.lfsr >>= 1;
+        self.lfsr |= if result { 0x01 << 14 } else { 0x00 };
 
-            if self.lfsr_width {
-                self.lfsr &= 0xBF;
-                self.lfsr |= if result { 0x40 } else { 0x00 };
-            }
-
-            self.output = if result { self.volume } else { 0x00 };
-        } else {
-            self.output = 0;
+        if self.lfsr_width {
+            self.lfsr &= 0xBF;
+            self.lfsr |= if result { 0x40 } else { 0x00 };
         }
+
+        self.output = if result { self.volume } else { 0x00 };
 
         self.timer += ((DIVISORS[self.clock_divider as usize] as u16) << self.clock_shift) as i32;
     }
