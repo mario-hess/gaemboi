@@ -112,16 +112,13 @@ impl NoiseChannel {
         }
     }
 
-    pub fn trigger(&mut self, sequencer_step: &mut u8) {
+    pub fn trigger(&mut self) {
         self.timer = ((DIVISORS[self.clock_divider as usize] as u16) << self.clock_shift) as i32;
         self.lfsr = 0x7FF1;
         self.envelope_sequence = 0;
 
         if self.length_timer >= LENGTH_TIMER_MAX {
             self.length_timer = 0;
-            if self.length_enabled && *sequencer_step % 2 == 1 {
-                self.tick_length_timer();
-            }
         }
     }
 
@@ -138,12 +135,12 @@ impl NoiseChannel {
         }
     }
 
-    pub fn write_byte(&mut self, address: u16, value: u8, sequencer_step: &mut u8) {
+    pub fn write_byte(&mut self, address: u16, value: u8) {
         match address {
             LENGTH_TIMER => self.set_length_timer(value),
             VOLUME_ENVELOPE => self.set_volume_envelope(value),
             FREQUENCY_RANDOMNESS => self.set_frequency_randomness(value),
-            CONTROL => self.set_control(value, sequencer_step),
+            CONTROL => self.set_control(value),
             _ => eprintln!(
                 "Unknown address: {:#X} Can't write byte: {:#X}.",
                 address, value
@@ -210,22 +207,16 @@ impl NoiseChannel {
         length_enabled | triggered
     }
 
-    fn set_control(&mut self, value: u8, sequencer_step: &mut u8) {
-        let length_enabled = value & 0x40 != 0;
+    fn set_control(&mut self, value: u8) {
+        self.length_enabled = value & 0x40 != 0;
         let triggered = value & 0x80 != 0;
-        let length_edge = length_enabled && !self.length_enabled;
-        self.length_enabled = length_enabled;
         self.enabled |= triggered;
 
-        if length_edge && *sequencer_step % 2 == 1 {
-            self.tick_length_timer();
-        }
-
         if triggered {
-            self.trigger(sequencer_step);
+            self.trigger();
         }
 
-        if length_enabled && self.length_timer >= LENGTH_TIMER_MAX {
+        if self.length_enabled && self.length_timer >= LENGTH_TIMER_MAX {
             self.enabled = false;
         }
     }

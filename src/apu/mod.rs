@@ -143,19 +143,19 @@ impl Apu {
         match address {
             CH1_START..=CH1_END => {
                 self.ch1
-                    .write_byte(CH1_START, address, value, &mut self.frame_sequencer.step)
+                    .write_byte(CH1_START, address, value)
             }
             CH2_START..=CH2_END => {
                 self.ch2
-                    .write_byte(CH2_START, address, value, &mut self.frame_sequencer.step)
+                    .write_byte(CH2_START, address, value)
             }
             CH3_START..=CH3_END => {
                 self.ch3
-                    .write_byte(address, value, &mut self.frame_sequencer.step)
+                    .write_byte(address, value)
             }
             CH4_START..=CH4_END => {
                 self.ch4
-                    .write_byte(address, value, &mut self.frame_sequencer.step)
+                    .write_byte(address, value)
             }
             MASTER_VOLUME => self.set_master_volume(value),
             PANNING => self.mixer.set_panning(value),
