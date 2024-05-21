@@ -182,9 +182,9 @@ impl WaveChannel {
     }
 
     fn set_frequency_high(&mut self, value: u8) {
-        self.triggered = value & 0x80 != 0;
-        self.enabled |= self.triggered;
-        if self.triggered {
+        let triggered = value & 0x80 != 0;
+        self.enabled |= triggered;
+        if triggered {
             self.trigger();
         }
 
