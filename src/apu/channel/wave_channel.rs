@@ -60,7 +60,7 @@ impl WaveChannel {
 
         self.timer += ((2048 - self.frequency) * 2) as i16;
 
-        if self.enabled && self.dac_enabled && self.volume != 0 {
+        if self.enabled && self.dac_enabled {
             let wave_index = self.wave_ram_position / 2;
             let output = self.wave_ram[wave_index as usize];
 
@@ -125,7 +125,7 @@ impl WaveChannel {
     }
 
     pub fn get_output(&self) -> u8 {
-        if self.enabled && self.dac_enabled && self.volume != 0 {
+        if self.enabled && self.dac_enabled {
             self.output
         } else {
             0
@@ -143,7 +143,6 @@ impl WaveChannel {
     fn set_dac_enable(&mut self, value: u8) {
         self.dac_enabled = value & 0x80 != 0;
 
-        // Setting bit 7 of this register to 0 turns dac_enabled off (and thus, the channel as well)
         if !self.dac_enabled {
             self.enabled = false;
         }
