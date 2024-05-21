@@ -308,19 +308,14 @@ impl SquareChannel {
     }
 
     fn set_frequency_high(&mut self, value: u8) {
-        self.length_enabled = value & 0x40 != 0;
         let triggered = value & 0x80 != 0;
-        self.frequency = (self.frequency & 0x00FF) | ((value & 0x07) as u16) << 8;
         self.enabled |= triggered;
-
-
         if triggered {
             self.trigger();
         }
 
-        if self.length_enabled && self.length_timer >= LENGTH_TIMER_MAX {
-            self.enabled = false;
-        }
+        self.length_enabled = value & 0x40 != 0;
+        self.frequency = (self.frequency & 0x00FF) | ((value & 0x07) as u16) << 8;
     }
 
     pub fn reset(&mut self) {

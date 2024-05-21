@@ -215,10 +215,6 @@ impl NoiseChannel {
         if triggered {
             self.trigger();
         }
-
-        if self.length_enabled && self.length_timer >= LENGTH_TIMER_MAX {
-            self.enabled = false;
-        }
     }
 
     pub fn reset(&mut self) {

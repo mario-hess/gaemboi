@@ -73,12 +73,12 @@ impl WaveChannel {
     }
 
     pub fn tick_length_timer(&mut self) {
-        if self.length_enabled {
-            self.length_timer = self.length_timer.saturating_sub(1);
+        if !self.length_enabled || self.length_timer >= 256 {
+            return;
         }
 
-        if self.length_enabled && self.length_timer == 0 {
-            self.length_enabled = false;
+        self.length_timer = self.length_timer.saturating_add(1);
+        if self.length_timer >= 256 {
             self.enabled = false;
         }
     }
@@ -91,8 +91,8 @@ impl WaveChannel {
         self.timer = ((2048 - self.frequency) * 2) as i16;
         self.wave_ram_position = 0;
 
-        if self.length_timer == 0 {
-            self.length_timer = 256;
+        if self.length_timer >= 256 {
+            self.length_timer = 0;
         }
     }
 
@@ -184,8 +184,9 @@ impl WaveChannel {
     }
 
     fn set_frequency_high(&mut self, value: u8) {
-        // Triggering a channel causes it to turn on if it wasn’t
-        if value & 0x80 != 0 {
+        let triggered = value & 0x80 != 0;
+        self.enabled |= triggered;
+        if triggered {
             self.trigger();
         }
 
