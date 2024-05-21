@@ -2,7 +2,7 @@
  * @file    apu/channel/noise_channel.rs
  * @brief   Noise channel.
  * @author  Mario Hess
- * @date    May 19, 2024
+ * @date    May 21, 2024
  */
 use crate::apu::{CH4_END, CH4_START, LENGTH_TIMER_MAX};
 
@@ -18,7 +18,7 @@ pub struct NoiseChannel {
     output: u8,
     timer: i32,
     lfsr: u16,
-    convert: bool,
+    dac_enabled: bool,
     envelope_enabled: bool,
     envelope_sequence: u8,
     length_timer: u8,
@@ -39,7 +39,7 @@ impl NoiseChannel {
             timer: 0,
             output: 0,
             lfsr: 0,
-            convert: false,
+            dac_enabled: false,
             envelope_enabled: false,
             envelope_sequence: 0,
             length_timer: 0,
@@ -55,9 +55,13 @@ impl NoiseChannel {
     }
 
     pub fn tick(&mut self, m_cycles: u8) {
-        let t_cycles = (m_cycles * 4) as u16;
-        self.timer = self.timer.saturating_sub(t_cycles as i32);
+        if !self.enabled {
+            return;
+        }
 
+        let t_cycles = (m_cycles * 4) as u16;
+
+        self.timer = self.timer.saturating_sub(t_cycles as i32);
         if self.timer > 0 {
             return;
         }
@@ -82,12 +86,12 @@ impl NoiseChannel {
     }
 
     pub fn tick_length_timer(&mut self) {
-        if !self.length_enabled || self.length_timer >= LENGTH_TIMER_MAX {
+        if !self.length_enabled || self.length_timer == 0 {
             return;
         }
 
-        self.length_timer = self.length_timer.saturating_add(1);
-        if self.length_timer >= LENGTH_TIMER_MAX {
+        self.length_timer = self.length_timer.saturating_sub(1);
+        if self.length_timer == 0 {
             self.enabled = false;
         }
     }
@@ -113,12 +117,16 @@ impl NoiseChannel {
     }
 
     pub fn trigger(&mut self) {
+        if self.dac_enabled {
+            self.enabled = true;
+        }
+
         self.timer = ((DIVISORS[self.clock_divider as usize] as u16) << self.clock_shift) as i32;
         self.lfsr = 0x7FF1;
         self.envelope_sequence = 0;
 
-        if self.length_timer >= LENGTH_TIMER_MAX {
-            self.length_timer = 0;
+        if self.length_timer == 0 {
+            self.length_timer = LENGTH_TIMER_MAX;
         }
     }
 
@@ -161,7 +169,7 @@ impl NoiseChannel {
     }
 
     fn set_length_timer(&mut self, value: u8) {
-        self.length_timer = value & 0x3F;
+        self.length_timer = LENGTH_TIMER_MAX - (value & 0x3F);
     }
 
     fn get_volume_envelope(&self) -> u8 {
@@ -179,9 +187,8 @@ impl NoiseChannel {
         self.envelope_enabled = self.pace > 0;
         self.envelope_sequence = 0;
 
-        // Setting bits 3-7 of this register all to 0 turns the converter off (and thus, the channel as well)
-        self.convert = value & 0b11111000 != 0x00;
-        if !self.convert {
+        self.dac_enabled = value & 0b11111000 != 0x00;
+        if !self.dac_enabled {
             self.enabled = false;
         }
     }
@@ -208,13 +215,13 @@ impl NoiseChannel {
     }
 
     fn set_control(&mut self, value: u8) {
-        self.length_enabled = value & 0x40 != 0;
         let triggered = value & 0x80 != 0;
         self.enabled |= triggered;
-
         if triggered {
             self.trigger();
         }
+
+        self.length_enabled = value & 0x40 != 0;
     }
 
     pub fn reset(&mut self) {
@@ -222,7 +229,7 @@ impl NoiseChannel {
         self.timer = 0;
         self.output = 0;
         self.lfsr = 0;
-        self.convert = false;
+        self.dac_enabled = false;
         self.envelope_enabled = false;
         self.envelope_sequence = 0;
         self.length_timer = 0;

@@ -2,7 +2,7 @@
  * @file    apu/channel/wave_channel.rs
  * @brief   Wave channel.
  * @author  Mario Hess
- * @date    May 19, 2024
+ * @date    May 21, 2024
  */
 use crate::apu::{CH3_END, CH3_START};
 
@@ -58,9 +58,7 @@ impl WaveChannel {
             return;
         }
 
-        self.timer += ((2048 - self.frequency) * 2) as i16;
-
-        if self.enabled && self.dac_enabled {
+        if self.enabled {
             let wave_index = self.wave_ram_position / 2;
             let output = self.wave_ram[wave_index as usize];
 
@@ -69,16 +67,17 @@ impl WaveChannel {
             self.output = 0;
         }
 
+        self.timer += ((2048 - self.frequency) * 2) as i16;
         self.wave_ram_position = (self.wave_ram_position + 1) & 0x1F;
     }
 
     pub fn tick_length_timer(&mut self) {
-        if !self.length_enabled || self.length_timer >= 256 {
+        if !self.length_enabled || self.length_timer == 0 {
             return;
         }
 
-        self.length_timer = self.length_timer.saturating_add(1);
-        if self.length_timer >= 256 {
+        self.length_timer = self.length_timer.saturating_sub(1);
+        if self.length_timer == 0 {
             self.enabled = false;
         }
     }
@@ -91,8 +90,8 @@ impl WaveChannel {
         self.timer = ((2048 - self.frequency) * 2) as i16;
         self.wave_ram_position = 0;
 
-        if self.length_timer >= 256 {
-            self.length_timer = 0;
+        if self.length_timer == 0 {
+            self.length_timer = 256;
         }
     }
 
@@ -113,7 +112,7 @@ impl WaveChannel {
     pub fn write_byte(&mut self, address: u16, value: u8) {
         match address {
             DAC_ENABLE => self.set_dac_enable(value),
-            LENGTH_TIMER => self.length_timer = value as u16,
+            LENGTH_TIMER => self.length_timer = 256 - (value as u16),
             VOLUME => self.set_output_level(value),
             FREQUENCY_LOW => self.set_frequency_low(value),
             FREQUENCY_HIGH => self.set_frequency_high(value),
@@ -125,7 +124,7 @@ impl WaveChannel {
     }
 
     pub fn get_output(&self) -> u8 {
-        if self.enabled && self.dac_enabled {
+        if self.enabled {
             self.output
         } else {
             0

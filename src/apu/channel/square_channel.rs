@@ -2,7 +2,7 @@
  * @file    apu/channel/square_channel.rs
  * @brief   Square channel.
  * @author  Mario Hess
- * @date    May 19, 2024
+ * @date    May 21, 2024
  */
 use crate::apu::LENGTH_TIMER_MAX;
 
@@ -37,7 +37,7 @@ pub struct SquareChannel {
     output: u8,
     timer: i16,
     sequence: u8,
-    convert: bool,
+    dac_enabled: bool,
     frequency: u16,
     envelope_enabled: bool,
     envelope_sequence: u8,
@@ -71,7 +71,7 @@ impl SquareChannel {
             output: 0,
             timer: 0,
             sequence: 0,
-            convert: false,
+            dac_enabled: false,
             frequency: 0,
             envelope_enabled: false,
             envelope_sequence: 0,
@@ -90,9 +90,13 @@ impl SquareChannel {
     }
 
     pub fn tick(&mut self, m_cycles: u8) {
-        let t_cycles = (m_cycles * 4) as u16;
-        self.timer = self.timer.saturating_sub(t_cycles as i16);
+        if !self.enabled {
+            return;
+        }
 
+        let t_cycles = (m_cycles * 4) as u16;
+
+        self.timer = self.timer.saturating_sub(t_cycles as i16);
         if self.timer > 0 {
             return;
         }
@@ -107,7 +111,7 @@ impl SquareChannel {
             self.output = 0;
         }
 
-        self.timer += ((2048 - self.frequency) << 2) as i16;
+        self.timer += ((2048 - self.frequency) * 4) as i16;
         self.sequence = (self.sequence + 1) & 0x07;
     }
 
@@ -140,12 +144,12 @@ impl SquareChannel {
     }
 
     pub fn tick_length_timer(&mut self) {
-        if !self.length_enabled || self.length_timer >= LENGTH_TIMER_MAX {
+        if !self.length_enabled || self.length_timer == 0 {
             return;
         }
 
-        self.length_timer = self.length_timer.saturating_add(1);
-        if self.length_timer >= LENGTH_TIMER_MAX {
+        self.length_timer = self.length_timer.saturating_sub(1);
+        if self.length_timer == 0 {
             self.enabled = false;
         }
     }
@@ -173,15 +177,19 @@ impl SquareChannel {
     }
 
     pub fn trigger(&mut self) {
-        self.timer = ((2048 - self.frequency) << 2) as i16;
+        if self.dac_enabled {
+            self.enabled = true;
+        }
+
+        self.timer = ((2048 - self.frequency) * 4) as i16;
         self.envelope_sequence = 0;
 
         if self.sweep_sequence.is_some() {
             self.sweep_sequence = Some(0);
         }
 
-        if self.length_timer >= LENGTH_TIMER_MAX {
-            self.length_timer = 0;
+        if self.length_timer == 0 {
+            self.length_timer = LENGTH_TIMER_MAX;
         }
     }
 
@@ -266,7 +274,7 @@ impl SquareChannel {
 
     fn set_length_timer(&mut self, value: u8) {
         self.wave_duty = (value & 0xC0) >> 6;
-        self.length_timer = value & 0x3F;
+        self.length_timer = 64 - (value & 0x3F);
     }
 
     fn get_volume_envelope(&self) -> u8 {
@@ -284,9 +292,8 @@ impl SquareChannel {
         self.envelope_enabled = self.pace > 0;
         self.envelope_sequence = 0;
 
-        // Setting bits 3-7 of this register all to 0 turns the converter off (and thus, the channel as well)
-        self.convert = value & 0xF8 != 0x00;
-        if !self.convert {
+        self.dac_enabled = value & 0xF8 != 0x00;
+        if !self.dac_enabled {
             self.enabled = false;
         }
     }
@@ -323,7 +330,7 @@ impl SquareChannel {
         self.output = 0;
         self.timer = 0;
         self.sequence = 0;
-        self.convert = false;
+        self.dac_enabled = false;
         self.frequency = 0;
         self.envelope_enabled = false;
         self.envelope_sequence = 0;
