@@ -17,7 +17,7 @@ This is a Nintendo Game Boy emulator written in Rust. It aims to accurately emul
 - [x] Support for (most common) Game Boy ROMs
 - [x] Accurate emulation of memory, registers, and interrupts
 - [x] Basic graphics
-- [x] Audio emulation (somewhat working)
+- [x] Audio emulation
 - [x] Save/Load game progress
 - [x] Input handling
 - [x] Gamepad support
