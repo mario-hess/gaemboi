@@ -124,7 +124,7 @@ impl std::convert::From<Mixer> for u8 {
         let ch1_left = if mixer.ch1_left { CH1_LEFT_POS } else { 0x00 };
         let ch2_left = if mixer.ch2_left { CH2_LEFT_POS } else { 0x00 };
         let ch3_left = if mixer.ch3_left { CH3_LEFT_POS } else { 0x00 };
-        let ch4_left = if mixer.ch4_left { CH3_LEFT_POS } else { 0x00 };
+        let ch4_left = if mixer.ch4_left { CH4_LEFT_POS } else { 0x00 };
 
         ch1_right | ch2_right | ch3_right | ch4_right | ch1_left | ch2_left | ch3_left | ch4_left
     }

@@ -136,7 +136,11 @@ impl Apu {
 
     pub fn write_byte(&mut self, address: u16, value: u8) {
         // Even when disabled, MASTER_CONTROL (NR52) is accessible
-        if !self.enabled && address != MASTER_CONTROL {
+        if address == MASTER_CONTROL {
+            self.set_master_control(value);
+        }
+
+        if !self.enabled {
             return;
         }
 
@@ -146,8 +150,10 @@ impl Apu {
             CH3_START..=CH3_END => self.ch3.write_byte(address, value),
             CH4_START..=CH4_END => self.ch4.write_byte(address, value),
             MASTER_VOLUME => self.set_master_volume(value),
-            PANNING => self.mixer.set_panning(value),
-            MASTER_CONTROL => self.set_master_control(value),
+            PANNING => {
+                self.mixer.set_panning(value);
+            },
+            MASTER_CONTROL => {},
             WAVE_PATTERN_START..=WAVE_PATTERN_END => self.ch3.write_wave_ram(address, value),
             _ => eprintln!(
                 "Unknown address: {:#X} Can't write byte: {:#X}.",
