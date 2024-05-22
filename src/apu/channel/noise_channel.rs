@@ -21,7 +21,7 @@ pub struct NoiseChannel {
     dac_enabled: bool,
     envelope_enabled: bool,
     envelope_sequence: u8,
-    length_timer: u8,
+    pub length_timer: u8,
     pace: u8,
     direction: bool,
     pub volume: u8,
@@ -153,7 +153,7 @@ impl NoiseChannel {
     }
 
     pub fn get_output(&self) -> u8 {
-        if self.enabled {
+        if self.enabled && self.dac_enabled {
             self.output
         } else {
             0
@@ -212,7 +212,6 @@ impl NoiseChannel {
 
     fn set_control(&mut self, value: u8) {
         let triggered = value & 0x80 != 0;
-        self.enabled |= triggered;
         if triggered {
             self.trigger();
         }
@@ -228,7 +227,7 @@ impl NoiseChannel {
         self.dac_enabled = false;
         self.envelope_enabled = false;
         self.envelope_sequence = 0;
-        self.length_timer = 0;
+        //self.length_timer = 0;
         self.pace = 0;
         self.direction = true;
         self.volume = 0;

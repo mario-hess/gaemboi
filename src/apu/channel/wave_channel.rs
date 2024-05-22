@@ -47,7 +47,8 @@ impl WaveChannel {
     }
 
     pub fn tick(&mut self, m_cycles: u8) {
-        if !self.enabled {
+        if !self.enabled || !self.dac_enabled {
+            self.output = 0;
             return;
         }
 
@@ -120,7 +121,7 @@ impl WaveChannel {
     }
 
     pub fn get_output(&self) -> u8 {
-        if self.enabled {
+        if self.enabled && self.dac_enabled {
             self.output
         } else {
             0
@@ -179,7 +180,6 @@ impl WaveChannel {
 
     fn set_frequency_high(&mut self, value: u8) {
         let triggered = value & 0x80 != 0;
-        self.enabled |= triggered;
         if triggered {
             self.trigger();
         }

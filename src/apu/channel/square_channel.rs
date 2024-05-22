@@ -230,7 +230,7 @@ impl SquareChannel {
     }
 
     pub fn get_output(&self) -> u8 {
-        if self.enabled {
+        if self.enabled && self.dac_enabled {
             self.output
         } else {
             0
@@ -253,7 +253,7 @@ impl SquareChannel {
         self.sweep_shift = Some(value & 0x07);
         self.sweep_direction = Some((value & 0x08) == 0x00);
         self.sweep_pace = Some((value & 0x70) >> 4);
-        self.sweep_sequence = Some(0);
+        //self.sweep_sequence = Some(0);
     }
 
     fn get_length_timer(&self) -> u8 {
@@ -307,7 +307,6 @@ impl SquareChannel {
 
     fn set_frequency_high(&mut self, value: u8) {
         let triggered = value & 0x80 != 0;
-        self.enabled |= triggered;
         if triggered {
             self.trigger();
         }
