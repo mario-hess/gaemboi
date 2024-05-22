@@ -96,7 +96,6 @@ impl Machine {
             self.clock.reset();
             self.debug_draw(&mut debug_windows);
 
-            viewport.canvas.present();
             debug_windows.present();
 
             // Tick at 59.73 Hz using a busy-wait loop 

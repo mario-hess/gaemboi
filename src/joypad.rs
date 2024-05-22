@@ -48,7 +48,7 @@ impl Joypad {
                 | (if self.down { 0 } else { 1 }) << START_DOWN_POS;
         }
 
-        0x00
+        0xCF
     }
 
     pub fn handle_input(&mut self, event_handler: &EventHandler) {
