@@ -2,7 +2,7 @@
  * @file    ppu/oam.rs
  * @brief   Handles the Object Attribute Memory
  * @author  Mario Hess
- * @date    October 21, 2023
+ * @date    May 23, 2024
  */
 
 #[allow(clippy::upper_case_acronyms)]
@@ -22,14 +22,6 @@ impl OAM {
             tile_index: 0,
             attributes: 0,
         }
-    }
-
-    pub fn cgb_palette_enabled(&self) -> u8 {
-        self.attributes & 0x07
-    }
-
-    pub fn cgb_vram_bank_enabled(&self) -> bool {
-        self.attributes & 0x08 != 0
     }
 
     pub fn palette_enabled(&self) -> bool {

@@ -2,7 +2,7 @@
 * @file    ppu/lcd_status.rs
 * @brief   Handles the PPU's LCD Status register.
 * @author  Mario Hess
-* @date    November 07, 2023
+* @date    May 23, 2024
 */
 use crate::ppu::{Mode, LCD_STAT_MASK};
 
@@ -38,10 +38,10 @@ impl LCD_status {
             _ => unreachable!(),
         };
 
-        self.interrupt_hblank = (value & 0x08) == 0x08;
-        self.interrupt_vblank = (value & 0x10) == 0x10;
-        self.interrupt_oam = (value & 0x20) == 0x20;
-        self.interrupt_stat = (value & 0x40) == 0x40;
+        self.interrupt_hblank = (value & 0x08) != 0;
+        self.interrupt_vblank = (value & 0x10) != 0;
+        self.interrupt_oam = (value & 0x20) != 0;
+        self.interrupt_stat = (value & 0x40) != 0;
     }
 
     pub fn get(self) -> u8 {

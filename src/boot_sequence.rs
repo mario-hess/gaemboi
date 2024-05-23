@@ -2,7 +2,7 @@
  * @file    boot_sequence.rs
  * @brief   Custom boot sequence.
  * @author  Mario Hess
- * @date    November 06, 2023
+ * @date    May 23, 2024
  */
 use sdl2::{
     image::LoadTexture,
@@ -12,17 +12,17 @@ use sdl2::{
 
 use crate::{
     event_handler::EventHandler,
-    window::{clear_canvas, Window},
+    sdl::window::{clear_canvas, Window},
     MachineState,
 };
 
-pub fn run(viewport: &mut Window, event_handler: &mut EventHandler, event_pump: &mut EventPump) {
+pub fn run(window: &mut Window, event_handler: &mut EventHandler, event_pump: &mut EventPump) {
     let frame_duration = std::time::Duration::from_millis((1000.0 / 30.0) as u64);
 
     // Include logo in binaries.
     let bytes = include_bytes!("../images/logo.png");
 
-    let texture = viewport.texture_creator.load_texture_bytes(bytes).unwrap();
+    let texture = window.texture_creator.load_texture_bytes(bytes).unwrap();
 
     let logo_width = texture.query().width;
     let logo_height = texture.query().height;
@@ -34,13 +34,13 @@ pub fn run(viewport: &mut Window, event_handler: &mut EventHandler, event_pump: 
 
     while !event_handler.pressed_escape {
         event_handler.poll(event_pump);
-        event_handler.check_resized(&mut viewport.canvas);
+        event_handler.check_resized(&mut window.canvas);
 
         match event_handler.machine_state {
             MachineState::Boot => {
                 let frame_start_time = std::time::Instant::now();
 
-                clear_canvas(&mut viewport.canvas);
+                clear_canvas(&mut window.canvas);
 
                 logo_position.y += scroll_speed;
 
@@ -53,7 +53,7 @@ pub fn run(viewport: &mut Window, event_handler: &mut EventHandler, event_pump: 
                     }
                 }
 
-                viewport
+                window
                     .canvas
                     .copy(
                         &texture,
@@ -62,7 +62,7 @@ pub fn run(viewport: &mut Window, event_handler: &mut EventHandler, event_pump: 
                     )
                     .unwrap();
 
-                viewport.canvas.present();
+                window.canvas.present();
 
                 let elapsed_time = frame_start_time.elapsed();
                 if elapsed_time < frame_duration {

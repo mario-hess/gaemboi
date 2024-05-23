@@ -2,7 +2,7 @@
  * @file    menu/mod.rs
  * @brief   Manages the menu.
  * @author  Mario Hess
- * @date    November 11, 2023
+ * @date    May 23, 2024
  */
 mod button;
 
@@ -15,13 +15,13 @@ use crate::{
     event_handler::EventHandler,
     menu::button::{Button, ButtonState, ButtonType, BTN_HEIGHT, BTN_WIDTH},
     ppu::{VIEWPORT_HEIGHT, VIEWPORT_WIDTH, WHITE},
-    window::Window,
+    sdl::window::Window,
     MachineState,
 };
 
-pub fn run(event_handler: &mut EventHandler, event_pump: &mut EventPump, viewport: &mut Window) {
+pub fn run(event_handler: &mut EventHandler, event_pump: &mut EventPump, window: &mut Window) {
     let buttons_image = include_bytes!("../../images/buttons.png");
-    let button_texture = viewport
+    let button_texture = window
         .texture_creator
         .load_texture_bytes(buttons_image)
         .unwrap();
@@ -51,7 +51,7 @@ pub fn run(event_handler: &mut EventHandler, event_pump: &mut EventPump, viewpor
 
     while !event_handler.pressed_escape {
         event_handler.poll(event_pump);
-        event_handler.check_resized(&mut viewport.canvas);
+        event_handler.check_resized(&mut window.canvas);
 
         if event_handler.file_path.is_some() {
             event_handler.machine_state = MachineState::Boot;
@@ -60,8 +60,8 @@ pub fn run(event_handler: &mut EventHandler, event_pump: &mut EventPump, viewpor
 
         let (mouse_x, mouse_y) = (event_handler.mouse_x, event_handler.mouse_y);
 
-        viewport.canvas.set_draw_color(WHITE);
-        viewport.canvas.clear();
+        window.canvas.set_draw_color(WHITE);
+        window.canvas.clear();
 
         for button in &mut menu_buttons {
             match (
@@ -75,14 +75,14 @@ pub fn run(event_handler: &mut EventHandler, event_pump: &mut EventPump, viewpor
                 _ => button.btn_state = ButtonState::Default,
             };
 
-            button.draw(&mut viewport.canvas, &button_texture, button.dest_rect);
+            button.draw(&mut window.canvas, &button_texture, button.dest_rect);
         }
 
         if event_handler.mouse_btn_up {
             event_handler.reset_mouse_buttons();
         }
 
-        viewport.canvas.present();
+        window.canvas.present();
     }
 }
 

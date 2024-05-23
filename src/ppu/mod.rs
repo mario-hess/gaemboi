@@ -2,24 +2,18 @@
  * @file    ppu/mod.rs
  * @brief   Handles the Picture Processing Unit for graphics rendering.
  * @author  Mario Hess
- * @date    May 20, 2024
+ * @date    May 24, 2024
  */
 mod lcd_control;
 mod lcd_status;
 mod oam;
-pub mod tile;
 
 use sdl2::{pixels::Color, rect::Point, render::Canvas, video::Window};
 
 use crate::{
     interrupt::{LCD_STAT_MASK, VBLANK_MASK},
     memory_bus::{OAM_END, OAM_START, VRAM_END, VRAM_START},
-    ppu::{
-        lcd_control::LCD_control,
-        lcd_status::LCD_status,
-        oam::OAM,
-        tile::{Tile, TILE_HEIGHT, TILE_WIDTH},
-    },
+    ppu::{lcd_control::LCD_control, lcd_status::LCD_status, oam::OAM},
 };
 
 pub const VRAM_SIZE: usize = 8 * 1024;
@@ -27,12 +21,8 @@ const OAM_SIZE: usize = 40;
 const PRIORITY_MAP_SIZE: usize = 256 * 256 + 256;
 
 const TILE_DATA_START: u16 = VRAM_START;
-const TILE_DATA_END: u16 = 0x97FF;
-
 pub const TILEMAP_START_0: u16 = 0x9800;
-pub const TILEMAP_END_0: u16 = 0x9BFF;
 pub const TILEMAP_START_1: u16 = 0x9C00;
-pub const TILEMAP_END_1: u16 = VRAM_END;
 
 const LCD_CONTROL: u16 = 0xFF40;
 const LCD_STATUS: u16 = 0xFF41;
@@ -59,19 +49,16 @@ const CYCLES_VBLANK: u16 = 456;
 const LINES_Y: u8 = 143;
 const MAX_LINES_Y: u8 = 153;
 
+const TILE_WIDTH: usize = 8;
+const TILE_HEIGHT: usize = TILE_WIDTH;
+
 pub const VIEWPORT_WIDTH: usize = 160;
 pub const VIEWPORT_HEIGHT: usize = 144;
 
-pub const TILETABLE_WIDTH: usize = 128;
-pub const TILETABLE_HEIGHT: usize = 192;
-
-pub const TILEMAP_WIDTH: usize = 256;
-pub const TILEMAP_HEIGHT: usize = TILEMAP_WIDTH;
-
-pub const SCALE: usize = 2;
-pub const BUFFER_SIZE: usize = VIEWPORT_WIDTH * VIEWPORT_HEIGHT;
-
+const TILEMAP_WIDTH: usize = 256;
 const FULL_WIDTH: usize = TILEMAP_WIDTH;
+
+pub const BUFFER_SIZE: usize = VIEWPORT_WIDTH * VIEWPORT_HEIGHT;
 
 // https://gbdev.io/pandocs/Graphics.html
 #[allow(clippy::upper_case_acronyms, non_camel_case_types)]
@@ -500,63 +487,6 @@ impl Ppu {
 
     pub fn reset_interrupts(&mut self) {
         self.interrupts = 0;
-    }
-
-    pub fn debug_draw_tile_map(
-        &self,
-        canvas: &mut Canvas<Window>,
-        start_address: u16,
-        end_address: u16,
-    ) {
-        let tiles = (start_address..=end_address)
-            .map(|i| self.lcd_control.get_address(self.read_byte(i)))
-            .flat_map(|address| (0..16).map(move |j| self.read_byte(address + j)))
-            .collect::<Vec<u8>>()
-            .chunks(16)
-            .map(Tile::new)
-            .collect::<Vec<Tile>>();
-
-        self.debug_draw(canvas, TILEMAP_WIDTH, &tiles);
-    }
-
-    pub fn debug_draw_tile_table(&self, canvas: &mut Canvas<Window>) {
-        let tiles = (TILE_DATA_START..=TILE_DATA_END)
-            .map(|i| self.read_byte(i))
-            .collect::<Vec<u8>>()
-            .chunks(16)
-            .map(Tile::new)
-            .collect::<Vec<Tile>>();
-
-        self.debug_draw(canvas, TILETABLE_WIDTH, &tiles);
-    }
-
-    fn debug_draw(&self, canvas: &mut Canvas<Window>, width: usize, tiles: &[Tile]) {
-        let tiles_per_row = width / TILE_WIDTH;
-
-        for (index, tile) in tiles.iter().enumerate() {
-            let row = index / tiles_per_row;
-            let col = index % tiles_per_row;
-
-            let x = col as i32 * TILE_WIDTH as i32;
-            let y = row as i32 * TILE_HEIGHT as i32;
-
-            for (row_index, row_pixel) in tile.data.iter().enumerate() {
-                let y_offset = y + row_index as i32;
-                for (col_index, col_pixel) in row_pixel.iter().enumerate() {
-                    let x_offset = x + col_index as i32;
-                    let color = match *col_pixel {
-                        WHITE => WHITE,
-                        LIGHT => LIGHT,
-                        DARK => DARK,
-                        BLACK => BLACK,
-                        _ => unreachable!(),
-                    };
-
-                    canvas.set_draw_color(color);
-                    canvas.draw_point(Point::new(x_offset, y_offset)).unwrap();
-                }
-            }
-        }
     }
 }
 

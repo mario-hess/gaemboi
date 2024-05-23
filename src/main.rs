@@ -2,7 +2,7 @@
  * @file    main.rs
  * @brief   Initializes the emulator by loading the ROM and delegating control to the core emulation loop.
  * @author  Mario Hess
- * @date    May 20, 2024
+ * @date    May 23, 2024
  *
  * Dependencies:
  * - SDL2: Audio, input, and display handling.
@@ -16,7 +16,6 @@ mod cartridge;
 mod clock;
 mod config;
 mod cpu;
-mod debug_windows;
 mod event_handler;
 mod instruction;
 mod interrupt;
@@ -26,8 +25,8 @@ mod memory_bus;
 mod menu;
 mod ppu;
 mod registers;
+mod sdl;
 mod timer;
-mod window;
 
 use std::{
     env,
@@ -35,15 +34,7 @@ use std::{
     io::{Error, Read},
 };
 
-use sdl2::ttf::init;
-
-use crate::{
-    config::Config,
-    event_handler::EventHandler,
-    machine::Machine,
-    ppu::{VIEWPORT_HEIGHT, VIEWPORT_WIDTH},
-    window::Window,
-};
+use crate::{config::Config, event_handler::EventHandler, machine::Machine, sdl::SDL};
 
 #[derive(Debug)]
 pub enum MachineState {
@@ -55,53 +46,11 @@ pub enum MachineState {
 fn main() -> Result<(), Error> {
     // Build config
     let args: Vec<String> = env::args().collect();
-    let mut config = Config::build(&args);
+    let config = Config::build(&args);
 
-    // Initialize SDL2
-    let sdl_context = sdl2::init().unwrap();
-    let video_subsystem = sdl_context.video().unwrap();
-    let mut audio_subsystem = sdl_context.audio().unwrap();
-    let controller_subsystem = sdl_context.game_controller().unwrap();
-
-    // Initialize gamepad
-    let available = controller_subsystem
-        .num_joysticks()
-        .map_err(|e| format!("can't enumerate joysticks: {}", e))
-        .unwrap();
-
-    let _gamepad = (0..available).find_map(|id| {
-        if !controller_subsystem.is_game_controller(id) {
-            println!("{} is not a gamepad", id);
-            return None;
-        }
-
-        println!("Attempting to open gamepad {}", id);
-
-        match controller_subsystem.open(id) {
-            Ok(gamepad) => {
-                println!("Success: opened \"{}\"", gamepad.name());
-                Some(gamepad)
-            }
-            Err(e) => {
-                println!("failed: {:?}", e);
-                None
-            }
-        }
-    });
-
-    let ttf_context = init().map_err(|e| e.to_string()).unwrap();
-    let mut event_pump = sdl_context.event_pump().unwrap();
     let mut event_handler = EventHandler::new();
 
-    // Build viewport window
-    let mut viewport = Window::build(
-        &video_subsystem,
-        &ttf_context,
-        "gaemboi",
-        VIEWPORT_WIDTH,
-        VIEWPORT_HEIGHT,
-        event_handler.window_scale as usize,
-    );
+    let mut sdl = SDL::new(&event_handler);
 
     // Set file_path if passed through args
     if let Some(ref file_path) = config.file_path {
@@ -110,15 +59,15 @@ fn main() -> Result<(), Error> {
     }
 
     while !event_handler.pressed_escape && !event_handler.quit {
-        event_handler.poll(&mut event_pump);
-        event_handler.check_resized(&mut viewport.canvas);
+        event_handler.poll(&mut sdl.event_pump);
+        event_handler.check_resized(&mut sdl.window.canvas);
 
         match event_handler.machine_state {
             MachineState::Menu => {
-                menu::run(&mut event_handler, &mut event_pump, &mut viewport);
+                menu::run(&mut event_handler, &mut sdl.event_pump, &mut sdl.window);
             }
             MachineState::Boot => {
-                boot_sequence::run(&mut viewport, &mut event_handler, &mut event_pump);
+                boot_sequence::run(&mut sdl.window, &mut event_handler, &mut sdl.event_pump);
             }
             MachineState::Play => {
                 let file_path = event_handler.file_path.clone().unwrap();
@@ -135,15 +84,7 @@ fn main() -> Result<(), Error> {
                 event_handler.file_path = None;
 
                 // Delegate control to the core emulation loop
-                machine.run(
-                    &mut config,
-                    &mut event_pump,
-                    &mut event_handler,
-                    &video_subsystem,
-                    &ttf_context,
-                    &mut viewport,
-                    &mut audio_subsystem,
-                );
+                machine.run(&mut sdl, &mut event_handler);
 
                 // Try to create a save file
                 machine
