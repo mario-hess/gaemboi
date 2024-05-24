@@ -34,6 +34,8 @@ use std::{
     io::{Error, Read},
 };
 
+use sdl2::ttf::init;
+
 use crate::{config::Config, event_handler::EventHandler, machine::Machine, sdl::SDL};
 
 #[derive(Debug)]
@@ -50,7 +52,8 @@ fn main() -> Result<(), Error> {
 
     let mut event_handler = EventHandler::new();
 
-    let mut sdl = SDL::new(&event_handler);
+    let ttf_context = init().map_err(|e| e.to_string()).unwrap();
+    let mut sdl = SDL::new(&event_handler, &ttf_context);
 
     // Set file_path if passed through args
     if let Some(ref file_path) = config.file_path {

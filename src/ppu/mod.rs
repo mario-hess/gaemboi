@@ -473,7 +473,6 @@ impl Ppu {
             canvas.draw_point(Point::new(x_coord, y_coord)).unwrap();
         }
 
-        canvas.present();
     }
 
     fn clear_screen(&mut self) {

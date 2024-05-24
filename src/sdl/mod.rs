@@ -5,18 +5,18 @@ use crate::{
     ppu::{VIEWPORT_HEIGHT, VIEWPORT_WIDTH},
     sdl::window::Window,
 };
-use sdl2::{AudioSubsystem, EventPump, VideoSubsystem};
+use sdl2::{AudioSubsystem, EventPump, VideoSubsystem, ttf::Sdl2TtfContext};
 
 #[allow(clippy::upper_case_acronyms)]
-pub struct SDL {
+pub struct SDL<'a> {
     pub video_subsystem: VideoSubsystem,
     pub audio_subsystem: AudioSubsystem,
     pub event_pump: EventPump,
-    pub window: Window,
+    pub window: Window<'a>,
 }
 
-impl SDL {
-    pub fn new(event_handler: &EventHandler) -> Self {
+impl<'a> SDL<'a> {
+    pub fn new(event_handler: &EventHandler, ttf_context: &'a Sdl2TtfContext) -> Self {
         let sdl_context = sdl2::init().unwrap();
         let video_subsystem = sdl_context.video().unwrap();
         let audio_subsystem = sdl_context.audio().unwrap();
@@ -52,6 +52,7 @@ impl SDL {
 
         let window = Window::build(
             &video_subsystem,
+            ttf_context,
             "gaemboi",
             VIEWPORT_WIDTH,
             VIEWPORT_HEIGHT,

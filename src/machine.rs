@@ -4,7 +4,10 @@
  * @author  Mario Hess
  * @date    May 23, 2024
  */
-use sdl2::audio::{AudioDevice, AudioSpecDesired};
+use sdl2::{
+    audio::{AudioDevice, AudioSpecDesired},
+    pixels::Color,
+};
 
 use crate::{
     apu::audio::{Audio, SAMPLING_FREQUENCY, SAMPLING_RATE},
@@ -20,6 +23,7 @@ pub const FPS: f32 = 59.73;
 pub struct Machine {
     pub cpu: Cpu,
     clock: Clock,
+    fps: f32,
 }
 
 impl Machine {
@@ -27,6 +31,7 @@ impl Machine {
         Self {
             cpu: Cpu::new(rom_data),
             clock: Clock::new(),
+            fps: 0.0,
         }
     }
 
@@ -61,8 +66,13 @@ impl Machine {
 
             self.clock.reset();
 
+            let text: &str = &format!("FPS: {:.2}", &self.fps).to_string();
+            sdl.window.render_text(text, Color::RGB(0, 255, 0));
+            sdl.window.canvas.present();
+
             // Tick at 59.73 Hz using a busy-wait loop
             while frame_start_time.elapsed() < frame_duration {}
+            self.fps = 1.0 / frame_start_time.elapsed().as_secs_f32();
 
             /* This isn't precise enough as thread scheduling is OS-dependent
             let elapsed_time = frame_start_time.elapsed();
