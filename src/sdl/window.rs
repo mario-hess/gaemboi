@@ -71,7 +71,7 @@ impl<'a> Window<'a> {
             .create_texture_from_surface(&text_surface)
             .unwrap();
 
-        let position = Point::new(136, 0);
+        let position = Point::new(106, 0);
 
         let texture_query = text_texture.query();
         let target_rect = Rect::new(

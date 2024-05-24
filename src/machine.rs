@@ -37,7 +37,7 @@ impl Machine {
 
     #[allow(clippy::too_many_arguments)]
     pub fn run(&mut self, sdl: &mut SDL, event_handler: &mut EventHandler) {
-        let audio_device = self.create_audio_device(sdl);
+        let audio_device = self.create_audio_device(sdl, &event_handler.volume);
         audio_device.resume();
 
         let frame_duration_nanos = (1_000_000_000.0 / FPS) as u64;
@@ -66,7 +66,8 @@ impl Machine {
 
             self.clock.reset();
 
-            let text: &str = &format!("FPS: {:.2}", &self.fps).to_string();
+            let text: &str =
+                &format!("VOL: {}% | FPS: {:.2}", event_handler.volume, &self.fps).to_string();
             sdl.window.render_text(text, Color::RGB(0, 255, 0));
             sdl.window.canvas.present();
 
@@ -85,7 +86,11 @@ impl Machine {
         event_handler.pressed_escape = false;
     }
 
-    fn create_audio_device(&mut self, sdl: &SDL) -> AudioDevice<Audio<'_>> {
+    fn create_audio_device<'a, 'b: 'a>(
+        &'a mut self,
+        sdl: &SDL,
+        volume: &'b u8,
+    ) -> AudioDevice<Audio<'_>> {
         let device = AudioSpecDesired {
             freq: Some(SAMPLING_FREQUENCY as i32),
             samples: Some(SAMPLING_RATE),
@@ -98,6 +103,7 @@ impl Machine {
             &mut self.cpu.memory_bus.apu.audio_buffer,
             left_volume,
             right_volume,
+            volume,
         );
 
         sdl.audio_subsystem

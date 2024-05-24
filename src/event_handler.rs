@@ -5,8 +5,12 @@
  * @date    November 11, 2023
  */
 use sdl2::{
-    controller::Button, event::Event, keyboard::Keycode, render::Canvas,
-    video::{Window as SDL_Window, WindowPos}, EventPump,
+    controller::Button,
+    event::Event,
+    keyboard::Keycode,
+    render::Canvas,
+    video::{Window as SDL_Window, WindowPos},
+    EventPump,
 };
 
 use crate::{
@@ -32,6 +36,7 @@ pub struct EventHandler {
     pub file_path: Option<String>,
     pub window_scale: u32,
     pub window_resized: bool,
+    pub volume: u8,
     pub quit: bool,
 }
 
@@ -55,6 +60,7 @@ impl EventHandler {
             file_path: None,
             window_scale: 4,
             window_resized: false,
+            volume: 50,
             quit: false,
         }
     }
@@ -65,7 +71,7 @@ impl EventHandler {
                 Event::Quit { .. } => {
                     self.quit = true;
                     self.pressed_escape = true;
-                },
+                }
                 Event::KeyDown {
                     keycode: Some(Keycode::Escape),
                     ..
@@ -92,6 +98,8 @@ impl EventHandler {
                     Some(Keycode::D) => self.pressed_right = true,
                     Some(Keycode::Up) => self.increase_scale(),
                     Some(Keycode::Down) => self.decrease_scale(),
+                    Some(Keycode::Left) => self.decrease_volume(),
+                    Some(Keycode::Right) => self.increase_volume(),
                     _ => {}
                 },
                 Event::ControllerButtonDown { button, .. } => match button {
@@ -149,6 +157,22 @@ impl EventHandler {
         self.window_resized = true;
     }
 
+    fn increase_volume(&mut self) {
+        if self.volume > 95 {
+            return;
+        }
+
+        self.volume += 5;
+    }
+
+    fn decrease_volume(&mut self) {
+        if self.volume < 5 {
+            return;
+        }
+
+        self.volume -= 5;
+    }
+
     pub fn check_resized(&mut self, canvas: &mut Canvas<SDL_Window>) {
         if !self.window_resized {
             return;
@@ -162,7 +186,9 @@ impl EventHandler {
             )
             .unwrap();
 
-        canvas.window_mut().set_position(WindowPos::Centered, WindowPos::Centered);
+        canvas
+            .window_mut()
+            .set_position(WindowPos::Centered, WindowPos::Centered);
 
         self.window_resized = false;
     }
