@@ -47,19 +47,19 @@ Install dependencies:
 #### Arch
 
 ```
-sudo pacman -S sdl2 sdl2_image
+sudo pacman -S sdl2 sdl2_image sdl2_ttf
 ```
 
 #### Ubuntu
 
 ```
-sudo apt-get install libsdl2-dev libsdl-image1.2 libsdl-image1.2-dev
+sudo apt-get install libsdl2-dev libsdl-image1.2 libsdl-image1.2-dev libsdl-ttf2.0-0 libsdl-ttf2.0-dev
 ```
 
 #### Fedora
 
 ```
-sudo dnf install SDL2-devel SDL2_image SDL2_image-devel
+sudo dnf install SDL2-devel SDL2_image SDL2_image-devel SDL2_ttf SDL2_ttf-devel
 ```
 
 ### Usage
