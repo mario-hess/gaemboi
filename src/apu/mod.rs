@@ -1,6 +1,6 @@
 /**
  * @file    apu/mod.rs
- * @brief   Implementation of the Audio Processing Unit.
+ * @brief   Implementation of the Audio Processing Unit (APU).
  * @author  Mario Hess
  * @date    May 20, 2024
  */
@@ -25,8 +25,9 @@ use crate::{
     clock::CPU_CLOCK_SPEED,
 };
 
+const CPU_CYCLES_PER_SAMPLE: f32 = CPU_CLOCK_SPEED as f32 / SAMPLING_FREQUENCY as f32;
 pub const APU_CLOCK_SPEED: u16 = 512;
-pub const LENGTH_TIMER_MAX: u8 = 64;
+pub const LENGTH_TIMER_MAX: u16 = 64;
 
 const AUDIO_BUFFER_SIZE: usize = SAMPLING_RATE as usize * 4;
 
@@ -49,6 +50,11 @@ const MASTER_CONTROL: u16 = 0xFF26; // NR52
 pub const AUDIO_START: u16 = CH1_START;
 pub const AUDIO_END: u16 = WAVE_PATTERN_END;
 
+/*
+   https://gbdev.io/pandocs/Audio.html
+   https://gbdev.gg8.se/wiki/articles/Gameboy_sound_hardware
+   https://nightshade256.github.io/2021/03/27/gb-sound-emulation.html
+*/
 pub struct Apu {
     ch1: SquareChannel,
     ch2: SquareChannel,
@@ -99,14 +105,14 @@ impl Apu {
 
         self.output_timer += t_cycles as f32;
 
-        while self.output_timer >= (CPU_CLOCK_SPEED as f32 / SAMPLING_FREQUENCY as f32) {
+        while self.output_timer >= CPU_CYCLES_PER_SAMPLE {
             let (output_left, output_right) =
                 self.mixer.mix(&self.ch1, &self.ch2, &self.ch3, &self.ch4);
 
             self.audio_buffer.push_back(output_left);
             self.audio_buffer.push_back(output_right);
 
-            self.output_timer -= CPU_CLOCK_SPEED as f32 / SAMPLING_FREQUENCY as f32;
+            self.output_timer -= CPU_CYCLES_PER_SAMPLE;
         }
     }
 
@@ -152,8 +158,8 @@ impl Apu {
             MASTER_VOLUME => self.set_master_volume(value),
             PANNING => {
                 self.mixer.set_panning(value);
-            },
-            MASTER_CONTROL => {},
+            }
+            MASTER_CONTROL => {}
             WAVE_PATTERN_START..=WAVE_PATTERN_END => self.ch3.write_wave_ram(address, value),
             _ => eprintln!(
                 "Unknown address: {:#X} Can't write byte: {:#X}.",
@@ -180,9 +186,6 @@ impl Apu {
         }
     }
 
-    // NR50: Master volume
-    // A value of 0 is treated as a volume of 1 (very quiet),
-    // and a value of 7 is treated as a volume of 8
     fn get_master_volume(&self) -> u8 {
         let right_volume = self.right_volume - 1;
         let left_volume = (self.left_volume - 1) << 4;

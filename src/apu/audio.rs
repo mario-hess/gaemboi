@@ -1,3 +1,10 @@
+/**
+ * @file    apu/audio.rs
+ * @brief   Implementation of the audio callback.
+ * @author  Mario Hess
+ * @date    May 25, 2024
+ */
+
 use sdl2::audio::AudioCallback;
 
 use std::collections::VecDeque;
@@ -7,22 +14,22 @@ pub const SAMPLING_FREQUENCY: u16 = 48000;
 
 pub struct Audio<'a> {
     pub audio_buffer: &'a mut VecDeque<u8>,
-    left_volume: &'a u8,
-    right_volume: &'a u8,
+    left_master: &'a u8,
+    right_master: &'a u8,
     volume: &'a u8,
 }
 
 impl<'a> Audio<'a> {
     pub fn new(
         audio_buffer: &'a mut VecDeque<u8>,
-        left_volume: &'a u8,
-        right_volume: &'a u8,
+        left_master: &'a u8,
+        right_master: &'a u8,
         volume: &'a u8,
     ) -> Self {
         Self {
             audio_buffer,
-            left_volume,
-            right_volume,
+            left_master,
+            right_master,
             volume,
         }
     }
@@ -35,10 +42,11 @@ impl AudioCallback for Audio<'_> {
         for (i, sample) in out.iter_mut().enumerate() {
             if !self.audio_buffer.is_empty() {
                 let master_volume = if i % 2 == 0 {
-                    self.left_volume
+                    self.left_master
                 } else {
-                    self.right_volume
+                    self.right_master
                 };
+
                 *sample = self.audio_buffer.pop_front().unwrap() as f32
                     * (*self.volume as f32 / 10000.0)
                     * *master_volume as f32;

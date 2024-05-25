@@ -2,7 +2,7 @@
  * @file    apu/frame_sequencer.rs
  * @brief   Implementation of the APU frame sequencer.
  * @author  Mario Hess
- * @date    May 20, 2024
+ * @date    May 25, 2024
  */
 use crate::{
     apu::{NoiseChannel, SquareChannel, WaveChannel, APU_CLOCK_SPEED},
@@ -77,10 +77,10 @@ impl FrameSequencer {
         ch3: &mut WaveChannel,
         ch4: &mut NoiseChannel,
     ) {
-        ch1.tick_length_timer();
-        ch2.tick_length_timer();
-        ch3.tick_length_timer();
-        ch4.tick_length_timer();
+        ch1.length_counter.tick(&mut ch1.enabled);
+        ch2.length_counter.tick(&mut ch2.enabled);
+        ch3.length_counter.tick(&mut ch3.enabled);
+        ch4.length_counter.tick(&mut ch4.enabled);
     }
 
     fn tick_envelopes(
@@ -89,9 +89,9 @@ impl FrameSequencer {
         ch2: &mut SquareChannel,
         ch4: &mut NoiseChannel,
     ) {
-        ch1.tick_envelope();
-        ch2.tick_envelope();
-        ch4.tick_envelope();
+        ch1.volume_envelope.tick(&ch1.enabled);
+        ch2.volume_envelope.tick(&ch2.enabled);
+        ch4.volume_envelope.tick(&ch4.enabled);
     }
 
     pub fn reset(&mut self) {

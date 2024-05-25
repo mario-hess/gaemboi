@@ -1,10 +1,13 @@
 /**
  * @file    apu/channel/square_channel.rs
- * @brief   Square channel.
+ * @brief   Implementation of the square channels (Channel 1 & 2).
  * @author  Mario Hess
- * @date    May 21, 2024
+ * @date    May 25, 2024
  */
-use crate::apu::LENGTH_TIMER_MAX;
+use crate::apu::{
+    channel::length_counter::LengthCounter, channel::volume_envelope::VolumeEnvelope,
+    LENGTH_TIMER_MAX,
+};
 
 const SWEEP: u16 = 0;
 const LENGTH_TIMER: u16 = 1;
@@ -34,24 +37,19 @@ pub enum ChannelType {
 
 pub struct SquareChannel {
     pub enabled: bool,
+    dac_enabled: bool,
     output: u8,
     timer: i16,
+    triggered: bool,
+    pub length_counter: LengthCounter,
+    pub volume_envelope: VolumeEnvelope,
     sequence: u8,
-    dac_enabled: bool,
     frequency: u16,
-    envelope_enabled: bool,
-    envelope_sequence: u8,
     sweep_sequence: Option<u8>,
     sweep_shift: Option<u8>,
     sweep_direction: Option<bool>,
     sweep_pace: Option<u8>,
-    length_timer: u8,
     wave_duty: u8,
-    pace: u8,
-    direction: bool,
-    volume: u8,
-    length_enabled: bool,
-    triggered: bool,
 }
 
 impl SquareChannel {
@@ -68,29 +66,24 @@ impl SquareChannel {
 
         Self {
             enabled: false,
+            dac_enabled: false,
             output: 0,
             timer: 0,
+            triggered: false,
+            length_counter: LengthCounter::default(),
+            volume_envelope: VolumeEnvelope::default(),
             sequence: 0,
-            dac_enabled: false,
             frequency: 0,
-            envelope_enabled: false,
-            envelope_sequence: 0,
             sweep_sequence,
             sweep_shift,
             sweep_direction,
             sweep_pace,
-            length_timer: 0,
             wave_duty: 0,
-            pace: 0,
-            direction: true,
-            volume: 0,
-            length_enabled: false,
-            triggered: false,
         }
     }
 
     pub fn tick(&mut self, m_cycles: u8) {
-        if !self.enabled {
+        if !self.enabled || !self.dac_enabled {
             return;
         }
 
@@ -102,7 +95,7 @@ impl SquareChannel {
         }
 
         self.output = if DUTY_TABLE[self.wave_duty as usize][self.sequence as usize] == 1 {
-            self.volume
+            self.volume_envelope.volume
         } else {
             0
         };
@@ -139,53 +132,20 @@ impl SquareChannel {
         }
     }
 
-    pub fn tick_length_timer(&mut self) {
-        if !self.length_enabled || self.length_timer == 0 {
-            return;
-        }
-
-        self.length_timer = self.length_timer.saturating_sub(1);
-        if self.length_timer == 0 {
-            self.enabled = false;
-        }
-    }
-
-    pub fn tick_envelope(&mut self) {
-        if !self.enabled || !self.envelope_enabled {
-            return;
-        }
-
-        self.envelope_sequence += 1;
-
-        if self.envelope_sequence >= self.pace {
-            self.volume = if self.direction {
-                self.volume.saturating_add(1)
-            } else {
-                self.volume.saturating_sub(1)
-            };
-
-            if self.volume == 0 || self.volume == 15 {
-                self.envelope_enabled = false;
-            }
-
-            self.envelope_sequence = 0;
-        }
-    }
-
     pub fn trigger(&mut self) {
         if self.dac_enabled {
             self.enabled = true;
         }
 
         self.timer = ((2048 - self.frequency) * 4) as i16;
-        self.envelope_sequence = 0;
+        self.volume_envelope.sequence = 0;
 
         if self.sweep_sequence.is_some() {
             self.sweep_sequence = Some(0);
         }
 
-        if self.length_timer == 0 {
-            self.length_timer = LENGTH_TIMER_MAX;
+        if self.length_counter.timer == 0 {
+            self.length_counter.timer = LENGTH_TIMER_MAX;
         }
     }
 
@@ -199,7 +159,7 @@ impl SquareChannel {
         match address {
             SWEEP => self.get_sweep(),
             LENGTH_TIMER => self.get_length_timer(),
-            VOLUME_ENVELOPE => self.get_volume_envelope(),
+            VOLUME_ENVELOPE => self.volume_envelope.get(),
             FREQUENCY_LOW => self.get_frequency_low(),
             FREQUENCY_HIGH => self.get_frequency_high(),
             _ => {
@@ -238,7 +198,7 @@ impl SquareChannel {
     }
 
     fn get_sweep(&self) -> u8 {
-        let step = self.sweep_shift.unwrap() & 0x07;
+        let shift = self.sweep_shift.unwrap() & 0x07;
         let direction = if self.sweep_direction.unwrap() {
             0x08
         } else {
@@ -246,42 +206,29 @@ impl SquareChannel {
         };
         let pace = (self.sweep_pace.unwrap() & 0x07) << 4;
 
-        step | direction | pace | 0x80
+        shift | direction | pace | 0x80
     }
 
     fn set_sweep(&mut self, value: u8) {
         self.sweep_shift = Some(value & 0x07);
         self.sweep_direction = Some((value & 0x08) == 0x00);
         self.sweep_pace = Some((value & 0x70) >> 4);
-        //self.sweep_sequence = Some(0);
     }
 
     fn get_length_timer(&self) -> u8 {
         let wave_duty = (self.wave_duty & 0x03) << 6;
-        let length_timer = self.length_timer & 0x3F;
+        let length_timer = (self.length_counter.timer & 0x3F) as u8;
 
         wave_duty | length_timer
     }
 
     fn set_length_timer(&mut self, value: u8) {
         self.wave_duty = (value & 0xC0) >> 6;
-        self.length_timer = 64 - (value & 0x3F);
-    }
-
-    fn get_volume_envelope(&self) -> u8 {
-        let pace = self.pace & 0x07;
-        let direction = if self.direction { 0x08 } else { 0x00 };
-        let volume = (self.volume & 0x0F) << 4;
-
-        pace | direction | volume
+        self.length_counter.timer = LENGTH_TIMER_MAX - (value & 0x3F) as u16;
     }
 
     fn set_volume_envelope(&mut self, value: u8) {
-        self.pace = value & 0x07;
-        self.direction = value & 0x08 != 0;
-        self.volume = (value & 0xF0) >> 4;
-        self.envelope_enabled = self.pace > 0;
-        self.envelope_sequence = 0;
+        self.volume_envelope.set(value);
 
         self.dac_enabled = value & 0xF8 != 0x00;
         if !self.dac_enabled {
@@ -299,7 +246,11 @@ impl SquareChannel {
 
     fn get_frequency_high(&self) -> u8 {
         let frequency_high = ((self.frequency & 0x0700) >> 8) as u8;
-        let length_enabled = if self.length_enabled { 0x40 } else { 0x00 };
+        let length_enabled = if self.length_counter.enabled {
+            0x40
+        } else {
+            0x00
+        };
         let triggered = if self.triggered { 0x80 } else { 0x00 };
 
         frequency_high | length_enabled | triggered
@@ -311,29 +262,24 @@ impl SquareChannel {
             self.trigger();
         }
 
-        self.length_enabled = value & 0x40 != 0;
+        self.length_counter.enabled = value & 0x40 != 0;
         self.frequency = (self.frequency & 0x00FF) | ((value & 0x07) as u16) << 8;
     }
 
     pub fn reset(&mut self) {
         self.enabled = false;
+        self.length_counter.reset();
+        self.volume_envelope.reset();
         self.output = 0;
         self.timer = 0;
         self.sequence = 0;
         self.dac_enabled = false;
         self.frequency = 0;
-        self.envelope_enabled = false;
-        self.envelope_sequence = 0;
         self.sweep_sequence = Some(0);
         self.sweep_shift = Some(0);
         self.sweep_direction = Some(true);
         self.sweep_pace = Some(0);
-        self.length_timer = 0;
         self.wave_duty = 0;
-        self.pace = 0;
-        self.direction = true;
-        self.volume = 0;
-        self.length_enabled = false;
         self.triggered = false;
     }
 }
