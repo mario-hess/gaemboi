@@ -5,8 +5,8 @@
  * @date    May 25, 2024
  */
 use crate::apu::{
-    channel::length_counter::LengthCounter, channel::volume_envelope::VolumeEnvelope,
-    LENGTH_TIMER_MAX,
+    channel::length_counter::LengthCounter, channel::sweep::Sweep,
+    channel::volume_envelope::VolumeEnvelope, LENGTH_TIMER_MAX,
 };
 
 const SWEEP: u16 = 0;
@@ -43,12 +43,9 @@ pub struct SquareChannel {
     triggered: bool,
     pub length_counter: LengthCounter,
     pub volume_envelope: VolumeEnvelope,
+    pub sweep: Option<Sweep>,
     sequence: u8,
-    frequency: u16,
-    sweep_sequence: Option<u8>,
-    sweep_shift: Option<u8>,
-    sweep_direction: Option<bool>,
-    sweep_pace: Option<u8>,
+    pub frequency: u16,
     wave_duty: u8,
 }
 
@@ -59,10 +56,11 @@ impl SquareChannel {
             ChannelType::CH2 => false,
         };
 
-        let sweep_sequence = if sweep_enabled { Some(0) } else { None };
-        let sweep_shift = if sweep_enabled { Some(0) } else { None };
-        let sweep_direction = if sweep_enabled { Some(true) } else { None };
-        let sweep_pace = if sweep_enabled { Some(0) } else { None };
+        let sweep = if sweep_enabled {
+            Some(Sweep::default())
+        } else {
+            None
+        };
 
         Self {
             enabled: false,
@@ -72,12 +70,9 @@ impl SquareChannel {
             triggered: false,
             length_counter: LengthCounter::default(),
             volume_envelope: VolumeEnvelope::default(),
+            sweep,
             sequence: 0,
             frequency: 0,
-            sweep_sequence,
-            sweep_shift,
-            sweep_direction,
-            sweep_pace,
             wave_duty: 0,
         }
     }
@@ -105,30 +100,8 @@ impl SquareChannel {
     }
 
     pub fn tick_sweep(&mut self) {
-        if self.sweep_pace == Some(0) {
-            return;
-        }
-
-        if let Some(value) = self.sweep_sequence {
-            self.sweep_sequence = Some(value + 1);
-        }
-
-        if self.sweep_sequence.unwrap() >= self.sweep_pace.unwrap() {
-            let delta = self.frequency >> self.sweep_shift.unwrap();
-
-            self.frequency = if self.sweep_direction.unwrap() {
-                self.frequency.saturating_add(delta)
-            } else {
-                self.frequency.saturating_sub(delta)
-            };
-
-            // Overflow check
-            if self.frequency > 0x07FF {
-                self.enabled = false;
-                self.frequency = 0x07FF;
-            }
-
-            self.sweep_sequence = Some(0);
+        if let Some(sweep) = &mut self.sweep{
+            sweep.tick(&mut self.frequency, &mut self.enabled);
         }
     }
 
@@ -138,10 +111,10 @@ impl SquareChannel {
         }
 
         self.timer = ((2048 - self.frequency) * 4) as i16;
-        self.volume_envelope.sequence = 0;
+        self.volume_envelope.counter = 0;
 
-        if self.sweep_sequence.is_some() {
-            self.sweep_sequence = Some(0);
+        if let Some(sweep) = &mut self.sweep {
+            sweep.sequence = 0;
         }
 
         if self.length_counter.timer == 0 {
@@ -157,7 +130,13 @@ impl SquareChannel {
         };
 
         match address {
-            SWEEP => self.get_sweep(),
+            SWEEP => {
+                if let Some(sweep) = &self.sweep {
+                    sweep.get()
+                } else {
+                    0x00
+                }
+            }
             LENGTH_TIMER => self.get_length_timer(),
             VOLUME_ENVELOPE => self.volume_envelope.get(),
             FREQUENCY_LOW => self.get_frequency_low(),
@@ -177,7 +156,11 @@ impl SquareChannel {
         };
 
         match address {
-            SWEEP => self.set_sweep(value),
+            SWEEP => {
+                if let Some(sweep) = &mut self.sweep {
+                    sweep.set(value);
+                }
+            }
             LENGTH_TIMER => self.set_length_timer(value),
             VOLUME_ENVELOPE => self.set_volume_envelope(value),
             FREQUENCY_LOW => self.set_frequency_low(value),
@@ -195,24 +178,6 @@ impl SquareChannel {
         } else {
             0
         }
-    }
-
-    fn get_sweep(&self) -> u8 {
-        let shift = self.sweep_shift.unwrap() & 0x07;
-        let direction = if self.sweep_direction.unwrap() {
-            0x08
-        } else {
-            0x0
-        };
-        let pace = (self.sweep_pace.unwrap() & 0x07) << 4;
-
-        shift | direction | pace | 0x80
-    }
-
-    fn set_sweep(&mut self, value: u8) {
-        self.sweep_shift = Some(value & 0x07);
-        self.sweep_direction = Some((value & 0x08) == 0x00);
-        self.sweep_pace = Some((value & 0x70) >> 4);
     }
 
     fn get_length_timer(&self) -> u8 {
@@ -275,11 +240,11 @@ impl SquareChannel {
         self.sequence = 0;
         self.dac_enabled = false;
         self.frequency = 0;
-        self.sweep_sequence = Some(0);
-        self.sweep_shift = Some(0);
-        self.sweep_direction = Some(true);
-        self.sweep_pace = Some(0);
         self.wave_duty = 0;
         self.triggered = false;
+
+        if let Some(sweep) = &mut self.sweep {
+            sweep.reset();
+        }
     }
 }

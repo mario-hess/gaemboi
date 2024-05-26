@@ -24,9 +24,11 @@ impl LengthCounter {
         }
 
         self.timer = self.timer.saturating_sub(1);
-        if self.timer == 0 {
-            *channel_enabled = false;
+        if self.timer != 0 {
+            return;
         }
+
+        *channel_enabled = false;
     }
 
     pub fn reset(&mut self) {

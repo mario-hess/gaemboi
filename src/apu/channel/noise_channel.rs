@@ -85,7 +85,7 @@ impl NoiseChannel {
 
         self.timer = ((DIVISORS[self.clock_divider as usize] as u16) << self.clock_shift) as i32;
         self.lfsr = 0x7FF1;
-        self.volume_envelope.sequence = 0;
+        self.volume_envelope.counter = 0;
 
         if self.length_counter.timer == 0 {
             self.length_counter.timer = LENGTH_TIMER_MAX;
