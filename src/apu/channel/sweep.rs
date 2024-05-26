@@ -1,3 +1,10 @@
+/**
+ * @file    apu/channel/sweep.rs
+ * @brief   Channel 1 has a frequency sweep unit that can periodically adjust the channel's frequency up or down. 
+ * @author  Mario Hess
+ * @date    May 26, 2024
+ */
+
 pub struct Sweep {
     step: u8,
     direction: bool,
