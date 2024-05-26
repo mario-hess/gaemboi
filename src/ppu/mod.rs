@@ -18,7 +18,6 @@ use crate::{
 
 pub const VRAM_SIZE: usize = 8 * 1024;
 const OAM_SIZE: usize = 40;
-const PRIORITY_MAP_SIZE: usize = 256 * 256 + 256;
 
 const TILE_DATA_START: u16 = VRAM_START;
 pub const TILEMAP_START_0: u16 = 0x9800;
@@ -55,9 +54,9 @@ const TILE_HEIGHT: usize = TILE_WIDTH;
 pub const VIEWPORT_WIDTH: usize = 160;
 pub const VIEWPORT_HEIGHT: usize = 144;
 
-const TILEMAP_WIDTH: usize = 256;
-const FULL_WIDTH: usize = TILEMAP_WIDTH;
+const FULL_WIDTH: usize = 256;
 
+const OVERLAP_MAP_SIZE: usize = FULL_WIDTH * FULL_WIDTH;
 pub const BUFFER_SIZE: usize = VIEWPORT_WIDTH * VIEWPORT_HEIGHT;
 
 // https://gbdev.io/pandocs/Graphics.html
@@ -68,12 +67,6 @@ pub enum Mode {
     Transfer = 3,
     HBlank = 0,
     VBlank = 1,
-}
-
-#[derive(Copy, Clone)]
-enum Priority {
-    None,
-    Overlap,
 }
 
 pub struct Ppu {
@@ -91,10 +84,10 @@ pub struct Ppu {
     line_y_compare: u8,
     window_line_counter: u8,
     bg_palette: [u8; 4],
-    tile_palette0: [u8; 4],
-    tile_palette1: [u8; 4],
+    sprite_palette0: [u8; 4],
+    sprite_palette1: [u8; 4],
     counter: u16,
-    priority_map: [Priority; PRIORITY_MAP_SIZE],
+    overlap_map: [bool; OVERLAP_MAP_SIZE],
     pub screen_buffer: [Color; BUFFER_SIZE],
 }
 
@@ -115,10 +108,10 @@ impl Ppu {
             line_y_compare: 0,
             window_line_counter: 0,
             bg_palette: [0, 1, 2, 3],
-            tile_palette0: [0, 1, 2, 3],
-            tile_palette1: [0, 1, 2, 3],
+            sprite_palette0: [0, 1, 2, 3],
+            sprite_palette1: [0, 1, 2, 3],
             counter: 0,
-            priority_map: [Priority::None; PRIORITY_MAP_SIZE],
+            overlap_map: [false; OVERLAP_MAP_SIZE],
             screen_buffer: [WHITE; BUFFER_SIZE],
         }
     }
@@ -141,7 +134,7 @@ impl Ppu {
                 self.lcd_status
                     .set_mode(Mode::Transfer, &mut self.interrupts);
 
-                self.counter %= CYCLES_OAM;
+                self.counter -= CYCLES_OAM;
             }
             Mode::Transfer => {
                 if self.counter < CYCLES_TRANSFER {
@@ -151,7 +144,7 @@ impl Ppu {
                 self.render_scanline();
                 self.lcd_status.set_mode(Mode::HBlank, &mut self.interrupts);
 
-                self.counter %= CYCLES_TRANSFER;
+                self.counter -= CYCLES_TRANSFER;
             }
             Mode::HBlank => {
                 if self.counter < CYCLES_HBLANK {
@@ -175,7 +168,7 @@ impl Ppu {
                     self.lcd_status.set_mode(Mode::OAM, &mut self.interrupts);
                 }
 
-                self.counter %= CYCLES_HBLANK;
+                self.counter -= CYCLES_HBLANK;
             }
             Mode::VBlank => {
                 if self.counter < CYCLES_VBLANK {
@@ -190,7 +183,7 @@ impl Ppu {
                     self.set_line_y(0);
                 }
 
-                self.counter %= CYCLES_VBLANK;
+                self.counter -= CYCLES_VBLANK;
             }
         }
     }
@@ -206,8 +199,8 @@ impl Ppu {
             LINE_Y => self.line_y,
             LINE_Y_COMPARE => self.line_y_compare,
             BG_PALETTE => get_palette(&self.bg_palette),
-            TILE_PALETTE_0 => get_palette(&self.tile_palette0),
-            TILE_PALETTE_1 => get_palette(&self.tile_palette1),
+            TILE_PALETTE_0 => get_palette(&self.sprite_palette0),
+            TILE_PALETTE_1 => get_palette(&self.sprite_palette1),
             WINDOW_Y => self.window_y,
             WINDOW_X => self.window_x,
             _ => {
@@ -229,8 +222,8 @@ impl Ppu {
             LINE_Y => {} // Not used
             LINE_Y_COMPARE => self.set_line_y_compare(value),
             BG_PALETTE => set_palette(&mut self.bg_palette, value),
-            TILE_PALETTE_0 => set_palette(&mut self.tile_palette0, value),
-            TILE_PALETTE_1 => set_palette(&mut self.tile_palette1, value),
+            TILE_PALETTE_0 => set_palette(&mut self.sprite_palette0, value),
+            TILE_PALETTE_1 => set_palette(&mut self.sprite_palette1, value),
             WINDOW_Y => self.window_y = value,
             WINDOW_X => {
                 if value < 7 {
@@ -312,7 +305,7 @@ impl Ppu {
         }
 
         if self.lcd_control.object_enabled {
-            self.render_tile_line();
+            self.render_object_line();
         }
     }
 
@@ -324,47 +317,25 @@ impl Ppu {
             let bg_offset_x = x.wrapping_add(self.scroll_x);
             let col_is_window =
                 self.lcd_control.window_enabled && x >= self.window_x.wrapping_sub(7);
+            let is_window = row_is_window && col_is_window;
 
-            // Determine the address of the tile data based on whether it's in the window or background
-            let tile_address = if row_is_window && col_is_window {
-                let address = self.lcd_control.get_window_address();
-                let y_offset = self.window_line_counter;
-                let x_offset = x.wrapping_sub(self.window_x.wrapping_sub(7));
+            // Determine the sprite data based on whether it's in the window or background
+            let (sprite_index_address, line_offset, pixel_index) =
+                self.get_bg_tile_data(is_window, x, bg_offset_x, bg_offset_y);
 
-                calculate_address(address, y_offset, x_offset)
-            } else {
-                let address = self.lcd_control.get_bg_address();
-                calculate_address(address, bg_offset_y, bg_offset_x)
-            };
+            let sprite_index = self.read_byte(sprite_index_address);
+            let sprite_address = self.lcd_control.get_address(sprite_index);
 
-            let tile_index = self.read_byte(tile_address);
-            let tile_address = self.lcd_control.get_address(tile_index);
+            let (first_byte, second_byte) =
+                self.get_tile_bytes(sprite_address + line_offset as u16);
 
-            // Calculate the offset within the tile data for the current row
-            let y_tile_address_offset = if row_is_window && col_is_window {
-                (self.line_y - self.window_y) % TILE_HEIGHT as u8 * 2
-            } else {
-                bg_offset_y % TILE_HEIGHT as u8 * 2
-            } as u16;
+            let color_index = get_color_index(first_byte, second_byte, pixel_index);
 
-            let tile_data_address = tile_address + y_tile_address_offset;
-            let tile_color_address = tile_data_address + 1;
-
-            let tile_data = self.read_byte(tile_data_address);
-            let tile_color = self.read_byte(tile_color_address);
-
-            // Calculate the pixel index based on whether it's part of the window or background
-            let pixel_index = if col_is_window && row_is_window {
-                self.window_x.wrapping_sub(x) % 8
-            } else {
-                7 - (bg_offset_x % 8)
-            };
-
-            let color_index = get_color_index(tile_data, tile_color, pixel_index);
-            let priority_offset = self.line_y as usize + FULL_WIDTH * x as usize;
-
+            // Calculate the offset for the current pixel based on
+            // the background width and update the overlap map
+            let overlap_offset = self.line_y as usize + FULL_WIDTH * x as usize;
             if color_index == 0 {
-                self.priority_map[priority_offset] = Priority::Overlap
+                self.overlap_map[overlap_offset] = true;
             }
 
             let pixel = get_pixel_color(&self.bg_palette, color_index);
@@ -375,54 +346,58 @@ impl Ppu {
         }
     }
 
-    fn render_tile_line(&mut self) {
+    fn render_object_line(&mut self) {
         // Convert line_y to an i16 and determine the height of the sprite (8x8 or 8x16)
         let line_y = self.line_y as i16;
-        let tile_height = if self.lcd_control.object_size { 16 } else { 8 };
+        let tile_height = if self.lcd_control.object_size {
+            TILE_HEIGHT as i16 * 2
+        } else {
+            TILE_HEIGHT as i16
+        };
 
-        let mut sorted_sprites: Vec<(usize, i16)> = Vec::new();
+        let mut sorted_objects: Vec<(usize, i16)> = Vec::new();
 
         for i in 0..OAM_SIZE {
             let oam_entry = self.oam[i];
+            // First byte in OAM (oam_entry.y_pos) is the object’s vertical position on the screen + 16
             let object_y = oam_entry.y_pos as i16 - 16;
+            // Second byte in OAM (oam_entry.x_pos) is the object’s horizontal position on the screen + 8
             let object_x = oam_entry.x_pos as i16 - 8;
 
+            // Determine if the current scanline intersects with the vertical span of the object
             if line_y >= object_y && line_y < object_y + tile_height {
-                sorted_sprites.push((i, object_x));
+                sorted_objects.push((i, object_x));
             }
         }
 
         // Stable sort sprites based on X coordinate and index
-        sorted_sprites.sort_by(|a, b| a.1.cmp(&b.1).then(a.0.cmp(&b.0)));
+        sorted_objects.sort_by(|a, b| a.1.cmp(&b.1).then(a.0.cmp(&b.0)));
 
         // 10 Objects per line limit, reversed for correct overlapping
-        for (index, x_offset) in sorted_sprites.iter().take(10).rev() {
-            let i = *index;
-
-            let oam_entry = self.oam[i];
+        for (index, x_offset) in sorted_objects.iter().take(10).rev() {
+            let oam_entry = self.oam[*index];
             let object_y = oam_entry.y_pos as i16 - 16;
 
             let mut object_index = oam_entry.tile_index;
 
             // Ignore last bit for 8x16 sprites
-            if tile_height == 16 {
+            if tile_height == TILE_HEIGHT as i16 * 2 {
                 object_index &= 0b1111_1110;
             }
 
+            // An object sprite consists of 16 bytes
             let tile_begin_address = TILE_DATA_START + (object_index as u16 * 16);
 
-            // Check if tile is verticalline_y mirrored
+            // Calculate line offset based on if the sprite is vertically mirrored
             let line_offset = if oam_entry.y_flip_enabled() {
                 tile_height - 1 - (line_y - object_y)
             } else {
                 line_y - object_y
             };
 
-            let tile_data_address = tile_begin_address + (line_offset * 2) as u16;
-            let tile_color_address = tile_begin_address + (line_offset * 2) as u16 + 1;
-
-            let tile_data = self.read_byte(tile_data_address);
-            let tile_color = self.read_byte(tile_color_address);
+            // Since each line consists of 2 bytes, the offset has to be multiplied by 2
+            let tile_address = tile_begin_address + (line_offset * 2) as u16;
+            let (first_byte, second_byte) = self.get_tile_bytes(tile_address);
 
             for x in 0..8 {
                 let x_offset = *x_offset + x as i16;
@@ -432,29 +407,29 @@ impl Ppu {
                     continue;
                 }
 
-                // Check if pixel is horizontalline_y mirrored
+                // Skip rendering pixel if background overlaps
+                let overlap_offset = line_y as usize + FULL_WIDTH * x_offset as usize;
+                if self.bg_has_priority(&oam_entry, overlap_offset) {
+                    continue;
+                }
+
+                // Check if pixel is horizontally mirrored
                 let pixel_index = if oam_entry.x_flip_enabled() { x } else { 7 - x };
 
-                let sprite_palette = if oam_entry.palette_enabled() {
-                    self.tile_palette1
-                } else {
-                    self.tile_palette0
-                };
-
-                let color_index = get_color_index(tile_data, tile_color, pixel_index);
+                let color_index = get_color_index(first_byte, second_byte, pixel_index);
 
                 // Skip rendering transparent pixels
                 if color_index == 0 {
                     continue;
                 }
 
-                let pixel = get_pixel_color(&sprite_palette, color_index);
+                let sprite_palette = if oam_entry.palette_enabled() {
+                    self.sprite_palette1
+                } else {
+                    self.sprite_palette0
+                };
 
-                // Skip rendering pixel if background overlaps
-                let priority_offset = line_y as usize + FULL_WIDTH * x_offset as usize;
-                if self.bg_has_priority(&oam_entry, priority_offset) {
-                    continue;
-                }
+                let pixel = get_pixel_color(&sprite_palette, color_index);
 
                 // Calculate the offset for the current pixel and update the screen buffer
                 let offset = x_offset + line_y * VIEWPORT_WIDTH as i16;
@@ -463,15 +438,54 @@ impl Ppu {
         }
     }
 
+    fn get_bg_tile_data(
+        &self,
+        is_window: bool,
+        x: u8,
+        bg_offset_x: u8,
+        bg_offset_y: u8,
+    ) -> (u16, u8, u8) {
+        let address = if is_window {
+            let address = self.lcd_control.get_window_address();
+            let x_offset = x.wrapping_sub(self.window_x.wrapping_sub(7));
+            let y_offset = self.window_line_counter;
+
+            calculate_address(address, x_offset, y_offset)
+        } else {
+            let address = self.lcd_control.get_bg_address();
+
+            calculate_address(address, bg_offset_x, bg_offset_y)
+        };
+
+        // Since each line consists of 2 bytes, the offset has to be multiplied by 2
+        let line_offset = if is_window {
+            (self.line_y - self.window_y) % TILE_HEIGHT as u8 * 2
+        } else {
+            bg_offset_y % TILE_HEIGHT as u8 * 2
+        };
+
+        let pixel_index = if is_window {
+            self.window_x.wrapping_sub(x) % TILE_WIDTH as u8
+        } else {
+            7 - (bg_offset_x % TILE_WIDTH as u8)
+        };
+
+        (address, line_offset, pixel_index)
+    }
+
+    fn get_tile_bytes(&self, address: u16) -> (u8, u8) {
+        let first_byte = self.read_byte(address);
+        let second_byte = self.read_byte(address + 1);
+
+        (first_byte, second_byte)
+    }
+
     fn bg_has_priority(&self, oam_entry: &OAM, offset: usize) -> bool {
         if !oam_entry.overlap_enabled() {
             return false;
         }
 
-        match self.priority_map[offset] {
-            Priority::Overlap => false,
-            Priority::None => true,
-        }
+        !self.overlap_map[offset]
     }
 
     pub fn draw_viewport(&mut self, canvas: &mut Canvas<Window>) {
@@ -485,11 +499,11 @@ impl Ppu {
     }
 
     fn clear_screen(&mut self) {
-        for i in 0..PRIORITY_MAP_SIZE {
+        for i in 0..OVERLAP_MAP_SIZE {
             if i < BUFFER_SIZE {
                 self.screen_buffer[i] = WHITE;
             }
-            self.priority_map[i] = Priority::None;
+            self.overlap_map[i] = false;
         }
     }
 
@@ -508,23 +522,25 @@ fn get_pixel_color(palette: &[u8], color_index: u8) -> Color {
     }
 }
 
-fn calculate_address(base_address: u16, row: u8, col: u8) -> u16 {
-    let tiles_per_row: u16 = (TILEMAP_WIDTH / TILE_WIDTH) as u16;
-    let tile_row = (row as u16) / TILE_WIDTH as u16;
-    let tile_col = (col as u16) / TILE_HEIGHT as u16;
+fn calculate_address(base_address: u16, x: u8, y: u8) -> u16 {
+    let sprites_per_row: u16 = (FULL_WIDTH / TILE_WIDTH) as u16;
+    let sprite_x = (x as u16) / TILE_WIDTH as u16;
+    let sprite_y = (y as u16) / TILE_HEIGHT as u16;
 
-    let offset = tile_row * tiles_per_row + tile_col;
+    let offset = sprite_y * sprites_per_row + sprite_x;
 
     base_address + offset
 }
 
 fn get_color_index(first_byte: u8, second_byte: u8, pixel_index: u8) -> u8 {
+    // The first byte specifies the least significant bit of the color ID of
+    // each pixel, and the second byte specifies the most significant bit
     ((first_byte >> pixel_index) & 1) | ((second_byte >> pixel_index) & 1) << 1
 }
 
 fn set_palette(palette: &mut [u8], value: u8) {
     for (i, color_data) in (0..4).map(|i| (i, (value >> (i * 2) & 0x03))) {
-        palette[i] = color_data.min(3);
+        palette[i] = color_data;
     }
 }
 
