@@ -17,7 +17,6 @@ mod clock;
 mod config;
 mod cpu;
 mod event_handler;
-mod instruction;
 mod interrupt;
 mod joypad;
 mod machine;

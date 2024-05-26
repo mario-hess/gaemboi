@@ -2,11 +2,12 @@
  * @file    cpu/mod.rs
  * @brief   Overarching construct, facilitates instruction execution coordination.
  * @author  Mario Hess
- * @date    May 20, 2024
+ * @date    May 26, 2024
  */
 mod arithmetic;
 mod bit_ops;
 mod control;
+mod instruction;
 mod jump;
 mod load;
 mod program_counter;
@@ -14,8 +15,10 @@ mod rotate;
 mod shift;
 
 use crate::{
-    cpu::program_counter::ProgramCounter,
-    instruction::{CycleDuration, Instruction, Mnemonic},
+    cpu::{
+        instruction::{CycleDuration, Instruction, Mnemonic},
+        program_counter::ProgramCounter,
+    },
     interrupt::Interrupt,
     memory_bus::MemoryBus,
     registers::Registers,
@@ -62,7 +65,11 @@ impl Cpu {
 
         // The HALT instruction gives the game the ability to stop the CPU
         // from executing any more instructions until an interrupt gets enabled
-        if self.halted && self.interrupt.interrupt_enabled(interrupt_enabled, interrupt_flag) {
+        if self.halted
+            && self
+                .interrupt
+                .interrupt_enabled(interrupt_enabled, interrupt_flag)
+        {
             self.halted = false;
         } else if self.halted {
             // Halt consumes 1 m_cycle
