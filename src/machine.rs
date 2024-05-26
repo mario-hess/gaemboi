@@ -71,8 +71,10 @@ impl Machine {
             sdl.window.render_text(text, Color::RGB(0, 255, 0));
             sdl.window.canvas.present();
 
-            // Tick at 59.73 Hz using a busy-wait loop
-            while frame_start_time.elapsed() < frame_duration {}
+            // Tick at 59.73 Hz using a spin-lock
+            while frame_start_time.elapsed() < frame_duration {
+                std::hint::spin_loop();
+            }
             self.fps = 1.0 / frame_start_time.elapsed().as_secs_f32();
 
             /* This isn't precise enough as thread scheduling is OS-dependent
