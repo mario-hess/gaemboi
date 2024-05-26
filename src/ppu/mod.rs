@@ -102,22 +102,22 @@ impl Ppu {
     pub fn new() -> Self {
         Self {
             enabled: true,
-            interrupts: 0x00,
-            video_ram: [0x00; VRAM_SIZE],
+            interrupts: 0,
+            video_ram: [0; VRAM_SIZE],
             oam: [OAM::new(); OAM_SIZE],
             lcd_control: LCD_control::new(),
             lcd_status: LCD_status::new(),
-            scroll_x: 0x00,
-            scroll_y: 0x00,
-            window_x: 0x00,
-            window_y: 0x00,
-            line_y: 0x00,
-            line_y_compare: 0x00,
-            window_line_counter: 0x00,
+            scroll_x: 0,
+            scroll_y: 0,
+            window_x: 0,
+            window_y: 0,
+            line_y: 0,
+            line_y_compare: 0,
+            window_line_counter: 0,
             bg_palette: [0, 1, 2, 3],
             tile_palette0: [0, 1, 2, 3],
             tile_palette1: [0, 1, 2, 3],
-            counter: 0x00,
+            counter: 0,
             priority_map: [Priority::None; PRIORITY_MAP_SIZE],
             screen_buffer: [WHITE; BUFFER_SIZE],
         }
@@ -134,53 +134,63 @@ impl Ppu {
         // https://gbdev.io/pandocs/Rendering.html
         match self.lcd_status.mode {
             Mode::OAM => {
-                if self.counter >= CYCLES_OAM {
-                    self.lcd_status
-                        .set_mode(Mode::Transfer, &mut self.interrupts);
-                    self.counter %= CYCLES_OAM;
+                if self.counter < CYCLES_OAM {
+                    return;
                 }
+
+                self.lcd_status
+                    .set_mode(Mode::Transfer, &mut self.interrupts);
+
+                self.counter %= CYCLES_OAM;
             }
             Mode::Transfer => {
-                if self.counter >= CYCLES_TRANSFER {
-                    self.render_scanline();
-                    self.lcd_status.set_mode(Mode::HBlank, &mut self.interrupts);
-                    self.counter %= CYCLES_TRANSFER;
+                if self.counter < CYCLES_TRANSFER {
+                    return;
                 }
+
+                self.render_scanline();
+                self.lcd_status.set_mode(Mode::HBlank, &mut self.interrupts);
+
+                self.counter %= CYCLES_TRANSFER;
             }
             Mode::HBlank => {
-                if self.counter >= CYCLES_HBLANK {
-                    if self.line_y >= LINES_Y {
-                        self.lcd_status.set_mode(Mode::VBlank, &mut self.interrupts);
-                        self.draw_viewport(canvas);
-                        self.interrupts |= VBLANK_MASK;
-                        self.clear_screen();
-                    } else {
-                        if self.lcd_control.window_enabled
-                            && self.window_x - 7 < VIEWPORT_WIDTH as u8
-                            && self.window_y < VIEWPORT_HEIGHT as u8
-                            && self.line_y >= self.window_y
-                        {
-                            self.window_line_counter += 1;
-                        }
-                        self.set_line_y(self.line_y + 1);
-                        self.lcd_status.set_mode(Mode::OAM, &mut self.interrupts);
-                    }
-
-                    self.counter %= CYCLES_HBLANK;
+                if self.counter < CYCLES_HBLANK {
+                    return;
                 }
+
+                if self.line_y >= LINES_Y {
+                    self.lcd_status.set_mode(Mode::VBlank, &mut self.interrupts);
+                    self.draw_viewport(canvas);
+                    self.interrupts |= VBLANK_MASK;
+                    self.clear_screen();
+                } else {
+                    if self.lcd_control.window_enabled
+                        && self.window_x - 7 < VIEWPORT_WIDTH as u8
+                        && self.window_y < VIEWPORT_HEIGHT as u8
+                        && self.line_y >= self.window_y
+                    {
+                        self.window_line_counter += 1;
+                    }
+                    self.set_line_y(self.line_y + 1);
+                    self.lcd_status.set_mode(Mode::OAM, &mut self.interrupts);
+                }
+
+                self.counter %= CYCLES_HBLANK;
             }
             Mode::VBlank => {
-                if self.counter >= CYCLES_VBLANK {
-                    self.set_line_y(self.line_y + 1);
-
-                    if self.line_y > MAX_LINES_Y {
-                        self.lcd_status.set_mode(Mode::OAM, &mut self.interrupts);
-                        self.window_line_counter = 0;
-                        self.set_line_y(0);
-                    }
-
-                    self.counter %= CYCLES_VBLANK;
+                if self.counter < CYCLES_VBLANK {
+                    return;
                 }
+
+                self.set_line_y(self.line_y + 1);
+
+                if self.line_y > MAX_LINES_Y {
+                    self.lcd_status.set_mode(Mode::OAM, &mut self.interrupts);
+                    self.window_line_counter = 0;
+                    self.set_line_y(0);
+                }
+
+                self.counter %= CYCLES_VBLANK;
             }
         }
     }
@@ -472,7 +482,6 @@ impl Ppu {
             canvas.set_draw_color(*pixel);
             canvas.draw_point(Point::new(x_coord, y_coord)).unwrap();
         }
-
     }
 
     fn clear_screen(&mut self) {
@@ -500,7 +509,7 @@ fn get_pixel_color(palette: &[u8], color_index: u8) -> Color {
 }
 
 fn calculate_address(base_address: u16, row: u8, col: u8) -> u16 {
-    let tiles_per_row: u16 = 32;
+    let tiles_per_row: u16 = (TILEMAP_WIDTH / TILE_WIDTH) as u16;
     let tile_row = (row as u16) / TILE_WIDTH as u16;
     let tile_col = (col as u16) / TILE_HEIGHT as u16;
 
