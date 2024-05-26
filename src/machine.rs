@@ -18,7 +18,7 @@ use crate::{
     MachineState,
 };
 
-pub const FPS: f32 = 59.73;
+pub const FPS: f32 = 59.7275;
 
 pub struct Machine {
     pub cpu: Cpu,
