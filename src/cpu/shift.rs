@@ -2,11 +2,11 @@
  * @file    cpu/shift.rs
  * @brief   Implementation of shift instructions.
  * @author  Mario Hess
- * @date    November 11, 2023
+ * @date    May 26, 2024
  */
-use crate::{
-    cpu::Cpu,
+use crate::cpu::{
     instruction::{CycleDuration, Target},
+    Cpu,
 };
 
 pub fn srl_r(cpu: &mut Cpu, target: Target) -> CycleDuration {

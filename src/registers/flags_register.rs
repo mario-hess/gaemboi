@@ -2,9 +2,9 @@
  * @file    registers/flags_register.rs
  * @brief   Handles CPU flag registers.
  * @author  Mario Hess
- * @date    September 20, 2023
+ * @date    May 26, 2024
  */
-use crate::instruction::Flag;
+use crate::cpu::instruction::Flag;
 
 const ZERO_FLAG_BYTE_POSITION: u8 = 7;
 const SUBTRACT_FLAG_BYTE_POSITION: u8 = 6;

@@ -7,7 +7,7 @@
 mod arithmetic;
 mod bit_ops;
 mod control;
-mod instruction;
+pub mod instruction;
 mod jump;
 mod load;
 mod program_counter;

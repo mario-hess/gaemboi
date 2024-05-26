@@ -2,11 +2,11 @@
  * @file    cpu/rotate.rs
  * @brief   Implementation of rotate instructions.
  * @author  Mario Hess
- * @date    November 11, 2023
+ * @date    May 26, 2024
  */
-use crate::{
-    cpu::Cpu,
+use crate::cpu::{
     instruction::{CycleDuration, Target},
+    Cpu,
 };
 
 pub fn rrca(cpu: &mut Cpu) -> CycleDuration {

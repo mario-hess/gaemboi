@@ -2,11 +2,11 @@
  * @file    cpu/jump.rs
  * @brief   Implementation of jump instructions.
  * @author  Mario Hess
- * @date    November 11, 2023
+ * @date    May 26, 2024
  */
-use crate::{
-    cpu::Cpu,
+use crate::cpu::{
     instruction::{CycleDuration, Flag},
+    Cpu,
 };
 
 pub fn jp_nn(cpu: &mut Cpu) -> CycleDuration {

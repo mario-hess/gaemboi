@@ -2,11 +2,11 @@
  * @file    cpu/load.rs
  * @brief   Implementation of load instructions.
  * @author  Mario Hess
- * @date    November 11, 2023
+ * @date    May 26, 2024
  */
-use crate::{
-    cpu::Cpu,
+use crate::cpu::{
     instruction::{CycleDuration, Target},
+    Cpu,
 };
 
 pub fn ld_r_r(cpu: &mut Cpu, to: Target, from: Target) -> CycleDuration {

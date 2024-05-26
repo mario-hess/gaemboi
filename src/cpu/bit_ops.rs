@@ -2,11 +2,11 @@
  * @file    cpu/bit_ops.rs
  * @brief   Implementation of bit operation instructions.
  * @author  Mario Hess
- * @date    November 11, 2023
+ * @date    May 26, 2024
  */
-use crate::{
-    cpu::Cpu,
+use crate::cpu::{
     instruction::{CycleDuration, Target},
+    Cpu,
 };
 
 pub fn bit_r(cpu: &mut Cpu, position: u8, target: Target) -> CycleDuration {

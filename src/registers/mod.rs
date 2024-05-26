@@ -6,7 +6,7 @@
  */
 mod flags_register;
 
-use crate::{instruction::Target, registers::flags_register::FlagsRegister};
+use crate::{cpu::instruction::Target, registers::flags_register::FlagsRegister};
 
 pub struct Registers {
     a: u8,
