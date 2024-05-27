@@ -84,9 +84,9 @@ pub struct Ppu {
     line_y: u8,
     line_y_compare: u8,
     window_line_counter: u8,
-    bg_palette: [u8; 4],
-    sprite_palette0: [u8; 4],
-    sprite_palette1: [u8; 4],
+    bg_palette: u8,
+    sprite_palette0: u8,
+    sprite_palette1: u8,
     counter: u16,
     overlap_map: [bool; OVERLAP_MAP_SIZE],
     pub screen_buffer: [Color; BUFFER_SIZE],
@@ -108,9 +108,9 @@ impl Ppu {
             line_y: 0,
             line_y_compare: 0,
             window_line_counter: 0,
-            bg_palette: [0, 1, 2, 3],
-            sprite_palette0: [0, 1, 2, 3],
-            sprite_palette1: [0, 1, 2, 3],
+            bg_palette: 0,
+            sprite_palette0: 0,
+            sprite_palette1: 0,
             counter: 0,
             overlap_map: [false; OVERLAP_MAP_SIZE],
             screen_buffer: [WHITE; BUFFER_SIZE],
@@ -200,9 +200,9 @@ impl Ppu {
             SCROLL_X => self.scroll_x,
             LINE_Y => self.line_y,
             LINE_Y_COMPARE => self.line_y_compare,
-            BG_PALETTE => get_palette(&self.bg_palette),
-            TILE_PALETTE_0 => get_palette(&self.sprite_palette0),
-            TILE_PALETTE_1 => get_palette(&self.sprite_palette1),
+            BG_PALETTE => self.bg_palette,
+            TILE_PALETTE_0 => self.sprite_palette0,
+            TILE_PALETTE_1 => self.sprite_palette1,
             WINDOW_Y => self.window_y,
             WINDOW_X => self.window_x,
             _ => {
@@ -223,9 +223,9 @@ impl Ppu {
             SCROLL_X => self.scroll_x = value,
             LINE_Y => {} // Not used
             LINE_Y_COMPARE => self.set_line_y_compare(value),
-            BG_PALETTE => set_palette(&mut self.bg_palette, value),
-            TILE_PALETTE_0 => set_palette(&mut self.sprite_palette0, value),
-            TILE_PALETTE_1 => set_palette(&mut self.sprite_palette1, value),
+            BG_PALETTE => self.bg_palette = value,
+            TILE_PALETTE_0 => self.sprite_palette0 = value,
+            TILE_PALETTE_1 => self.sprite_palette1 = value,
             WINDOW_Y => self.window_y = value,
             WINDOW_X => {
                 // Values lower than 7 cause strange edge cases to occur
@@ -333,7 +333,7 @@ impl Ppu {
                 self.overlap_map[overlap_offset] = true;
             }
 
-            let pixel = get_pixel_color(&self.bg_palette, color_index);
+            let pixel = get_pixel_color(self.bg_palette, color_index);
 
             // Calculate the offset for the current pixel and update the screen buffer
             let offset = x as usize + self.line_y as usize * VIEWPORT_WIDTH;
@@ -424,7 +424,7 @@ impl Ppu {
                     self.sprite_palette0
                 };
 
-                let pixel = get_pixel_color(&sprite_palette, color_index);
+                let pixel = get_pixel_color(sprite_palette, color_index);
 
                 // Calculate the offset for the current pixel and update the screen buffer
                 let offset = x_offset + line_y * VIEWPORT_WIDTH as i16;
@@ -461,6 +461,7 @@ impl Ppu {
         }
     }
 
+    // Each tile occupies 16 bytes, where each line is represented by 2 bytes
     fn get_tile_bytes(&self, address: u16) -> (u8, u8) {
         let first_byte = self.read_byte(address);
         let second_byte = self.read_byte(address + 1);
@@ -500,8 +501,13 @@ impl Ppu {
     }
 }
 
-fn get_pixel_color(palette: &[u8], color_index: u8) -> Color {
-    match palette[color_index as usize] {
+fn get_pixel_color(palette: u8, color_index: u8) -> Color {
+    let mut color_palette: [u8; 4] = [0, 1, 2, 3];
+    for (i, color_data) in color_palette.map(|i| (i, (palette >> (i * 2) & 0x03))) {
+        color_palette[i as usize] = color_data;
+    }
+
+    match color_palette[color_index as usize] {
         0 => WHITE,
         1 => LIGHT,
         2 => DARK,
@@ -524,21 +530,4 @@ fn get_color_index(first_byte: u8, second_byte: u8, pixel_index: u8) -> u8 {
     // The first byte specifies the least significant bit of the color ID of
     // each pixel, and the second byte specifies the most significant bit
     ((first_byte >> pixel_index) & 1) | ((second_byte >> pixel_index) & 1) << 1
-}
-
-fn set_palette(palette: &mut [u8], value: u8) {
-    for (i, color_data) in (0..4).map(|i| (i, (value >> (i * 2) & 0x03))) {
-        palette[i] = color_data;
-    }
-}
-
-fn get_palette(palette: &[u8]) -> u8 {
-    palette.iter().enumerate().fold(0u8, |acc, (i, &color)| {
-        let color_data = match color {
-            0..=3 => color,
-            _ => 3,
-        };
-
-        acc | (color_data & 0x03) << (i * 2)
-    })
 }
