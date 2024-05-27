@@ -502,10 +502,9 @@ impl Ppu {
 }
 
 fn get_pixel_color(palette: u8, color_index: u8) -> Color {
-    let mut color_palette: [u8; 4] = [0, 1, 2, 3];
-    for (i, color_data) in color_palette.map(|i| (i, (palette >> (i * 2) & 0x03))) {
-        color_palette[i as usize] = color_data;
-    }
+    let color_palette: Vec<u8> = (0..=3)
+        .map(|i| (palette >> (i * 2) & 0x03))
+        .collect::<Vec<u8>>();
 
     match color_palette[color_index as usize] {
         0 => WHITE,
@@ -529,5 +528,5 @@ fn calculate_address(base_address: u16, x: u8, y: u8) -> u16 {
 fn get_color_index(first_byte: u8, second_byte: u8, pixel_index: u8) -> u8 {
     // The first byte specifies the least significant bit of the color ID of
     // each pixel, and the second byte specifies the most significant bit
-    ((first_byte >> pixel_index) & 1) | ((second_byte >> pixel_index) & 1) << 1
+    ((first_byte >> pixel_index) & 0x01) | ((second_byte >> pixel_index) & 0x01) << 1
 }
