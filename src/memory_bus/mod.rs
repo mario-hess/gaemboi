@@ -2,16 +2,18 @@
  * @file    memory_bus.rs
  * @brief   Manages memory access and address decoding.
  * @author  Mario Hess
- * @date    May 20, 2024
+ * @date    May 27, 2024
  */
+mod joypad;
+mod timer;
+
 use sdl2::{render::Canvas, video::Window};
 
 use crate::{
     apu::{Apu, AUDIO_END, AUDIO_START},
     cartridge::Cartridge,
-    joypad::Joypad,
+    memory_bus::{joypad::Joypad, timer::Timer},
     ppu::Ppu,
-    timer::Timer,
 };
 
 pub const CARTRIDGE_ROM_START: u16 = 0x0000;

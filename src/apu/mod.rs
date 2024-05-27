@@ -65,7 +65,7 @@ pub struct Apu {
     pub right_volume: u8,
     pub left_volume: u8,
     enabled: bool,
-    output_timer: f32,
+    counter: f32,
     pub audio_buffer: VecDeque<u8>,
 }
 
@@ -81,7 +81,7 @@ impl Apu {
             right_volume: 0,
             left_volume: 0,
             enabled: false,
-            output_timer: 0.0,
+            counter: 0.0,
             audio_buffer: VecDeque::with_capacity(AUDIO_BUFFER_SIZE),
         }
     }
@@ -103,16 +103,16 @@ impl Apu {
 
         self.tick_channels(m_cycles);
 
-        self.output_timer += t_cycles as f32;
+        self.counter += t_cycles as f32;
 
-        while self.output_timer >= CPU_CYCLES_PER_SAMPLE {
+        while self.counter >= CPU_CYCLES_PER_SAMPLE {
             let (output_left, output_right) =
                 self.mixer.mix(&self.ch1, &self.ch2, &self.ch3, &self.ch4);
 
             self.audio_buffer.push_back(output_left);
             self.audio_buffer.push_back(output_right);
 
-            self.output_timer -= CPU_CYCLES_PER_SAMPLE;
+            self.counter -= CPU_CYCLES_PER_SAMPLE;
         }
     }
 
@@ -208,7 +208,7 @@ impl Apu {
 
         self.left_volume = 0;
         self.right_volume = 0;
-        self.output_timer = 0.0;
+        self.counter = 0.0;
         self.audio_buffer.clear();
     }
 }

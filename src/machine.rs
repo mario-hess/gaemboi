@@ -35,7 +35,6 @@ impl Machine {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub fn run(&mut self, sdl: &mut SDL, event_handler: &mut EventHandler) {
         let audio_device = self.create_audio_device(sdl, &event_handler.volume);
         audio_device.resume();

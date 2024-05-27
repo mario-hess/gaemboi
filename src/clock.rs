@@ -2,7 +2,7 @@
  * @file    clock.rs
  * @brief   Controls the CPU frequency.
  * @author  Mario Hess
- * @date    September 20, 2023
+ * @date    May 27, 2024
  */
 use crate::machine::FPS;
 
@@ -24,7 +24,8 @@ impl Clock {
     }
 
     pub fn tick(&mut self, m_cycles: u8) {
-        self.cycles_passed += (m_cycles * 4) as f32;
+        let t_cycles = m_cycles * 4;
+        self.cycles_passed += (t_cycles) as f32;
     }
 
     pub fn reset(&mut self) {

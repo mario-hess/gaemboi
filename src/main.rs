@@ -18,14 +18,12 @@ mod config;
 mod cpu;
 mod event_handler;
 mod interrupt;
-mod joypad;
 mod machine;
 mod memory_bus;
 mod menu;
 mod ppu;
 mod registers;
 mod sdl;
-mod timer;
 
 use std::{
     env,

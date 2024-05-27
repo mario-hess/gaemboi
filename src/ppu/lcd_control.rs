@@ -2,7 +2,7 @@
  * @file    ppu/lcd_control.rs
  * @brief   Handles the PPU's LCD Control register.
  * @author  Mario Hess
- * @date    May 20, 2024
+ * @date    May 27, 2024
  */
 use crate::ppu::{TILEMAP_START_0, TILEMAP_START_1};
 
@@ -61,14 +61,14 @@ impl LCD_control {
     }
 
     pub fn set(&mut self, value: u8) {
-        self.bg_enabled = value & 0x01 == 0x01;
-        self.object_enabled = value & 0x02 == 0x02;
-        self.object_size = value & 0x04 == 0x04;
-        self.bg_tilemap = value & 0x08 == 0x08;
-        self.addressing_mode = value & 0x10 == 0x10;
-        self.window_enabled = value & 0x20 == 0x20;
-        self.window_tilemap = value & 0x40 == 0x40;
-        self.lcd_enabled = value & 0x80 == 0x80;
+        self.bg_enabled = value & 0x01 != 0;
+        self.object_enabled = value & 0x02 != 0;
+        self.object_size = value & 0x04 != 0;
+        self.bg_tilemap = value & 0x08 != 0;
+        self.addressing_mode = value & 0x10 != 0;
+        self.window_enabled = value & 0x20 != 0;
+        self.window_tilemap = value & 0x40 != 0;
+        self.lcd_enabled = value & 0x80 != 0;
     }
 
     pub fn get_bg_address(self) -> u16 {

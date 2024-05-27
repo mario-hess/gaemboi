@@ -2,16 +2,16 @@
  * @file    joypad.rs
  * @brief   Handles user input.
  * @author  Mario Hess
- * @date    November 11, 2023
+ * @date    May 27, 2024
  */
 use crate::event_handler::EventHandler;
 
-const A_RIGHT_POS: u8 = 0;
-const B_LEFT_BOS: u8 = 1;
-const SELECT_UP_POS: u8 = 2;
-const START_DOWN_POS: u8 = 3;
-const SELECT_DPAD_POS: u8 = 4;
-const SELECT_BUTTONS_POS: u8 = 5;
+const A_RIGHT_POS: u8 = 0x00;
+const B_LEFT_BOS: u8 = 0x01;
+const SELECT_UP_POS: u8 = 0x02;
+const START_DOWN_POS: u8 = 0x03;
+const SELECT_DPAD_POS: u8 = 0x04;
+const SELECT_BUTTONS_POS: u8 = 0x05;
 
 #[derive(Default)]
 pub struct Joypad {
@@ -29,8 +29,8 @@ pub struct Joypad {
 
 impl Joypad {
     pub fn set(&mut self, value: u8) {
-        self.select_dpad = (value >> SELECT_DPAD_POS) & 0b1 == 0;
-        self.select_buttons = (value >> SELECT_BUTTONS_POS) & 0b1 == 0;
+        self.select_dpad = (value >> SELECT_DPAD_POS) & 0x01 == 0;
+        self.select_buttons = (value >> SELECT_BUTTONS_POS) & 0x01 == 0;
     }
 
     pub fn get(&self) -> u8 {
@@ -48,6 +48,7 @@ impl Joypad {
                 | (if self.down { 0 } else { 1 }) << START_DOWN_POS;
         }
 
+        // Return default value to not boot in multiplayer mode
         0xCF
     }
 

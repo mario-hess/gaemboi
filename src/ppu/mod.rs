@@ -60,6 +60,7 @@ const OVERLAP_MAP_SIZE: usize = FULL_WIDTH * FULL_WIDTH;
 pub const BUFFER_SIZE: usize = VIEWPORT_WIDTH * VIEWPORT_HEIGHT;
 
 // https://gbdev.io/pandocs/Graphics.html
+// https://hacktix.github.io/GBEDG/ppu/
 #[allow(clippy::upper_case_acronyms, non_camel_case_types)]
 #[derive(Copy, Clone)]
 pub enum Mode {
@@ -151,19 +152,20 @@ impl Ppu {
                     return;
                 }
 
+                if self.lcd_control.window_enabled
+                    && self.window_x - 7 < VIEWPORT_WIDTH as u8
+                    && self.window_y < VIEWPORT_HEIGHT as u8
+                    && self.line_y >= self.window_y
+                {
+                    self.window_line_counter += 1;
+                }
+
                 if self.line_y >= LINES_Y {
                     self.lcd_status.set_mode(Mode::VBlank, &mut self.interrupts);
                     self.draw_viewport(canvas);
                     self.interrupts |= VBLANK_MASK;
                     self.clear_screen();
                 } else {
-                    if self.lcd_control.window_enabled
-                        && self.window_x - 7 < VIEWPORT_WIDTH as u8
-                        && self.window_y < VIEWPORT_HEIGHT as u8
-                        && self.line_y >= self.window_y
-                    {
-                        self.window_line_counter += 1;
-                    }
                     self.set_line_y(self.line_y + 1);
                     self.lcd_status.set_mode(Mode::OAM, &mut self.interrupts);
                 }
@@ -226,6 +228,7 @@ impl Ppu {
             TILE_PALETTE_1 => set_palette(&mut self.sprite_palette1, value),
             WINDOW_Y => self.window_y = value,
             WINDOW_X => {
+                // Values lower than 7 cause strange edge cases to occur
                 if value < 7 {
                     return;
                 }
@@ -310,24 +313,16 @@ impl Ppu {
     }
 
     fn render_bg_line(&mut self) {
-        let bg_offset_y = self.line_y.wrapping_add(self.scroll_y);
-        let row_is_window = self.lcd_control.window_enabled && self.line_y >= self.window_y;
-
         for x in 0..VIEWPORT_WIDTH as u8 {
-            let bg_offset_x = x.wrapping_add(self.scroll_x);
-            let col_is_window =
-                self.lcd_control.window_enabled && x >= self.window_x.wrapping_sub(7);
-            let is_window = row_is_window && col_is_window;
-
             // Determine the sprite data based on whether it's in the window or background
-            let (sprite_index_address, line_offset, pixel_index) =
-                self.get_bg_tile_data(is_window, x, bg_offset_x, bg_offset_y);
+            let (sprite_index_address, line_offset, pixel_index) = self.get_bg_tile_data(x);
 
             let sprite_index = self.read_byte(sprite_index_address);
             let sprite_address = self.lcd_control.get_address(sprite_index);
 
+            // Since each line consists of 2 bytes, the offset has to be multiplied by 2
             let (first_byte, second_byte) =
-                self.get_tile_bytes(sprite_address + line_offset as u16);
+                self.get_tile_bytes(sprite_address + line_offset as u16 * 2);
 
             let color_index = get_color_index(first_byte, second_byte, pixel_index);
 
@@ -396,7 +391,7 @@ impl Ppu {
             };
 
             // Since each line consists of 2 bytes, the offset has to be multiplied by 2
-            let tile_address = tile_begin_address + (line_offset * 2) as u16;
+            let tile_address = tile_begin_address + line_offset as u16 * 2;
             let (first_byte, second_byte) = self.get_tile_bytes(tile_address);
 
             for x in 0..8 {
@@ -438,39 +433,32 @@ impl Ppu {
         }
     }
 
-    fn get_bg_tile_data(
-        &self,
-        is_window: bool,
-        x: u8,
-        bg_offset_x: u8,
-        bg_offset_y: u8,
-    ) -> (u16, u8, u8) {
-        let address = if is_window {
+    fn get_bg_tile_data(&self, x: u8) -> (u16, u8, u8) {
+        let col_is_window = self.lcd_control.window_enabled && x >= self.window_x.wrapping_sub(7);
+        let row_is_window = self.lcd_control.window_enabled && self.line_y >= self.window_y;
+        let is_window = row_is_window && col_is_window;
+
+        if is_window {
             let address = self.lcd_control.get_window_address();
             let x_offset = x.wrapping_sub(self.window_x.wrapping_sub(7));
             let y_offset = self.window_line_counter;
 
-            calculate_address(address, x_offset, y_offset)
+            let address = calculate_address(address, x_offset, y_offset);
+            let line_offset = (self.line_y - self.window_y) % TILE_HEIGHT as u8;
+            let pixel_index = self.window_x.wrapping_sub(x) % TILE_WIDTH as u8;
+
+            (address, line_offset, pixel_index)
         } else {
             let address = self.lcd_control.get_bg_address();
+            let x_offset = x.wrapping_add(self.scroll_x);
+            let y_offset = self.line_y.wrapping_add(self.scroll_y);
 
-            calculate_address(address, bg_offset_x, bg_offset_y)
-        };
+            let address = calculate_address(address, x_offset, y_offset);
+            let line_offset = y_offset % TILE_HEIGHT as u8;
+            let pixel_index = 7 - (x_offset % TILE_WIDTH as u8);
 
-        // Since each line consists of 2 bytes, the offset has to be multiplied by 2
-        let line_offset = if is_window {
-            (self.line_y - self.window_y) % TILE_HEIGHT as u8 * 2
-        } else {
-            bg_offset_y % TILE_HEIGHT as u8 * 2
-        };
-
-        let pixel_index = if is_window {
-            self.window_x.wrapping_sub(x) % TILE_WIDTH as u8
-        } else {
-            7 - (bg_offset_x % TILE_WIDTH as u8)
-        };
-
-        (address, line_offset, pixel_index)
+            (address, line_offset, pixel_index)
+        }
     }
 
     fn get_tile_bytes(&self, address: u16) -> (u8, u8) {
