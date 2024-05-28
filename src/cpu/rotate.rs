@@ -6,7 +6,7 @@
  */
 use crate::cpu::{
     instruction::{CycleDuration, Target},
-    Cpu,
+    Cpu, MemoryAccess,
 };
 
 pub fn rrca(cpu: &mut Cpu) -> CycleDuration {

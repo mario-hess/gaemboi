@@ -2,7 +2,7 @@
  * @file    registers/flags_register.rs
  * @brief   Handles CPU flag registers.
  * @author  Mario Hess
- * @date    May 26, 2024
+ * @date    May 27, 2024
  */
 use crate::cpu::instruction::Flag;
 
@@ -29,36 +29,36 @@ impl FlagsRegister {
         }
     }
 
-    pub fn set_zero(&mut self, should_set: bool) {
-        self.zero = should_set;
-    }
-
     pub fn get_zero(&self) -> bool {
         self.zero
     }
 
-    pub fn set_subtract(&mut self, should_set: bool) {
-        self.subtract = should_set;
+    pub fn set_zero(&mut self, should_set: bool) {
+        self.zero = should_set;
     }
 
     pub fn get_subtract(&self) -> bool {
         self.subtract
     }
 
-    pub fn set_half_carry(&mut self, should_set: bool) {
-        self.half_carry = should_set;
+    pub fn set_subtract(&mut self, should_set: bool) {
+        self.subtract = should_set;
     }
 
     pub fn get_half_carry(&self) -> bool {
         self.half_carry
     }
 
-    pub fn set_carry(&mut self, should_set: bool) {
-        self.carry = should_set;
+    pub fn set_half_carry(&mut self, should_set: bool) {
+        self.half_carry = should_set;
     }
 
     pub fn get_carry(&self) -> bool {
         self.carry
+    }
+
+    pub fn set_carry(&mut self, should_set: bool) {
+        self.carry = should_set;
     }
 
     pub fn get_flag(&self, flag: Flag) -> bool {

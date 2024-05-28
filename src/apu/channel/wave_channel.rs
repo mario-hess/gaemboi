@@ -2,9 +2,9 @@
  * @file    apu/channel/wave_channel.rs
  * @brief   Implementation of the wave channel (Channel 3).
  * @author  Mario Hess
- * @date    May 25, 2024
+ * @date    May 28, 2024
  */
-use crate::apu::{channel::length_counter::LengthCounter, CH3_END, CH3_START};
+use crate::apu::{channel::length_counter::LengthCounter, MemoryAccess, CH3_END, CH3_START};
 
 const DAC_ENABLE: u16 = CH3_START; // NR30
 const LENGTH_TIMER: u16 = 0xFF1B; // NR31
@@ -28,6 +28,30 @@ pub struct WaveChannel {
     frequency: u16,
     wave_ram: [u8; 32],
     wave_ram_position: u8,
+}
+
+impl MemoryAccess for WaveChannel {
+    fn read_byte(&self, address: u16) -> u8 {
+        match address {
+            DAC_ENABLE => self.get_dac_enable(),
+            LENGTH_TIMER => self.length_counter.timer as u8,
+            VOLUME => self.get_output_level(),
+            FREQUENCY_LOW => self.get_frequency_low(),
+            FREQUENCY_HIGH => self.get_frequency_high(),
+            _ => unreachable!(),
+        }
+    }
+
+    fn write_byte(&mut self, address: u16, value: u8) {
+        match address {
+            DAC_ENABLE => self.set_dac_enable(value),
+            LENGTH_TIMER => self.length_counter.timer = LENGTH_TIMER_MAX - (value as u16),
+            VOLUME => self.set_output_level(value),
+            FREQUENCY_LOW => self.set_frequency_low(value),
+            FREQUENCY_HIGH => self.set_frequency_high(value),
+            _ => unreachable!(),
+        }
+    }
 }
 
 impl WaveChannel {
@@ -77,34 +101,6 @@ impl WaveChannel {
 
         if self.length_counter.timer == 0 {
             self.length_counter.timer = LENGTH_TIMER_MAX;
-        }
-    }
-
-    pub fn read_byte(&self, address: u16) -> u8 {
-        match address {
-            DAC_ENABLE => self.get_dac_enable(),
-            LENGTH_TIMER => self.length_counter.timer as u8,
-            VOLUME => self.get_output_level(),
-            FREQUENCY_LOW => self.get_frequency_low(),
-            FREQUENCY_HIGH => self.get_frequency_high(),
-            _ => {
-                eprintln!("Unknown address: {:#X} Can't read byte.", address);
-                0xFF
-            }
-        }
-    }
-
-    pub fn write_byte(&mut self, address: u16, value: u8) {
-        match address {
-            DAC_ENABLE => self.set_dac_enable(value),
-            LENGTH_TIMER => self.length_counter.timer = LENGTH_TIMER_MAX - (value as u16),
-            VOLUME => self.set_output_level(value),
-            FREQUENCY_LOW => self.set_frequency_low(value),
-            FREQUENCY_HIGH => self.set_frequency_high(value),
-            _ => eprintln!(
-                "Unknown address: {:#X} Can't write byte: {:#X}.",
-                address, value
-            ),
         }
     }
 

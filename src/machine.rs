@@ -58,7 +58,7 @@ impl Machine {
 
             // Component tick
             while self.clock.cycles_passed <= self.clock.cycles_per_frame {
-                let m_cycles = self.cpu.tick();
+                let m_cycles = self.cpu.step();
                 self.cpu.memory_bus.tick(m_cycles, &mut sdl.window.canvas);
                 self.clock.tick(m_cycles);
             }

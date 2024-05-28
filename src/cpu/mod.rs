@@ -20,7 +20,7 @@ use crate::{
         program_counter::ProgramCounter,
     },
     interrupt::Interrupt,
-    memory_bus::MemoryBus,
+    memory_bus::{MemoryBus, MemoryAccess},
     registers::Registers,
 };
 
@@ -59,7 +59,7 @@ impl Cpu {
         }
     }
 
-    pub fn tick(&mut self) -> u8 {
+    pub fn step(&mut self) -> u8 {
         let interrupt_enabled = self.memory_bus.get_interrupt_enabled();
         let interrupt_flag = self.memory_bus.get_interrupt_flag();
 

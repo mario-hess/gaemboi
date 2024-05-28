@@ -2,11 +2,11 @@
  * @file    apu/channel/noise_channel.rs
  * @brief   Implementation of the noise channel (Channel 4).
  * @author  Mario Hess
- * @date    May 25, 2024
+ * @date    May 28, 2024
  */
 use crate::apu::{
-    channel::length_counter::LengthCounter, channel::volume_envelope::VolumeEnvelope, CH4_END,
-    CH4_START, LENGTH_TIMER_MAX,
+    channel::length_counter::LengthCounter, channel::volume_envelope::VolumeEnvelope, MemoryAccess,
+    CH4_END, CH4_START, LENGTH_TIMER_MAX,
 };
 
 const LENGTH_TIMER: u16 = CH4_START; // NR41
@@ -28,6 +28,28 @@ pub struct NoiseChannel {
     clock_divider: u8,
     lfsr_width: bool,
     clock_shift: u8,
+}
+
+impl MemoryAccess for NoiseChannel {
+    fn read_byte(&self, address: u16) -> u8 {
+        match address {
+            LENGTH_TIMER => self.get_length_timer(),
+            VOLUME_ENVELOPE => self.volume_envelope.get(),
+            FREQUENCY_RANDOMNESS => self.get_frequency_randomness(),
+            CONTROL => self.get_control(),
+            _ => unreachable!(),
+        }
+    }
+
+    fn write_byte(&mut self, address: u16, value: u8) {
+        match address {
+            LENGTH_TIMER => self.set_length_timer(value),
+            VOLUME_ENVELOPE => self.set_volume_envelope(value),
+            FREQUENCY_RANDOMNESS => self.set_frequency_randomness(value),
+            CONTROL => self.set_control(value),
+            _ => unreachable!(),
+        }
+    }
 }
 
 impl NoiseChannel {
@@ -89,32 +111,6 @@ impl NoiseChannel {
 
         if self.length_counter.timer == 0 {
             self.length_counter.timer = LENGTH_TIMER_MAX;
-        }
-    }
-
-    pub fn read_byte(&self, address: u16) -> u8 {
-        match address {
-            LENGTH_TIMER => self.get_length_timer(),
-            VOLUME_ENVELOPE => self.volume_envelope.get(),
-            FREQUENCY_RANDOMNESS => self.get_frequency_randomness(),
-            CONTROL => self.get_control(),
-            _ => {
-                eprintln!("Unknown address: {:#X} Can't read byte.", address);
-                0xFF
-            }
-        }
-    }
-
-    pub fn write_byte(&mut self, address: u16, value: u8) {
-        match address {
-            LENGTH_TIMER => self.set_length_timer(value),
-            VOLUME_ENVELOPE => self.set_volume_envelope(value),
-            FREQUENCY_RANDOMNESS => self.set_frequency_randomness(value),
-            CONTROL => self.set_control(value),
-            _ => eprintln!(
-                "Unknown address: {:#X} Can't write byte: {:#X}.",
-                address, value
-            ),
         }
     }
 

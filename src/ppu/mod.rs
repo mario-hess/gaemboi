@@ -2,7 +2,7 @@
  * @file    ppu/mod.rs
  * @brief   Handles the Picture Processing Unit for graphics rendering.
  * @author  Mario Hess
- * @date    May 24, 2024
+ * @date    May 28, 2024
  */
 mod lcd_control;
 mod lcd_status;
@@ -12,7 +12,7 @@ use sdl2::{pixels::Color, rect::Point, render::Canvas, video::Window};
 
 use crate::{
     interrupt::{LCD_STAT_MASK, VBLANK_MASK},
-    memory_bus::{OAM_END, OAM_START, VRAM_END, VRAM_START},
+    memory_bus::{MemoryAccess, OAM_END, OAM_START, VRAM_END, VRAM_START},
     ppu::{lcd_control::LCD_control, lcd_status::LCD_status, oam::OAM},
 };
 
@@ -90,6 +90,52 @@ pub struct Ppu {
     counter: u16,
     overlap_map: [bool; OVERLAP_MAP_SIZE],
     pub screen_buffer: [Color; BUFFER_SIZE],
+}
+
+impl MemoryAccess for Ppu {
+    fn read_byte(&self, address: u16) -> u8 {
+        match address {
+            VRAM_START..=VRAM_END => self.video_ram[(address - VRAM_START) as usize],
+            OAM_START..=OAM_END => self.read_oam(address - OAM_START),
+            LCD_CONTROL => self.lcd_control.get(),
+            LCD_STATUS => self.lcd_status.get(),
+            SCROLL_Y => self.scroll_y,
+            SCROLL_X => self.scroll_x,
+            LINE_Y => self.line_y,
+            LINE_Y_COMPARE => self.line_y_compare,
+            BG_PALETTE => self.bg_palette,
+            TILE_PALETTE_0 => self.sprite_palette0,
+            TILE_PALETTE_1 => self.sprite_palette1,
+            WINDOW_Y => self.window_y,
+            WINDOW_X => self.window_x,
+            _ => unreachable!(),
+        }
+    }
+
+    fn write_byte(&mut self, address: u16, value: u8) {
+        match address {
+            VRAM_START..=VRAM_END => self.video_ram[(address - VRAM_START) as usize] = value,
+            OAM_START..=OAM_END => self.write_oam(address - OAM_START, value),
+            LCD_CONTROL => self.set_lcd_control(value),
+            LCD_STATUS => self.lcd_status.set(value),
+            SCROLL_Y => self.scroll_y = value,
+            SCROLL_X => self.scroll_x = value,
+            LINE_Y => {} // Not used
+            LINE_Y_COMPARE => self.set_line_y_compare(value),
+            BG_PALETTE => self.bg_palette = value,
+            TILE_PALETTE_0 => self.sprite_palette0 = value,
+            TILE_PALETTE_1 => self.sprite_palette1 = value,
+            WINDOW_Y => self.window_y = value,
+            WINDOW_X => {
+                // Values lower than 7 cause strange edge cases to occur
+                if value < 7 {
+                    return;
+                }
+                self.window_x = value
+            }
+            _ => unreachable!(),
+        }
+    }
 }
 
 impl Ppu {
@@ -187,57 +233,6 @@ impl Ppu {
 
                 self.counter -= CYCLES_VBLANK;
             }
-        }
-    }
-
-    pub fn read_byte(&self, address: u16) -> u8 {
-        match address {
-            VRAM_START..=VRAM_END => self.video_ram[(address - VRAM_START) as usize],
-            OAM_START..=OAM_END => self.read_oam(address - OAM_START),
-            LCD_CONTROL => self.lcd_control.get(),
-            LCD_STATUS => self.lcd_status.get(),
-            SCROLL_Y => self.scroll_y,
-            SCROLL_X => self.scroll_x,
-            LINE_Y => self.line_y,
-            LINE_Y_COMPARE => self.line_y_compare,
-            BG_PALETTE => self.bg_palette,
-            TILE_PALETTE_0 => self.sprite_palette0,
-            TILE_PALETTE_1 => self.sprite_palette1,
-            WINDOW_Y => self.window_y,
-            WINDOW_X => self.window_x,
-            _ => {
-                eprintln!("Unknown address: {:#X}. Can't read byte.", address);
-
-                0xFF
-            }
-        }
-    }
-
-    pub fn write_byte(&mut self, address: u16, value: u8) {
-        match address {
-            VRAM_START..=VRAM_END => self.video_ram[(address - VRAM_START) as usize] = value,
-            OAM_START..=OAM_END => self.write_oam(address - OAM_START, value),
-            LCD_CONTROL => self.set_lcd_control(value),
-            LCD_STATUS => self.lcd_status.set(value),
-            SCROLL_Y => self.scroll_y = value,
-            SCROLL_X => self.scroll_x = value,
-            LINE_Y => {} // Not used
-            LINE_Y_COMPARE => self.set_line_y_compare(value),
-            BG_PALETTE => self.bg_palette = value,
-            TILE_PALETTE_0 => self.sprite_palette0 = value,
-            TILE_PALETTE_1 => self.sprite_palette1 = value,
-            WINDOW_Y => self.window_y = value,
-            WINDOW_X => {
-                // Values lower than 7 cause strange edge cases to occur
-                if value < 7 {
-                    return;
-                }
-                self.window_x = value
-            }
-            _ => eprintln!(
-                "Unknown address: {:#X}. Can't write byte: {:#X}.",
-                address, value
-            ),
         }
     }
 

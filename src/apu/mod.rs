@@ -2,7 +2,7 @@
  * @file    apu/mod.rs
  * @brief   Implementation of the Audio Processing Unit (APU).
  * @author  Mario Hess
- * @date    May 20, 2024
+ * @date    May 28, 2024
  */
 pub mod audio;
 mod channel;
@@ -23,6 +23,7 @@ use crate::{
         mixer::Mixer,
     },
     clock::CPU_CLOCK_SPEED,
+    memory_bus::MemoryAccess,
 };
 
 const CPU_CYCLES_PER_SAMPLE: f32 = CPU_CLOCK_SPEED as f32 / SAMPLING_FREQUENCY as f32;
@@ -50,11 +51,11 @@ const MASTER_CONTROL: u16 = 0xFF26; // NR52
 pub const AUDIO_START: u16 = CH1_START;
 pub const AUDIO_END: u16 = WAVE_PATTERN_END;
 
-/*
-   https://gbdev.io/pandocs/Audio.html
-   https://gbdev.gg8.se/wiki/articles/Gameboy_sound_hardware
-   https://nightshade256.github.io/2021/03/27/gb-sound-emulation.html
-*/
+/**
+ * https://gbdev.io/pandocs/Audio.html
+ * https://gbdev.gg8.se/wiki/articles/Gameboy_sound_hardware
+ * https://nightshade256.github.io/2021/03/27/gb-sound-emulation.html
+ */
 pub struct Apu {
     ch1: SquareChannel,
     ch2: SquareChannel,
@@ -67,6 +68,59 @@ pub struct Apu {
     enabled: bool,
     counter: f32,
     pub audio_buffer: VecDeque<u8>,
+}
+
+impl MemoryAccess for Apu {
+    fn read_byte(&self, address: u16) -> u8 {
+        match address {
+            CH1_START..=CH1_END => {
+                let address = calculate_square_address(CH1_START, address);
+                self.ch1.read_byte(address)
+            }
+            CH2_START..=CH2_END => {
+                let address = calculate_square_address(CH2_START, address);
+                self.ch2.read_byte(address)
+            }
+            CH3_START..=CH3_END => self.ch3.read_byte(address),
+            CH4_START..=CH4_END => self.ch4.read_byte(address),
+            MASTER_VOLUME => self.get_master_volume(),
+            PANNING => u8::from(self.mixer),
+            MASTER_CONTROL => self.get_master_control(),
+            WAVE_PATTERN_START..=WAVE_PATTERN_END => self.ch3.read_wave_ram(address),
+            _ => unreachable!(),
+        }
+    }
+
+    fn write_byte(&mut self, address: u16, value: u8) {
+        // Even when disabled, MASTER_CONTROL (NR52) is accessible
+        if address == MASTER_CONTROL {
+            self.set_master_control(value);
+        }
+
+        if !self.enabled {
+            return;
+        }
+
+        match address {
+            CH1_START..=CH1_END => {
+                let address = calculate_square_address(CH1_START, address);
+                self.ch1.write_byte(address, value);
+            }
+            CH2_START..=CH2_END => {
+                let address = calculate_square_address(CH2_START, address);
+                self.ch2.write_byte(address, value);
+            }
+            CH3_START..=CH3_END => self.ch3.write_byte(address, value),
+            CH4_START..=CH4_END => self.ch4.write_byte(address, value),
+            MASTER_VOLUME => self.set_master_volume(value),
+            PANNING => {
+                self.mixer.set_panning(value);
+            }
+            MASTER_CONTROL => {}
+            WAVE_PATTERN_START..=WAVE_PATTERN_END => self.ch3.write_wave_ram(address, value),
+            _ => unreachable!(),
+        }
+    }
 }
 
 impl Apu {
@@ -123,51 +177,6 @@ impl Apu {
         self.ch4.tick(m_cycles);
     }
 
-    pub fn read_byte(&self, address: u16) -> u8 {
-        match address {
-            CH1_START..=CH1_END => self.ch1.read_byte(CH1_START, address),
-            CH2_START..=CH2_END => self.ch2.read_byte(CH2_START, address),
-            CH3_START..=CH3_END => self.ch3.read_byte(address),
-            CH4_START..=CH4_END => self.ch4.read_byte(address),
-            MASTER_VOLUME => self.get_master_volume(),
-            PANNING => u8::from(self.mixer),
-            MASTER_CONTROL => self.get_master_control(),
-            WAVE_PATTERN_START..=WAVE_PATTERN_END => self.ch3.read_wave_ram(address),
-            _ => {
-                eprintln!("Unknown address: {:#X}. Can't read byte.", address);
-                0xFF
-            }
-        }
-    }
-
-    pub fn write_byte(&mut self, address: u16, value: u8) {
-        // Even when disabled, MASTER_CONTROL (NR52) is accessible
-        if address == MASTER_CONTROL {
-            self.set_master_control(value);
-        }
-
-        if !self.enabled {
-            return;
-        }
-
-        match address {
-            CH1_START..=CH1_END => self.ch1.write_byte(CH1_START, address, value),
-            CH2_START..=CH2_END => self.ch2.write_byte(CH2_START, address, value),
-            CH3_START..=CH3_END => self.ch3.write_byte(address, value),
-            CH4_START..=CH4_END => self.ch4.write_byte(address, value),
-            MASTER_VOLUME => self.set_master_volume(value),
-            PANNING => {
-                self.mixer.set_panning(value);
-            }
-            MASTER_CONTROL => {}
-            WAVE_PATTERN_START..=WAVE_PATTERN_END => self.ch3.write_wave_ram(address, value),
-            _ => eprintln!(
-                "Unknown address: {:#X} Can't write byte: {:#X}.",
-                address, value
-            ),
-        }
-    }
-
     fn get_master_control(&self) -> u8 {
         let ch1_enabled = if self.ch1.enabled { 0x01 } else { 0x00 };
         let ch2_enabled = if self.ch2.enabled { 0x02 } else { 0x00 };
@@ -210,5 +219,15 @@ impl Apu {
         self.right_volume = 0;
         self.counter = 0.0;
         self.audio_buffer.clear();
+    }
+}
+
+fn calculate_square_address(base_address: u16, address: u16) -> u16 {
+    let offset = address - base_address;
+
+    if address < CH2_START {
+        offset
+    } else {
+        offset + 1
     }
 }

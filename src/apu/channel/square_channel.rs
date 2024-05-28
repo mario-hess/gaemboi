@@ -2,11 +2,11 @@
  * @file    apu/channel/square_channel.rs
  * @brief   Implementation of the square channels (Channel 1 & 2).
  * @author  Mario Hess
- * @date    May 25, 2024
+ * @date    May 27, 2024
  */
 use crate::apu::{
     channel::length_counter::LengthCounter, channel::sweep::Sweep,
-    channel::volume_envelope::VolumeEnvelope, LENGTH_TIMER_MAX,
+    channel::volume_envelope::VolumeEnvelope, MemoryAccess, LENGTH_TIMER_MAX,
 };
 
 const SWEEP: u16 = 0;
@@ -47,6 +47,40 @@ pub struct SquareChannel {
     sequence: u8,
     pub frequency: u16,
     wave_duty: u8,
+}
+
+impl MemoryAccess for SquareChannel {
+    fn read_byte(&self, address: u16) -> u8 {
+        match address {
+            SWEEP => {
+                if let Some(sweep) = &self.sweep {
+                    sweep.get()
+                } else {
+                    0x00
+                }
+            }
+            LENGTH_TIMER => self.get_length_timer(),
+            VOLUME_ENVELOPE => self.volume_envelope.get(),
+            FREQUENCY_LOW => self.get_frequency_low(),
+            FREQUENCY_HIGH => self.get_frequency_high(),
+            _ => unreachable!(),
+        }
+    }
+
+    fn write_byte(&mut self, address: u16, value: u8) {
+        match address {
+            SWEEP => {
+                if let Some(sweep) = &mut self.sweep {
+                    sweep.set(value);
+                }
+            }
+            LENGTH_TIMER => self.set_length_timer(value),
+            VOLUME_ENVELOPE => self.set_volume_envelope(value),
+            FREQUENCY_LOW => self.set_frequency_low(value),
+            FREQUENCY_HIGH => self.set_frequency_high(value),
+            _ => unreachable!(),
+        }
+    }
 }
 
 impl SquareChannel {
@@ -100,7 +134,7 @@ impl SquareChannel {
     }
 
     pub fn tick_sweep(&mut self) {
-        if let Some(sweep) = &mut self.sweep{
+        if let Some(sweep) = &mut self.sweep {
             sweep.tick(&mut self.frequency, &mut self.enabled);
         }
     }
@@ -119,56 +153,6 @@ impl SquareChannel {
 
         if self.length_counter.timer == 0 {
             self.length_counter.timer = LENGTH_TIMER_MAX;
-        }
-    }
-
-    pub fn read_byte(&self, base_address: u16, address: u16) -> u8 {
-        let address = if address < 0xFF16 {
-            address - base_address
-        } else {
-            (address - base_address) + 1
-        };
-
-        match address {
-            SWEEP => {
-                if let Some(sweep) = &self.sweep {
-                    sweep.get()
-                } else {
-                    0x00
-                }
-            }
-            LENGTH_TIMER => self.get_length_timer(),
-            VOLUME_ENVELOPE => self.volume_envelope.get(),
-            FREQUENCY_LOW => self.get_frequency_low(),
-            FREQUENCY_HIGH => self.get_frequency_high(),
-            _ => {
-                eprintln!("Unknown address: {:#X} Can't read byte.", address);
-                0xFF
-            }
-        }
-    }
-
-    pub fn write_byte(&mut self, base_address: u16, address: u16, value: u8) {
-        let address = if address < 0xFF16 {
-            address - base_address
-        } else {
-            (address - base_address) + 1
-        };
-
-        match address {
-            SWEEP => {
-                if let Some(sweep) = &mut self.sweep {
-                    sweep.set(value);
-                }
-            }
-            LENGTH_TIMER => self.set_length_timer(value),
-            VOLUME_ENVELOPE => self.set_volume_envelope(value),
-            FREQUENCY_LOW => self.set_frequency_low(value),
-            FREQUENCY_HIGH => self.set_frequency_high(value),
-            _ => eprintln!(
-                "Unknown address: {:#X} Can't write byte: {:#X}.",
-                address, value
-            ),
         }
     }
 

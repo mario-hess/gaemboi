@@ -2,7 +2,7 @@
  * @file    memory_bus.rs
  * @brief   Manages memory access and address decoding.
  * @author  Mario Hess
- * @date    May 27, 2024
+ * @date    May 28, 2024
  */
 mod joypad;
 mod timer;
@@ -59,6 +59,11 @@ const HRAM_END: u16 = 0xFFFE;
 
 const INTERRUPT_ENABLE: u16 = 0xFFFF;
 
+pub trait MemoryAccess {
+    fn read_byte(&self, address: u16) -> u8;
+    fn write_byte(&mut self, address: u16, value: u8);
+}
+
 pub struct MemoryBus {
     cartridge: Cartridge,
     pub ppu: Ppu,
@@ -74,47 +79,8 @@ pub struct MemoryBus {
     speed_switch: u8,
 }
 
-impl MemoryBus {
-    pub fn new(rom_data: Vec<u8>) -> Self {
-        let cartridge = Cartridge::build(rom_data);
-
-        Self {
-            cartridge,
-            ppu: Ppu::new(),
-            apu: Apu::new(),
-            wram: [0; 8192],
-            hram: [0; 128],
-            interrupt_enabled: 0x00,
-            interrupt_flag: 0xE1,
-            joypad: Joypad::default(),
-            serial_sb: 0x00,
-            serial_sc: 0x00,
-            timer: Timer::new(),
-            speed_switch: 0x00,
-        }
-    }
-
-    pub fn tick(&mut self, m_cycles: u8, canvas: &mut Canvas<Window>) {
-        self.timer.tick(m_cycles);
-        self.interrupt_flag |= self.timer.interrupt;
-        self.timer.reset_interrupt();
-
-        self.ppu.tick(m_cycles, canvas);
-        self.interrupt_flag |= self.ppu.interrupts;
-        self.ppu.reset_interrupts();
-
-        self.apu.tick(m_cycles);
-    }
-
-    pub fn get_interrupt_flag(&mut self) -> u8 {
-        self.interrupt_flag
-    }
-
-    pub fn get_interrupt_enabled(&mut self) -> u8 {
-        self.interrupt_enabled
-    }
-
-    pub fn read_byte(&mut self, address: u16) -> u8 {
+impl MemoryAccess for MemoryBus {
+    fn read_byte(&self, address: u16) -> u8 {
         match address {
             // 0x0000 - 0x7FFF (Cartridge ROM Banks)
             CARTRIDGE_ROM_START..=CARTRIDGE_ROM_END => self.cartridge.read(address),
@@ -162,7 +128,7 @@ impl MemoryBus {
         }
     }
 
-    pub fn write_byte(&mut self, address: u16, value: u8) {
+    fn write_byte(&mut self, address: u16, value: u8) {
         match address {
             // 0x0000 - 0x7FFF (Cartridge ROM Banks)
             CARTRIDGE_ROM_START..=CARTRIDGE_ROM_END => self.cartridge.write(address, value),
@@ -209,6 +175,47 @@ impl MemoryBus {
                 address, value
             ),
         }
+    }
+}
+
+impl MemoryBus {
+    pub fn new(rom_data: Vec<u8>) -> Self {
+        let cartridge = Cartridge::build(rom_data);
+
+        Self {
+            cartridge,
+            ppu: Ppu::new(),
+            apu: Apu::new(),
+            wram: [0; 8192],
+            hram: [0; 128],
+            interrupt_enabled: 0x00,
+            interrupt_flag: 0xE1,
+            joypad: Joypad::default(),
+            serial_sb: 0x00,
+            serial_sc: 0x00,
+            timer: Timer::new(),
+            speed_switch: 0x00,
+        }
+    }
+
+    pub fn tick(&mut self, m_cycles: u8, canvas: &mut Canvas<Window>) {
+        self.timer.tick(m_cycles);
+        self.interrupt_flag |= self.timer.interrupt;
+        self.timer.reset_interrupt();
+
+        self.ppu.tick(m_cycles, canvas);
+        self.interrupt_flag |= self.ppu.interrupts;
+        self.ppu.reset_interrupts();
+
+        self.apu.tick(m_cycles);
+    }
+
+    pub fn get_interrupt_flag(&mut self) -> u8 {
+        self.interrupt_flag
+    }
+
+    pub fn get_interrupt_enabled(&mut self) -> u8 {
+        self.interrupt_enabled
     }
 
     fn dma_transfer(&mut self, value: u8) {

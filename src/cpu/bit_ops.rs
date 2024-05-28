@@ -6,7 +6,7 @@
  */
 use crate::cpu::{
     instruction::{CycleDuration, Target},
-    Cpu,
+    Cpu, MemoryAccess,
 };
 
 pub fn bit_r(cpu: &mut Cpu, position: u8, target: Target) -> CycleDuration {

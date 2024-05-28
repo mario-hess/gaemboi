@@ -6,7 +6,7 @@
  */
 use crate::cpu::{
     instruction::{CycleDuration, Flag},
-    Cpu,
+    Cpu, MemoryAccess,
 };
 
 pub fn jp_nn(cpu: &mut Cpu) -> CycleDuration {
