@@ -95,18 +95,31 @@ pub struct Ppu {
 impl MemoryAccess for Ppu {
     fn read_byte(&self, address: u16) -> u8 {
         match address {
+            // 0x8000 - 0x9FFF (Video Ram)
             VRAM_START..=VRAM_END => self.video_ram[(address - VRAM_START) as usize],
+            // 0xFE00 - 0xFE9F (Object Attribute Memory)
             OAM_START..=OAM_END => self.read_oam(address - OAM_START),
+            // 0xFF40 (LCD Control)
             LCD_CONTROL => self.lcd_control.get(),
+            // 0xFF41 (LCD Status)
             LCD_STATUS => self.lcd_status.get(),
+            // 0xFF42 (Scroll Y)
             SCROLL_Y => self.scroll_y,
+            // 0xFF43 (Scroll X)
             SCROLL_X => self.scroll_x,
+            // 0xFF44 (Line Y Coordinate)
             LINE_Y => self.line_y,
+            // 0xFF45 (Line Y Compare)
             LINE_Y_COMPARE => self.line_y_compare,
+            // 0xFF47 (BG Palette)
             BG_PALETTE => self.bg_palette,
+            // 0xFF48 (Object Palette 0)
             TILE_PALETTE_0 => self.sprite_palette0,
+            // 0xFF49 (Object Palette 1)
             TILE_PALETTE_1 => self.sprite_palette1,
+            // 0xFF4A (Window Y Position)
             WINDOW_Y => self.window_y,
+            // 0xFF4B (Window X Position)
             WINDOW_X => self.window_x,
             _ => unreachable!(),
         }
@@ -114,18 +127,31 @@ impl MemoryAccess for Ppu {
 
     fn write_byte(&mut self, address: u16, value: u8) {
         match address {
+            // 0x8000 - 0x9FFF (Video Ram)
             VRAM_START..=VRAM_END => self.video_ram[(address - VRAM_START) as usize] = value,
+            // 0xFE00 - 0xFE9F (Object Attribute Memory)
             OAM_START..=OAM_END => self.write_oam(address - OAM_START, value),
+            // 0xFF40 (LCD Control)
             LCD_CONTROL => self.set_lcd_control(value),
+            // 0xFF41 (LCD Status)
             LCD_STATUS => self.lcd_status.set(value),
+            // 0xFF42 (Scroll Y)
             SCROLL_Y => self.scroll_y = value,
+            // 0xFF43 (Scroll X)
             SCROLL_X => self.scroll_x = value,
-            LINE_Y => {} // Not used
+            // 0xFF44 (Line Y Coordinate - Not used)
+            LINE_Y => {}
+            // 0xFF45 (Line Y Compare)
             LINE_Y_COMPARE => self.set_line_y_compare(value),
+            // 0xFF47 (BG Palette)
             BG_PALETTE => self.bg_palette = value,
+            // 0xFF48 (Object Palette 0)
             TILE_PALETTE_0 => self.sprite_palette0 = value,
+            // 0xFF49 (Object Palette 1)
             TILE_PALETTE_1 => self.sprite_palette1 = value,
+            // 0xFF4A (Window Y Position)
             WINDOW_Y => self.window_y = value,
+            // 0xFF4B (Window X Position)
             WINDOW_X => {
                 // Values lower than 7 cause strange edge cases to occur
                 if value < 7 {
@@ -310,14 +336,12 @@ impl Ppu {
     fn render_bg_line(&mut self) {
         for x in 0..VIEWPORT_WIDTH as u8 {
             // Determine the sprite data based on whether it's in the window or background
-            let (sprite_index_address, line_offset, pixel_index) = self.get_bg_tile_data(x);
+            let (tile_index_address, line_offset, pixel_index) = self.get_bg_tile_data(x);
 
-            let sprite_index = self.read_byte(sprite_index_address);
-            let sprite_address = self.lcd_control.get_address(sprite_index);
+            let tile_index = self.read_byte(tile_index_address);
+            let tile_address = self.lcd_control.get_address(tile_index);
 
-            // Since each line consists of 2 bytes, the offset has to be multiplied by 2
-            let (first_byte, second_byte) =
-                self.get_tile_bytes(sprite_address + line_offset as u16 * 2);
+            let (first_byte, second_byte) = self.get_tile_bytes(tile_address + line_offset);
 
             let color_index = get_color_index(first_byte, second_byte, pixel_index);
 
@@ -368,15 +392,15 @@ impl Ppu {
             let oam_entry = self.oam[*index];
             let object_y = oam_entry.y_pos as i16 - 16;
 
-            let mut object_index = oam_entry.tile_index;
+            // A tile consists of 16 bytes
+            let mut object_index = oam_entry.tile_index as u16 * 16;
 
             // Ignore last bit for 8x16 sprites
             if tile_height == TILE_HEIGHT as i16 * 2 {
                 object_index &= 0b1111_1110;
             }
 
-            // An object sprite consists of 16 bytes
-            let tile_begin_address = TILE_DATA_START + (object_index as u16 * 16);
+            let tile_begin_address = TILE_DATA_START + object_index;
 
             // Calculate line offset based on if the sprite is vertically mirrored
             let line_offset = if oam_entry.y_flip_enabled() {
@@ -428,31 +452,46 @@ impl Ppu {
         }
     }
 
-    fn get_bg_tile_data(&self, x: u8) -> (u16, u8, u8) {
-        let col_is_window = self.lcd_control.window_enabled && x >= self.window_x.wrapping_sub(7);
-        let row_is_window = self.lcd_control.window_enabled && self.line_y >= self.window_y;
-        let is_window = row_is_window && col_is_window;
+    fn get_bg_tile_data(&self, x: u8) -> (u16, u16, u8) {
+        // Determine if the current pixel is within the range of the window's
+        // span on the x-axis
+        let x_in_window = self.lcd_control.window_enabled && x >= self.window_x.wrapping_sub(7);
+        // Determine if the current pixel is within the range of the window's
+        // y-axis
+        let y_in_window = self.lcd_control.window_enabled && self.line_y >= self.window_y;
+        let in_window = x_in_window && y_in_window;
 
-        if is_window {
-            let address = self.lcd_control.get_window_address();
+        if in_window {
+            // 0xFF40 (LCD Control) bit 6 (Window Tile Map) contains the tile
+            // indeces for the window layer (0 = 9800–9BFF; 1 = 9C00–9FFF)
+            let base_address = self.lcd_control.get_window_address();
+            // Determine where within the window the current pixel is located
+            // on the x-axis
             let x_offset = x.wrapping_sub(self.window_x.wrapping_sub(7));
+            // The window line counter represents the position within the
+            // window's vertical space relative to its starting position,
+            // it directly provides the vertical offset
             let y_offset = self.window_line_counter;
 
-            let address = calculate_address(address, x_offset, y_offset);
-            let line_offset = (self.line_y - self.window_y) % TILE_HEIGHT as u8;
+            let tile_index_address = calculate_address(base_address, x_offset, y_offset);
+            // Since each line consists of 2 bytes, the offset has to be multiplied by 2
+            let line_offset = ((self.line_y - self.window_y) % TILE_HEIGHT as u8) as u16 * 2;
             let pixel_index = self.window_x.wrapping_sub(x) % TILE_WIDTH as u8;
 
-            (address, line_offset, pixel_index)
+            (tile_index_address, line_offset, pixel_index)
         } else {
-            let address = self.lcd_control.get_bg_address();
+            // 0xFF40 (LCD Control) bit 3 (Background Tile Map) contains the tile
+            // indeces for the background layer (0 = 9800–9BFF; 1 = 9C00–9FFF).
+            let base_address = self.lcd_control.get_bg_address();
             let x_offset = x.wrapping_add(self.scroll_x);
             let y_offset = self.line_y.wrapping_add(self.scroll_y);
 
-            let address = calculate_address(address, x_offset, y_offset);
-            let line_offset = y_offset % TILE_HEIGHT as u8;
+            let tile_index_address = calculate_address(base_address, x_offset, y_offset);
+            // Since each line consists of 2 bytes, the offset has to be multiplied by 2
+            let line_offset = (y_offset % TILE_HEIGHT as u8) as u16 * 2;
             let pixel_index = 7 - (x_offset % TILE_WIDTH as u8);
 
-            (address, line_offset, pixel_index)
+            (tile_index_address, line_offset, pixel_index)
         }
     }
 
