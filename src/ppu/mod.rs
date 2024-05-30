@@ -65,7 +65,6 @@ pub const BUFFER_SIZE: usize = VIEWPORT_WIDTH * VIEWPORT_HEIGHT;
 
 // https://gbdev.io/pandocs/Graphics.html
 // https://hacktix.github.io/GBEDG/ppu/
-
 pub struct Ppu {
     enabled: bool,
     pub interrupts: u8,
@@ -257,7 +256,8 @@ impl ComponentTick for Ppu {
                     return;
                 }
 
-                // Increase internal window line counter if it's visible
+                // Increase internal window line counter if window is visible on
+                // the viewport
                 if self.lcd_control.window_enabled
                     && self.window_x - 7 < VIEWPORT_WIDTH as u8
                     && self.window_y < VIEWPORT_HEIGHT as u8
@@ -289,6 +289,7 @@ impl ComponentTick for Ppu {
 
                 self.set_line_y(self.line_y + 1);
 
+                // Next frame
                 if self.line_y > MAX_LINES_Y {
                     self.lcd_status.set_mode(MODE_OAM, &mut self.interrupts);
                     self.window_line_counter = 0;
@@ -440,7 +441,6 @@ impl Ppu {
             let oam_entry = self.oam[*index];
             let object_y = oam_entry.y_pos as i16 - 16;
 
-            // A tile consists of 16 bytes
             let mut object_index = oam_entry.tile_index;
 
             // Ignore last bit for 8x16 sprites
@@ -448,6 +448,7 @@ impl Ppu {
                 object_index &= 0b1111_1110;
             }
 
+            // A tile consists of 16 bytes
             let tile_begin_address = TILE_DATA_START + (object_index as u16 * 16);
 
             // Calculate line offset based on if the sprite is vertically mirrored
@@ -464,14 +465,14 @@ impl Ppu {
             for x in 0..8 {
                 let x_offset = x_offset + x as i16;
 
-                // Skip pixels outside of viewport
+                // Skip rendering pixel outside of viewport
                 if !(0..VIEWPORT_WIDTH as i16).contains(&x_offset) {
                     continue;
                 }
 
                 // Skip rendering pixel if background overlaps
                 let overlap_offset = line_y as usize + FULL_WIDTH * x_offset as usize;
-                if self.is_overlapped(&oam_entry, overlap_offset) {
+                if self.is_overlapping(&oam_entry, overlap_offset) {
                     continue;
                 }
 
@@ -551,7 +552,7 @@ impl Ppu {
         (first_byte, second_byte)
     }
 
-    fn is_overlapped(&self, oam_entry: &OAM, offset: usize) -> bool {
+    fn is_overlapping(&self, oam_entry: &OAM, offset: usize) -> bool {
         if !oam_entry.overlap_enabled() {
             return false;
         }
