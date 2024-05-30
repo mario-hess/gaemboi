@@ -15,7 +15,6 @@ impl ChannelCore {
             output: 0,
             timer: 0,
             triggered: false,
-            volume: 0,
         }
     }
 
@@ -33,7 +32,6 @@ impl ChannelCore {
         self.output = 0;
         self.timer = 0;
         self.triggered = false;
-        self.volume = 0;
     }
 }
 
