@@ -4,7 +4,6 @@ pub struct ChannelCore {
     pub output: u8,
     pub timer: i16,
     pub triggered: bool,
-    pub volume: u8,
 }
 
 impl ChannelCore {
