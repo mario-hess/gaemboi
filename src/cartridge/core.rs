@@ -6,7 +6,7 @@
  */
 use crate::cartridge::{CARTRIDGE_TYPE_ADDRESS, RAM_BANK_SIZE, RAM_SIZE_ADDRESS, ROM_BANK_SIZE};
 
-pub struct Core {
+pub struct CartridgeCore {
     pub rom_data: Vec<u8>,
     pub ram_data: Option<Vec<u8>>,
     pub rom_bank: u8,
@@ -16,7 +16,7 @@ pub struct Core {
     pub ram_enabled: bool,
 }
 
-impl Core {
+impl CartridgeCore {
     pub fn new(rom_data: &[u8]) -> Self {
         let ram_data = match rom_data[CARTRIDGE_TYPE_ADDRESS] {
             // Mbc2 internal ram

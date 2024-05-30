@@ -56,7 +56,7 @@ impl Mixer {
             &mut output_right,
             self.ch1_left,
             self.ch1_right,
-            ch1.get_output(),
+            ch1.core.get_output(),
         );
 
         mix_channel(
@@ -64,7 +64,7 @@ impl Mixer {
             &mut output_right,
             self.ch2_left,
             self.ch2_right,
-            ch2.get_output(),
+            ch2.core.get_output(),
         );
 
         mix_channel(
@@ -72,7 +72,7 @@ impl Mixer {
             &mut output_right,
             self.ch3_left,
             self.ch3_right,
-            ch3.get_output(),
+            ch3.core.get_output(),
         );
 
         mix_channel(
@@ -80,7 +80,7 @@ impl Mixer {
             &mut output_right,
             self.ch4_left,
             self.ch4_right,
-            ch4.get_output(),
+            ch4.core.get_output(),
         );
 
         (output_left / 4, output_right / 4)

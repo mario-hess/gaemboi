@@ -5,8 +5,8 @@
  * @date    May 28, 2024
  */
 use crate::apu::{
-    channel::length_counter::LengthCounter, channel::volume_envelope::VolumeEnvelope, MemoryAccess,
-    CH4_END, CH4_START, LENGTH_TIMER_MAX,
+    channel::{core::ChannelCore, length_counter::LengthCounter, volume_envelope::VolumeEnvelope},
+    ComponentTick, MemoryAccess, CH4_END, CH4_START, LENGTH_TIMER_MAX,
 };
 
 const LENGTH_TIMER: u16 = CH4_START; // NR41
@@ -17,11 +17,7 @@ const CONTROL: u16 = CH4_END; // NR44
 const DIVISORS: [u8; 8] = [8, 16, 32, 48, 64, 80, 96, 112];
 
 pub struct NoiseChannel {
-    pub enabled: bool,
-    dac_enabled: bool,
-    output: u8,
-    timer: i32,
-    triggered: bool,
+    pub core: ChannelCore,
     pub length_counter: LengthCounter,
     pub volume_envelope: VolumeEnvelope,
     lfsr: u16,
@@ -52,32 +48,16 @@ impl MemoryAccess for NoiseChannel {
     }
 }
 
-impl NoiseChannel {
-    pub fn new() -> Self {
-        Self {
-            dac_enabled: false,
-            enabled: false,
-            output: 0,
-            timer: 0,
-            triggered: false,
-            length_counter: LengthCounter::default(),
-            volume_envelope: VolumeEnvelope::default(),
-            lfsr: 0,
-            clock_divider: 0,
-            lfsr_width: false,
-            clock_shift: 0,
-        }
-    }
-
-    pub fn tick(&mut self, m_cycles: u8) {
-        if !self.enabled || !self.dac_enabled {
+impl ComponentTick for NoiseChannel {
+    fn tick(&mut self, m_cycles: u8) {
+        if !self.core.enabled || !self.core.dac_enabled {
             return;
         }
 
         let t_cycles = (m_cycles * 4) as u16;
 
-        self.timer = self.timer.saturating_sub(t_cycles as i32);
-        if self.timer > 0 {
+        self.core.timer = self.core.timer.saturating_sub(t_cycles as i16);
+        if self.core.timer > 0 {
             return;
         }
 
@@ -91,34 +71,40 @@ impl NoiseChannel {
             self.lfsr |= if result { 0x40 } else { 0x00 };
         }
 
-        self.output = if result {
+        self.core.output = if result {
             self.volume_envelope.volume
         } else {
             0x00
         };
 
-        self.timer += ((DIVISORS[self.clock_divider as usize] as u16) << self.clock_shift) as i32;
+        self.core.timer += ((DIVISORS[self.clock_divider as usize] as u16) << self.clock_shift) as i16;
+    }
+}
+
+impl NoiseChannel {
+    pub fn new() -> Self {
+        Self {
+            core: ChannelCore::default(),
+            length_counter: LengthCounter::default(),
+            volume_envelope: VolumeEnvelope::default(),
+            lfsr: 0,
+            clock_divider: 0,
+            lfsr_width: false,
+            clock_shift: 0,
+        }
     }
 
     pub fn trigger(&mut self) {
-        if self.dac_enabled {
-            self.enabled = true;
+        if self.core.dac_enabled {
+            self.core.enabled = true;
         }
 
-        self.timer = ((DIVISORS[self.clock_divider as usize] as u16) << self.clock_shift) as i32;
+        self.core.timer = ((DIVISORS[self.clock_divider as usize] as u16) << self.clock_shift) as i16;
         self.lfsr = 0x7FF1;
         self.volume_envelope.counter = 0;
 
         if self.length_counter.timer == 0 {
             self.length_counter.timer = LENGTH_TIMER_MAX;
-        }
-    }
-
-    pub fn get_output(&self) -> u8 {
-        if self.enabled && self.dac_enabled {
-            self.output
-        } else {
-            0
         }
     }
 
@@ -133,9 +119,9 @@ impl NoiseChannel {
     fn set_volume_envelope(&mut self, value: u8) {
         self.volume_envelope.set(value);
 
-        self.dac_enabled = value & 0xF8 != 0x00;
-        if !self.dac_enabled {
-            self.enabled = false;
+        self.core.dac_enabled = value & 0xF8 != 0x00;
+        if !self.core.dac_enabled {
+            self.core.enabled = false;
         }
     }
 
@@ -159,7 +145,7 @@ impl NoiseChannel {
         } else {
             0x00
         };
-        let triggered = if self.triggered { 0x80 } else { 0x00 };
+        let triggered = if self.core.triggered { 0x80 } else { 0x00 };
 
         length_enabled | triggered
     }
@@ -174,17 +160,13 @@ impl NoiseChannel {
     }
 
     pub fn reset(&mut self) {
-        self.enabled = false;
+        self.core.reset();
         self.length_counter.reset();
         self.volume_envelope.reset();
-        self.timer = 0;
-        self.output = 0;
         self.lfsr = 0;
-        self.dac_enabled = false;
         self.clock_divider = 0;
         self.lfsr_width = false;
         self.clock_shift = 0;
-        self.triggered = false;
     }
 }
 

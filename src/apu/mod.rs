@@ -30,7 +30,7 @@ const CPU_CYCLES_PER_SAMPLE: f32 = CPU_CLOCK_SPEED as f32 / SAMPLING_FREQUENCY a
 pub const APU_CLOCK_SPEED: u16 = 512;
 pub const LENGTH_TIMER_MAX: u16 = 64;
 
-pub const AUDIO_BUFFER_SIZE: usize = SAMPLING_RATE as usize * 4;
+pub const AUDIO_BUFFER_THRESHOLD: usize = SAMPLING_RATE as usize * 4;
 
 const CH1_START: u16 = 0xFF10;
 const CH1_END: u16 = 0xFF14;
@@ -169,7 +169,7 @@ impl Apu {
             left_volume: 0,
             enabled: false,
             counter: 0.0,
-            audio_buffer: VecDeque::with_capacity(AUDIO_BUFFER_SIZE),
+            audio_buffer: VecDeque::new(),
         }
     }
 
@@ -181,10 +181,10 @@ impl Apu {
     }
 
     fn get_master_control(&self) -> u8 {
-        let ch1_enabled = if self.ch1.enabled { 0x01 } else { 0x00 };
-        let ch2_enabled = if self.ch2.enabled { 0x02 } else { 0x00 };
-        let ch3_enabled = if self.ch3.enabled { 0x04 } else { 0x00 };
-        let ch4_enabled = if self.ch4.enabled { 0x08 } else { 0x00 };
+        let ch1_enabled = if self.ch1.core.enabled { 0x01 } else { 0x00 };
+        let ch2_enabled = if self.ch2.core.enabled { 0x02 } else { 0x00 };
+        let ch3_enabled = if self.ch3.core.enabled { 0x04 } else { 0x00 };
+        let ch4_enabled = if self.ch4.core.enabled { 0x08 } else { 0x00 };
         let enabled = if self.enabled { 0x80 } else { 0x00 };
 
         ch1_enabled | ch2_enabled | ch3_enabled | ch4_enabled | enabled

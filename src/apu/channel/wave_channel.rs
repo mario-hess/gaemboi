@@ -4,7 +4,10 @@
  * @author  Mario Hess
  * @date    May 28, 2024
  */
-use crate::apu::{channel::length_counter::LengthCounter, MemoryAccess, CH3_END, CH3_START};
+use crate::apu::{
+    channel::{core::ChannelCore, length_counter::LengthCounter},
+    ComponentTick, MemoryAccess, CH3_END, CH3_START,
+};
 
 const DAC_ENABLE: u16 = CH3_START; // NR30
 const LENGTH_TIMER: u16 = 0xFF1B; // NR31
@@ -18,13 +21,9 @@ pub const WAVE_PATTERN_END: u16 = 0xFF3F;
 const LENGTH_TIMER_MAX: u16 = 256;
 
 pub struct WaveChannel {
-    pub enabled: bool,
-    dac_enabled: bool,
-    output: u8,
-    timer: i16,
-    volume: u8,
-    triggered: bool,
+    pub core: ChannelCore,
     pub length_counter: LengthCounter,
+    volume: u8,
     frequency: u16,
     wave_ram: [u8; 32],
     wave_ram_position: u8,
@@ -54,49 +53,47 @@ impl MemoryAccess for WaveChannel {
     }
 }
 
-impl WaveChannel {
-    pub fn new() -> Self {
-        Self {
-            enabled: false,
-            dac_enabled: false,
-            output: 0,
-            timer: 0,
-            volume: 0,
-            triggered: false,
-            length_counter: LengthCounter::default(),
-            frequency: 0,
-            wave_ram: [0; 32],
-            wave_ram_position: 0,
-        }
-    }
-
-    pub fn tick(&mut self, m_cycles: u8) {
-        if !self.enabled || !self.dac_enabled {
+impl ComponentTick for WaveChannel {
+    fn tick(&mut self, m_cycles: u8) {
+        if !self.core.enabled || !self.core.dac_enabled {
             return;
         }
 
         let t_cycles = (m_cycles * 4) as u16;
 
-        self.timer = self.timer.saturating_sub(t_cycles as i16);
-        if self.timer > 0 {
+        self.core.timer = self.core.timer.saturating_sub(t_cycles as i16);
+        if self.core.timer > 0 {
             return;
         }
 
         let wave_index = self.wave_ram_position / 2;
         let output = self.wave_ram[wave_index as usize];
 
-        self.output = output >> self.volume_shift();
+        self.core.output = output >> self.volume_shift();
 
-        self.timer += ((2048 - self.frequency) * 2) as i16;
+        self.core.timer += ((2048 - self.frequency) * 2) as i16;
         self.wave_ram_position = (self.wave_ram_position + 1) & 0x1F;
+    }
+}
+
+impl WaveChannel {
+    pub fn new() -> Self {
+        Self {
+            core: ChannelCore::default(),
+            length_counter: LengthCounter::default(),
+            volume: 0,
+            frequency: 0,
+            wave_ram: [0; 32],
+            wave_ram_position: 0,
+        }
     }
 
     pub fn trigger(&mut self) {
-        if self.dac_enabled {
-            self.enabled = true;
+        if self.core.dac_enabled {
+            self.core.enabled = true;
         }
 
-        self.timer = ((2048 - self.frequency) * 2) as i16;
+        self.core.timer = ((2048 - self.frequency) * 2) as i16;
         self.wave_ram_position = 0;
 
         if self.length_counter.timer == 0 {
@@ -104,16 +101,8 @@ impl WaveChannel {
         }
     }
 
-    pub fn get_output(&self) -> u8 {
-        if self.enabled && self.dac_enabled {
-            self.output
-        } else {
-            0
-        }
-    }
-
     fn get_dac_enable(&self) -> u8 {
-        if self.dac_enabled {
+        if self.core.dac_enabled {
             0x80
         } else {
             0x00
@@ -121,10 +110,10 @@ impl WaveChannel {
     }
 
     fn set_dac_enable(&mut self, value: u8) {
-        self.dac_enabled = value & 0x80 != 0;
+        self.core.dac_enabled = value & 0x80 != 0;
 
-        if !self.dac_enabled {
-            self.enabled = false;
+        if !self.core.dac_enabled {
+            self.core.enabled = false;
         }
     }
 
@@ -161,7 +150,7 @@ impl WaveChannel {
         } else {
             0x00
         };
-        let triggered = if self.triggered { 0x80 } else { 0x00 };
+        let triggered = if self.core.triggered { 0x80 } else { 0x00 };
 
         frequency_high | length_enabled | triggered
     }
@@ -188,15 +177,11 @@ impl WaveChannel {
     }
 
     pub fn reset(&mut self) {
-        self.enabled = false;
+        self.core.reset();
         self.length_counter.reset();
-        self.output = 0;
-        self.timer = 0;
         self.volume = 0;
         self.wave_ram_position = 0;
         self.frequency = 0;
-        self.dac_enabled = false;
-        self.triggered = false;
         self.wave_ram = [0; 32];
     }
 }

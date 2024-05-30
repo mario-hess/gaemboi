@@ -11,7 +11,7 @@ use sdl2::{
 };
 
 use crate::{
-    apu::{audio::{Audio, SAMPLING_FREQUENCY, SAMPLING_RATE}, AUDIO_BUFFER_SIZE},
+    apu::{audio::{Audio, SAMPLING_FREQUENCY, SAMPLING_RATE}, AUDIO_BUFFER_THRESHOLD},
     clock::Clock,
     cpu::Cpu,
     event_handler::EventHandler,
@@ -66,9 +66,11 @@ impl Machine {
             while self.clock.cycles_passed <= self.clock.cycles_per_frame {
                 let m_cycles = self.cpu.step();
                 self.cpu.memory_bus.tick(m_cycles);
+
                 if self.cpu.memory_bus.ppu.should_draw {
                     self.draw_viewport(&mut sdl.window, &event_handler.volume);
                 }
+
                 self.clock.tick(m_cycles);
             }
 
@@ -80,8 +82,8 @@ impl Machine {
             }
 
             // Synchronize the audio frequency with the cpu frequency,
-            // effectively clocking the system at 59.7275 Hz
-            while self.cpu.memory_bus.apu.audio_buffer.len() > AUDIO_BUFFER_SIZE {
+            // effectively clocking the system at ~59.73 Hz
+            while self.cpu.memory_bus.apu.audio_buffer.len() > AUDIO_BUFFER_THRESHOLD {
                 std::hint::spin_loop();
             }
 

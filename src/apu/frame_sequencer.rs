@@ -77,10 +77,10 @@ impl FrameSequencer {
         ch3: &mut WaveChannel,
         ch4: &mut NoiseChannel,
     ) {
-        ch1.length_counter.tick(&mut ch1.enabled);
-        ch2.length_counter.tick(&mut ch2.enabled);
-        ch3.length_counter.tick(&mut ch3.enabled);
-        ch4.length_counter.tick(&mut ch4.enabled);
+        ch1.length_counter.tick(&mut ch1.core.enabled);
+        ch2.length_counter.tick(&mut ch2.core.enabled);
+        ch3.length_counter.tick(&mut ch3.core.enabled);
+        ch4.length_counter.tick(&mut ch4.core.enabled);
     }
 
     fn tick_envelopes(
@@ -89,9 +89,9 @@ impl FrameSequencer {
         ch2: &mut SquareChannel,
         ch4: &mut NoiseChannel,
     ) {
-        ch1.volume_envelope.tick(&ch1.enabled);
-        ch2.volume_envelope.tick(&ch2.enabled);
-        ch4.volume_envelope.tick(&ch4.enabled);
+        ch1.volume_envelope.tick(&ch1.core.enabled);
+        ch2.volume_envelope.tick(&ch2.core.enabled);
+        ch4.volume_envelope.tick(&ch4.core.enabled);
     }
 
     pub fn reset(&mut self) {

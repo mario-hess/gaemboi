@@ -4,7 +4,7 @@
  * @author  Mario Hess
  * @date    January 16, 2024
  */
-use crate::cartridge::{core::Core, MemoryBankController, MASK_MSB, RAM_ADDRESS};
+use crate::cartridge::{core::CartridgeCore, MemoryBankController, MASK_MSB, RAM_ADDRESS};
 
 pub struct Mbc3 {}
 
@@ -15,7 +15,7 @@ impl Mbc3 {
 }
 
 impl MemoryBankController for Mbc3 {
-    fn read_rom(&self, core: &Core, address: u16) -> u8 {
+    fn read_rom(&self, core: &CartridgeCore, address: u16) -> u8 {
         match (address & MASK_MSB) >> 12 {
             // 0x0000 - 0x3FFF (Bank 00)
             0x0..=0x3 => core.rom_data[address as usize],
@@ -32,7 +32,7 @@ impl MemoryBankController for Mbc3 {
         }
     }
 
-    fn write_rom(&mut self, core: &mut Core, address: u16, value: u8) {
+    fn write_rom(&mut self, core: &mut CartridgeCore, address: u16, value: u8) {
         match (address & MASK_MSB) >> 12 {
             // 0x0000 - 0x1FFF (RAM enable)
             0x0 | 0x1 => core.ram_enabled = (value & 0x0F) == 0x0A,
@@ -51,7 +51,7 @@ impl MemoryBankController for Mbc3 {
         }
     }
 
-    fn write_ram(&mut self, core: &mut Core, address: u16, value: u8) {
+    fn write_ram(&mut self, core: &mut CartridgeCore, address: u16, value: u8) {
         if !core.ram_enabled {
             return;
         }
@@ -62,7 +62,7 @@ impl MemoryBankController for Mbc3 {
         }
     }
 
-    fn read_ram(&self, core: &Core, address: u16) -> u8 {
+    fn read_ram(&self, core: &CartridgeCore, address: u16) -> u8 {
         if !core.ram_enabled {
             return 0xFF;
         }

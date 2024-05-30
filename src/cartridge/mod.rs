@@ -12,7 +12,7 @@ mod mbc3;
 
 use std::{fs::File, io::Write};
 
-use crate::cartridge::{core::Core, mbc0::Mbc0, mbc1::Mbc1, mbc2::Mbc2, mbc3::Mbc3};
+use crate::cartridge::{core::CartridgeCore, mbc0::Mbc0, mbc1::Mbc1, mbc2::Mbc2, mbc3::Mbc3};
 
 const ROM_BANK_SIZE: usize = 16 * 1024;
 const RAM_BANK_SIZE: usize = 8 * 1024;
@@ -24,20 +24,20 @@ const RAM_SIZE_ADDRESS: usize = 0x149;
 const MASK_MSB: u16 = 0xF000;
 
 pub trait MemoryBankController {
-    fn read_rom(&self, core: &Core, address: u16) -> u8;
-    fn write_rom(&mut self, core: &mut Core, address: u16, value: u8);
-    fn read_ram(&self, core: &Core, address: u16) -> u8;
-    fn write_ram(&mut self, core: &mut Core, address: u16, value: u8);
+    fn read_rom(&self, core: &CartridgeCore, address: u16) -> u8;
+    fn write_rom(&mut self, core: &mut CartridgeCore, address: u16, value: u8);
+    fn read_ram(&self, core: &CartridgeCore, address: u16) -> u8;
+    fn write_ram(&mut self, core: &mut CartridgeCore, address: u16, value: u8);
 }
 
 pub struct Cartridge {
-    pub core: Core,
+    pub core: CartridgeCore,
     pub mbc: Box<dyn MemoryBankController>,
 }
 
 impl Cartridge {
     pub fn build(rom_data: Vec<u8>) -> Self {
-        let core = Core::new(&rom_data);
+        let core = CartridgeCore::new(&rom_data);
 
         let mbc: Box<dyn MemoryBankController> = match rom_data[CARTRIDGE_TYPE_ADDRESS] {
             0x0 => Box::new(Mbc0::new()),
