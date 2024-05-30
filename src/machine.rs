@@ -101,7 +101,7 @@ impl Machine {
     }
 
     fn draw_viewport(&mut self, window: &mut Window, volume: &u8) {
-        for (index, pixel) in self.cpu.memory_bus.ppu.screen_buffer.iter().enumerate() {
+        for (index, pixel) in self.cpu.memory_bus.ppu.viewport_buffer.iter().enumerate() {
             let x_coord = (index % VIEWPORT_WIDTH) as i32;
             let y_coord = (index / VIEWPORT_WIDTH) as i32;
 
@@ -117,18 +117,8 @@ impl Machine {
         window.canvas.present();
         self.cpu.memory_bus.ppu.should_draw = false;
 
-        self.clear_screen();
+        self.cpu.memory_bus.ppu.clear_screen();
     }
-
-    fn clear_screen(&mut self) {
-        for i in 0..OVERLAP_MAP_SIZE {
-            if i < BUFFER_SIZE {
-                self.cpu.memory_bus.ppu.screen_buffer[i] = WHITE;
-            }
-            self.cpu.memory_bus.ppu.overlap_map[i] = false;
-        }
-    }
-
     fn create_audio_device<'a, 'b: 'a>(
         &'a mut self,
         sdl: &SDL,

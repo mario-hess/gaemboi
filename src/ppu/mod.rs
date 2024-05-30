@@ -71,21 +71,41 @@ pub struct Ppu {
     pub interrupts: u8,
     video_ram: [u8; VRAM_SIZE],
     oam: [OAM; OAM_SIZE],
+    oam_buffer: Vec<(usize, i16)>,
     lcd_control: LCD_control,
     lcd_status: LCD_status,
+    // These two registers specify the top-left coordinates of the visible 160×144 pixel
+    // area within the 256×256 pixels BG map. Values in the range 0–255 may be used.
     scroll_x: u8,
     scroll_y: u8,
+    // These two registers specify the on-screen coordinates of the Window’s top-left pixel.
+    // The Window is visible (if enabled) when both coordinates are in the ranges WX=0..166,
+    // WY=0..143 respectively. Values WX=7, WY=0 place the Window at the top left of the
+    // screen, completely covering the background.
     window_x: u8,
     window_y: u8,
+    // LY indicates the current horizontal line, which might be about to be drawn, being
+    // drawn, or just been drawn. LY can hold any value from 0 to 153, with values from
+    // 144 to 153 indicating the VBlank period.
     line_y: u8,
+    // The Game Boy constantly compares the value of the LYC and LY registers. When both
+    // values are identical, the “LYC=LY” flag in the STAT register is set, and (if enabled)
+    // a STAT interrupt is requested.
     line_y_compare: u8,
+    // The window keeps an internal line counter that increments alongside 0xFF44
+    // (LCD Y Coordinate). However, it only gets incremented when the window is visible.
+    // This line counter determines what window line is to be rendered on the current scanline.
     window_line_counter: u8,
+    // This register assigns gray shades to the color IDs of the Background and Window tiles.
     bg_palette: u8,
+    // These registers assigns gray shades to the color indexes of the Objects that use the
+    // corresponding palette. They work exactly like bg_palette, except that the lower two bits
+    // are ignored because color index 0 is transparent for Objects.
     sprite_palette0: u8,
     sprite_palette1: u8,
     counter: u16,
     pub overlap_map: [bool; OVERLAP_MAP_SIZE],
-    pub screen_buffer: [Color; BUFFER_SIZE],
+    pub viewport_buffer: [Color; BUFFER_SIZE],
     pub should_draw: bool,
 }
 
@@ -172,16 +192,53 @@ impl ComponentTick for Ppu {
 
         // https://gbdev.io/pandocs/Rendering.html
         match self.lcd_status.mode {
+            // During this mode the PPU searches OAM memory for sprites that should
+            // be rendered on the current scanline and stores them in a buffer.
             MODE_OAM => {
                 if self.counter < CYCLES_OAM {
                     return;
                 }
+
+                self.oam_buffer.clear();
+
+                // Convert line_y to an i16 and determine the height of the sprite (8x8 or 8x16)
+                let line_y = self.line_y as i16;
+
+                let tile_height = if self.lcd_control.object_size {
+                    TILE_HEIGHT as i16 * 2
+                } else {
+                    TILE_HEIGHT as i16
+                };
+
+                for i in 0..OAM_SIZE {
+                    let oam_entry = self.oam[i];
+                    // First byte in OAM (oam_entry.y_pos) is the
+                    // object’s vertical position on the screen + 16
+                    let object_y = oam_entry.y_pos as i16 - 16;
+                    // Second byte in OAM (oam_entry.x_pos) is the
+                    // object’s horizontal position on the screen + 8
+                    let object_x = oam_entry.x_pos as i16 - 8;
+
+                    // Determine if the current scanline intersects with the vertical span of the object
+                    if line_y >= object_y && line_y < object_y + tile_height {
+                        self.oam_buffer.push((i, object_x));
+                    }
+                }
+
+                // Stable sort sprites based on X coordinate and index
+                self.oam_buffer
+                    .sort_by(|a, b| a.1.cmp(&b.1).then(a.0.cmp(&b.0)));
+
+                // Take the first 10 items and reverse the order (10 Objects per line limit)
+                self.oam_buffer.truncate(10);
+                self.oam_buffer.reverse();
 
                 self.lcd_status
                     .set_mode(MODE_TRANSFER, &mut self.interrupts);
 
                 self.counter -= CYCLES_OAM;
             }
+            // In this mode the PPU transfers pixels of the current scanline to the LCD.
             MODE_TRANSFER => {
                 if self.counter < CYCLES_TRANSFER {
                     return;
@@ -192,11 +249,15 @@ impl ComponentTick for Ppu {
 
                 self.counter -= CYCLES_TRANSFER;
             }
+            // This mode takes up the remainder of the scanline after the Drawing Mode
+            // finishes, more or less “padding” the duration of the scanline to a total
+            // of 456 T-Cycles.
             MODE_HBLANK => {
                 if self.counter < CYCLES_HBLANK {
                     return;
                 }
 
+                // Increase internal window line counter if it's visible
                 if self.lcd_control.window_enabled
                     && self.window_x - 7 < VIEWPORT_WIDTH as u8
                     && self.window_y < VIEWPORT_HEIGHT as u8
@@ -207,6 +268,7 @@ impl ComponentTick for Ppu {
 
                 if self.line_y >= LINES_Y {
                     self.lcd_status.set_mode(MODE_VBLANK, &mut self.interrupts);
+                    // Draw the current frame to the screen
                     self.should_draw = true;
                     self.interrupts |= VBLANK_MASK;
                 } else {
@@ -216,6 +278,10 @@ impl ComponentTick for Ppu {
 
                 self.counter -= CYCLES_HBLANK;
             }
+            // V-Blank mode is the same as H-Blank in the way that the PPU does not draw
+            // any pixels to the LCD during its duration. However, instead of it taking
+            // place at the end of every scanline, it’s a much longer period at the end
+            // of every frame.
             MODE_VBLANK => {
                 if self.counter < CYCLES_VBLANK {
                     return;
@@ -243,6 +309,7 @@ impl Ppu {
             interrupts: 0,
             video_ram: [0; VRAM_SIZE],
             oam: [OAM::new(); OAM_SIZE],
+            oam_buffer: Vec::new(),
             lcd_control: LCD_control::default(),
             lcd_status: LCD_status::default(),
             scroll_x: 0,
@@ -257,7 +324,7 @@ impl Ppu {
             sprite_palette1: 0,
             counter: 0,
             overlap_map: [false; OVERLAP_MAP_SIZE],
-            screen_buffer: [WHITE; BUFFER_SIZE],
+            viewport_buffer: [WHITE; BUFFER_SIZE],
             should_draw: false,
         }
     }
@@ -356,7 +423,7 @@ impl Ppu {
 
             // Calculate the offset for the current pixel and update the screen buffer
             let offset = x as usize + self.line_y as usize * VIEWPORT_WIDTH;
-            self.screen_buffer[offset] = pixel;
+            self.viewport_buffer[offset] = pixel;
         }
     }
 
@@ -369,26 +436,7 @@ impl Ppu {
             TILE_HEIGHT as i16
         };
 
-        let mut sorted_objects: Vec<(usize, i16)> = Vec::new();
-
-        for i in 0..OAM_SIZE {
-            let oam_entry = self.oam[i];
-            // First byte in OAM (oam_entry.y_pos) is the object’s vertical position on the screen + 16
-            let object_y = oam_entry.y_pos as i16 - 16;
-            // Second byte in OAM (oam_entry.x_pos) is the object’s horizontal position on the screen + 8
-            let object_x = oam_entry.x_pos as i16 - 8;
-
-            // Determine if the current scanline intersects with the vertical span of the object
-            if line_y >= object_y && line_y < object_y + tile_height {
-                sorted_objects.push((i, object_x));
-            }
-        }
-
-        // Stable sort sprites based on X coordinate and index
-        sorted_objects.sort_by(|a, b| a.1.cmp(&b.1).then(a.0.cmp(&b.0)));
-
-        // 10 Objects per line limit, reversed for correct overlapping
-        for (index, x_offset) in sorted_objects.iter().take(10).rev() {
+        for (index, x_offset) in self.oam_buffer.iter() {
             let oam_entry = self.oam[*index];
             let object_y = oam_entry.y_pos as i16 - 16;
 
@@ -414,7 +462,7 @@ impl Ppu {
             let (first_byte, second_byte) = self.get_tile_bytes(tile_address);
 
             for x in 0..8 {
-                let x_offset = *x_offset + x as i16;
+                let x_offset = x_offset + x as i16;
 
                 // Skip pixels outside of viewport
                 if !(0..VIEWPORT_WIDTH as i16).contains(&x_offset) {
@@ -423,7 +471,7 @@ impl Ppu {
 
                 // Skip rendering pixel if background overlaps
                 let overlap_offset = line_y as usize + FULL_WIDTH * x_offset as usize;
-                if self.bg_has_priority(&oam_entry, overlap_offset) {
+                if self.is_overlapped(&oam_entry, overlap_offset) {
                     continue;
                 }
 
@@ -447,7 +495,7 @@ impl Ppu {
 
                 // Calculate the offset for the current pixel and update the screen buffer
                 let offset = x_offset + line_y * VIEWPORT_WIDTH as i16;
-                self.screen_buffer[offset as usize] = pixel;
+                self.viewport_buffer[offset as usize] = pixel;
             }
         }
     }
@@ -503,7 +551,7 @@ impl Ppu {
         (first_byte, second_byte)
     }
 
-    fn bg_has_priority(&self, oam_entry: &OAM, offset: usize) -> bool {
+    fn is_overlapped(&self, oam_entry: &OAM, offset: usize) -> bool {
         if !oam_entry.overlap_enabled() {
             return false;
         }
@@ -511,10 +559,10 @@ impl Ppu {
         !self.overlap_map[offset]
     }
 
-    fn clear_screen(&mut self) {
+    pub fn clear_screen(&mut self) {
         for i in 0..OVERLAP_MAP_SIZE {
             if i < BUFFER_SIZE {
-                self.screen_buffer[i] = WHITE;
+                self.viewport_buffer[i] = WHITE;
             }
             self.overlap_map[i] = false;
         }
