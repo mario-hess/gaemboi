@@ -70,36 +70,29 @@ pub struct Ppu {
     pub interrupts: u8,
     video_ram: [u8; VRAM_SIZE],
     oam: [OAM; OAM_SIZE],
-    oam_buffer: Vec<(usize, i16)>,
+    oam_buffer: Vec<(usize, u8)>,
     lcd_control: LCD_control,
     lcd_status: LCD_status,
-    // These two registers specify the top-left coordinates of the visible 160×144 pixel
-    // area within the 256×256 pixels BG map. Values in the range 0–255 may be used.
+    // These two registers specify the top-left coordinates of the visible viewport
+    // within the background map.
     scroll_x: u8,
     scroll_y: u8,
     // These two registers specify the on-screen coordinates of the Window’s top-left pixel.
-    // The Window is visible (if enabled) when both coordinates are in the ranges WX=0..166,
-    // WY=0..143 respectively. Values WX=7, WY=0 place the Window at the top left of the
-    // screen, completely covering the background.
     window_x: u8,
     window_y: u8,
-    // LY indicates the current horizontal line, which might be about to be drawn, being
-    // drawn, or just been drawn. LY can hold any value from 0 to 153, with values from
-    // 144 to 153 indicating the VBlank period.
+    // Indicates the current horizontal line, which might be about to be drawn, being
+    // drawn, or just been drawn.
     line_y: u8,
-    // The Game Boy constantly compares the value of the LYC and LY registers. When both
-    // values are identical, the “LYC=LY” flag in the STAT register is set, and (if enabled)
+    // The system constantly compares the value of the LY and LYC registers. When both
+    // values are identical, the compare flag in the STAT register is set, and (if enabled)
     // a STAT interrupt is requested.
     line_y_compare: u8,
-    // The window keeps an internal line counter that increments alongside 0xFF44
-    // (LCD Y Coordinate). However, it only gets incremented when the window is visible.
     // This line counter determines what window line is to be rendered on the current scanline.
     window_line_counter: u8,
     // This register assigns gray shades to the color IDs of the Background and Window tiles.
     bg_palette: u8,
-    // These registers assigns gray shades to the color indexes of the Objects that use the
-    // corresponding palette. They work exactly like bg_palette, except that the lower two bits
-    // are ignored because color index 0 is transparent for Objects.
+    // These registers assign gray shades to the color IDs of the Objects that use the
+    // corresponding palette. Color index 0 is transparent for Objects.
     sprite_palette0: u8,
     sprite_palette1: u8,
     counter: u16,
@@ -201,22 +194,22 @@ impl ComponentTick for Ppu {
                 self.oam_buffer.clear();
 
                 // Convert line_y to an i16 and determine the height of the sprite (8x8 or 8x16)
-                let line_y = self.line_y as i16;
+                let line_y = self.line_y;
 
                 let tile_height = if self.lcd_control.object_size {
-                    TILE_HEIGHT as i16 * 2
+                    TILE_HEIGHT as u8 * 2
                 } else {
-                    TILE_HEIGHT as i16
+                    TILE_HEIGHT as u8
                 };
 
                 for i in 0..OAM_SIZE {
                     let oam_entry = self.oam[i];
                     // First byte in OAM (oam_entry.y_pos) is the
                     // object’s vertical position on the screen + 16
-                    let object_y = oam_entry.y_pos as i16 - 16;
+                    let object_y = oam_entry.y_pos - 16;
                     // Second byte in OAM (oam_entry.x_pos) is the
                     // object’s horizontal position on the screen + 8
-                    let object_x = oam_entry.x_pos as i16 - 8;
+                    let object_x = oam_entry.x_pos - 8;
 
                     // Determine if the current scanline intersects with the vertical span of the object
                     if line_y >= object_y && line_y < object_y + tile_height {
@@ -258,6 +251,9 @@ impl ComponentTick for Ppu {
 
                 // Increase internal window line counter if window is visible on
                 // the viewport
+                // The Window is visible (if enabled) when both coordinates are in the ranges WX=0..166,
+                // WY=0..143 respectively. Values WX=7, WY=0 place the Window at the top left of the
+                // screen, completely covering the background.
                 if self.lcd_control.window_enabled
                     && self.window_x - 7 < VIEWPORT_WIDTH as u8
                     && self.window_y < VIEWPORT_HEIGHT as u8
@@ -393,7 +389,7 @@ impl Ppu {
 
     fn render_scanline(&mut self) {
         if self.lcd_control.bg_enabled {
-            self.render_bg_line();
+            self.render_bg_window_line();
         }
 
         if self.lcd_control.object_enabled {
@@ -401,10 +397,10 @@ impl Ppu {
         }
     }
 
-    fn render_bg_line(&mut self) {
+    fn render_bg_window_line(&mut self) {
         for x in 0..VIEWPORT_WIDTH as u8 {
             // Determine the sprite data based on whether it's in the window or background
-            let (tile_index_address, line_offset, pixel_index) = self.get_bg_tile_data(x);
+            let (tile_index_address, line_offset, pixel_index) = self.get_bg_window_tile_data(x);
 
             let tile_index = self.read_byte(tile_index_address);
             let tile_address = self.lcd_control.get_address(tile_index);
@@ -430,21 +426,21 @@ impl Ppu {
 
     fn render_object_line(&mut self) {
         // Convert line_y to an i16 and determine the height of the sprite (8x8 or 8x16)
-        let line_y = self.line_y as i16;
+        let line_y = self.line_y;
         let tile_height = if self.lcd_control.object_size {
-            TILE_HEIGHT as i16 * 2
+            TILE_HEIGHT as u8 * 2
         } else {
-            TILE_HEIGHT as i16
+            TILE_HEIGHT as u8
         };
 
         for (index, x_offset) in self.oam_buffer.iter() {
             let oam_entry = self.oam[*index];
-            let object_y = oam_entry.y_pos as i16 - 16;
+            let object_y = oam_entry.y_pos - 16;
 
             let mut object_index = oam_entry.tile_index;
 
             // Ignore last bit for 8x16 sprites
-            if tile_height == TILE_HEIGHT as i16 * 2 {
+            if tile_height == TILE_HEIGHT as u8 * 2 {
                 object_index &= 0b1111_1110;
             }
 
@@ -463,10 +459,10 @@ impl Ppu {
             let (first_byte, second_byte) = self.get_tile_bytes(tile_address);
 
             for x in 0..8 {
-                let x_offset = x_offset + x as i16;
+                let x_offset = x_offset + x;
 
                 // Skip rendering pixel outside of viewport
-                if !(0..VIEWPORT_WIDTH as i16).contains(&x_offset) {
+                if !(0..VIEWPORT_WIDTH).contains(&(x_offset as usize)) {
                     continue;
                 }
 
@@ -495,18 +491,18 @@ impl Ppu {
                 let pixel = get_pixel_color(sprite_palette, color_index);
 
                 // Calculate the offset for the current pixel and update the screen buffer
-                let offset = x_offset + line_y * VIEWPORT_WIDTH as i16;
-                self.viewport_buffer[offset as usize] = pixel;
+                let offset = x_offset as usize + line_y as usize * VIEWPORT_WIDTH;
+                self.viewport_buffer[offset] = pixel;
             }
         }
     }
 
-    fn get_bg_tile_data(&self, x: u8) -> (u16, u16, u8) {
+    fn get_bg_window_tile_data(&self, x: u8) -> (u16, u16, u8) {
         // Determine if the current pixel is within the range of the window's
         // span on the x-axis
         let x_in_window = self.lcd_control.window_enabled && x >= self.window_x.wrapping_sub(7);
         // Determine if the current pixel is within the range of the window's
-        // y-axis
+        // span on the y-axis
         let y_in_window = self.lcd_control.window_enabled && self.line_y >= self.window_y;
         let in_window = x_in_window && y_in_window;
 
@@ -517,14 +513,13 @@ impl Ppu {
             // Determine where within the window the current pixel is located
             // on the x-axis
             let x_offset = x.wrapping_sub(self.window_x.wrapping_sub(7));
-            // The window line counter represents the position within the
-            // window's vertical space relative to its starting position,
-            // it directly provides the vertical offset
+            // The window line counter directly provides the vertical offset
             let y_offset = self.window_line_counter;
 
             let tile_index_address = calculate_address(base_address, x_offset, y_offset);
             // Since each line consists of 2 bytes, the offset has to be multiplied by 2
             let line_offset = ((self.line_y - self.window_y) % TILE_HEIGHT as u8) as u16 * 2;
+            // Calculate the pixel's position within the window tile
             let pixel_index = self.window_x.wrapping_sub(x) % TILE_WIDTH as u8;
 
             (tile_index_address, line_offset, pixel_index)
@@ -532,12 +527,14 @@ impl Ppu {
             // 0xFF40 (LCD Control) bit 3 (Background Tile Map) contains the tile
             // indeces for the background layer (0 = 9800–9BFF; 1 = 9C00–9FFF).
             let base_address = self.lcd_control.get_bg_address();
+            // Determine where on the background map the pixel is located
             let x_offset = x.wrapping_add(self.scroll_x);
             let y_offset = self.line_y.wrapping_add(self.scroll_y);
 
             let tile_index_address = calculate_address(base_address, x_offset, y_offset);
             // Since each line consists of 2 bytes, the offset has to be multiplied by 2
             let line_offset = (y_offset % TILE_HEIGHT as u8) as u16 * 2;
+            // Calculate the pixel's position within the background tile
             let pixel_index = 7 - (x_offset % TILE_WIDTH as u8);
 
             (tile_index_address, line_offset, pixel_index)
