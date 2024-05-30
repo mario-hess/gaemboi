@@ -9,7 +9,7 @@ use sdl2::audio::AudioCallback;
 
 use std::collections::VecDeque;
 
-pub const SAMPLING_RATE: u16 = 4096;
+pub const SAMPLING_RATE: u16 = 1024;
 pub const SAMPLING_FREQUENCY: u16 = 44100;
 
 pub struct Audio<'a> {

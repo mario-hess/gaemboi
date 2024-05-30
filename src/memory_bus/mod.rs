@@ -7,8 +7,6 @@
 mod joypad;
 mod timer;
 
-use sdl2::{render::Canvas, video::Window};
-
 use crate::{
     apu::{Apu, AUDIO_END, AUDIO_START},
     cartridge::Cartridge,
@@ -62,6 +60,10 @@ const INTERRUPT_ENABLE: u16 = 0xFFFF;
 pub trait MemoryAccess {
     fn read_byte(&self, address: u16) -> u8;
     fn write_byte(&mut self, address: u16, value: u8);
+}
+
+pub trait ComponentTick {
+    fn tick(&mut self, m_cycles: u8);
 }
 
 pub struct MemoryBus {
@@ -178,6 +180,20 @@ impl MemoryAccess for MemoryBus {
     }
 }
 
+impl ComponentTick for MemoryBus {
+    fn tick(&mut self, m_cycles: u8) {
+        self.timer.tick(m_cycles);
+        self.interrupt_flag |= self.timer.interrupt;
+        self.timer.reset_interrupt();
+
+        self.ppu.tick(m_cycles);
+        self.interrupt_flag |= self.ppu.interrupts;
+        self.ppu.reset_interrupts();
+
+        self.apu.tick(m_cycles);
+    }
+}
+
 impl MemoryBus {
     pub fn new(rom_data: Vec<u8>) -> Self {
         let cartridge = Cartridge::build(rom_data);
@@ -196,18 +212,6 @@ impl MemoryBus {
             timer: Timer::new(),
             speed_switch: 0x00,
         }
-    }
-
-    pub fn tick(&mut self, m_cycles: u8, canvas: &mut Canvas<Window>) {
-        self.timer.tick(m_cycles);
-        self.interrupt_flag |= self.timer.interrupt;
-        self.timer.reset_interrupt();
-
-        self.ppu.tick(m_cycles, canvas);
-        self.interrupt_flag |= self.ppu.interrupts;
-        self.ppu.reset_interrupts();
-
-        self.apu.tick(m_cycles);
     }
 
     pub fn get_interrupt_flag(&mut self) -> u8 {

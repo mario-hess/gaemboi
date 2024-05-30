@@ -4,7 +4,11 @@
  * @author  Mario Hess
  * @date    May 27, 2024
  */
-use crate::{clock::CPU_CLOCK_SPEED, interrupt::TIMER_MASK};
+use crate::{
+    clock::CPU_CLOCK_SPEED,
+    interrupt::TIMER_MASK,
+    memory_bus::{ComponentTick, MemoryAccess},
+};
 
 const DIV: u16 = 0xFF04;
 const TIMA: u16 = 0xFF05;
@@ -36,23 +40,31 @@ pub struct Timer {
     pub interrupt: u8,
 }
 
-impl Timer {
-    pub fn new() -> Self {
-        Self {
-            div: 0xAB,
-            tima: 0,
-            tma: 0,
-            tac: 0xF8,
-            div_counter: 0,
-            tima_counter: 0,
-            tima_overflowed: false,
-            tac_cycles: CYCLES_TAC_0,
-            enabled: false,
-            interrupt: 0,
+impl MemoryAccess for Timer {
+    fn read_byte(&self, address: u16) -> u8 {
+        match address {
+            DIV => self.div,
+            TIMA => self.tima,
+            TMA => self.tma,
+            TAC => self.tac,
+            _ => unreachable!(),
         }
     }
 
-    pub fn tick(&mut self, m_cycles: u8) {
+    fn write_byte(&mut self, address: u16, value: u8) {
+        match address {
+            // Writing any value to this register resets it to 0
+            DIV => self.div = 0,
+            TIMA => self.tima = value,
+            TMA => self.tma = value,
+            TAC => self.set_tac(value),
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl ComponentTick for Timer {
+    fn tick(&mut self, m_cycles: u8) {
         let t_cycles = (m_cycles * 4) as u16;
         self.div_counter += t_cycles;
 
@@ -90,25 +102,21 @@ impl Timer {
             self.tima_counter -= self.tac_cycles;
         }
     }
+}
 
-    pub fn read_byte(&self, address: u16) -> u8 {
-        match address {
-            DIV => self.div,
-            TIMA => self.tima,
-            TMA => self.tma,
-            TAC => self.tac,
-            _ => unreachable!(),
-        }
-    }
-
-    pub fn write_byte(&mut self, address: u16, value: u8) {
-        match address {
-            // Writing any value to this register resets it to 0
-            DIV => self.div = 0,
-            TIMA => self.tima = value,
-            TMA => self.tma = value,
-            TAC => self.set_tac(value),
-            _ => unreachable!(),
+impl Timer {
+    pub fn new() -> Self {
+        Self {
+            div: 0xAB,
+            tima: 0,
+            tma: 0,
+            tac: 0xF8,
+            div_counter: 0,
+            tima_counter: 0,
+            tima_overflowed: false,
+            tac_cycles: CYCLES_TAC_0,
+            enabled: false,
+            interrupt: 0,
         }
     }
 

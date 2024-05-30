@@ -23,14 +23,14 @@ use crate::{
         mixer::Mixer,
     },
     clock::CPU_CLOCK_SPEED,
-    memory_bus::MemoryAccess,
+    memory_bus::{ComponentTick, MemoryAccess},
 };
 
 const CPU_CYCLES_PER_SAMPLE: f32 = CPU_CLOCK_SPEED as f32 / SAMPLING_FREQUENCY as f32;
 pub const APU_CLOCK_SPEED: u16 = 512;
 pub const LENGTH_TIMER_MAX: u16 = 64;
 
-const AUDIO_BUFFER_SIZE: usize = SAMPLING_RATE as usize * 4;
+pub const AUDIO_BUFFER_SIZE: usize = SAMPLING_RATE as usize * 4;
 
 const CH1_START: u16 = 0xFF10;
 const CH1_END: u16 = 0xFF14;
@@ -95,6 +95,7 @@ impl MemoryAccess for Apu {
         // Even when disabled, MASTER_CONTROL (NR52) is accessible
         if address == MASTER_CONTROL {
             self.set_master_control(value);
+            return;
         }
 
         if !self.enabled {
@@ -123,24 +124,8 @@ impl MemoryAccess for Apu {
     }
 }
 
-impl Apu {
-    pub fn new() -> Self {
-        Self {
-            ch1: SquareChannel::new(ChannelType::CH1),
-            ch2: SquareChannel::new(ChannelType::CH2),
-            ch3: WaveChannel::new(),
-            ch4: NoiseChannel::new(),
-            frame_sequencer: FrameSequencer::new(),
-            mixer: Mixer::default(),
-            right_volume: 0,
-            left_volume: 0,
-            enabled: false,
-            counter: 0.0,
-            audio_buffer: VecDeque::with_capacity(AUDIO_BUFFER_SIZE),
-        }
-    }
-
-    pub fn tick(&mut self, m_cycles: u8) {
+impl ComponentTick for Apu {
+    fn tick(&mut self, m_cycles: u8) {
         if !self.enabled {
             return;
         }
@@ -167,6 +152,24 @@ impl Apu {
             self.audio_buffer.push_back(output_right);
 
             self.counter -= CPU_CYCLES_PER_SAMPLE;
+        }
+    }
+}
+
+impl Apu {
+    pub fn new() -> Self {
+        Self {
+            ch1: SquareChannel::new(ChannelType::CH1),
+            ch2: SquareChannel::new(ChannelType::CH2),
+            ch3: WaveChannel::new(),
+            ch4: NoiseChannel::new(),
+            frame_sequencer: FrameSequencer::new(),
+            mixer: Mixer::default(),
+            right_volume: 0,
+            left_volume: 0,
+            enabled: false,
+            counter: 0.0,
+            audio_buffer: VecDeque::with_capacity(AUDIO_BUFFER_SIZE),
         }
     }
 

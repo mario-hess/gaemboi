@@ -8,11 +8,11 @@ mod lcd_control;
 mod lcd_status;
 mod oam;
 
-use sdl2::{pixels::Color, rect::Point, render::Canvas, video::Window};
+use sdl2::pixels::Color;
 
 use crate::{
     interrupt::{LCD_STAT_MASK, VBLANK_MASK},
-    memory_bus::{MemoryAccess, OAM_END, OAM_START, VRAM_END, VRAM_START},
+    memory_bus::{ComponentTick, MemoryAccess, OAM_END, OAM_START, VRAM_END, VRAM_START},
     ppu::{lcd_control::LCD_control, lcd_status::LCD_status, oam::OAM},
 };
 
@@ -56,7 +56,7 @@ pub const VIEWPORT_HEIGHT: usize = 144;
 
 const FULL_WIDTH: usize = 256;
 
-const OVERLAP_MAP_SIZE: usize = FULL_WIDTH * FULL_WIDTH;
+pub const OVERLAP_MAP_SIZE: usize = FULL_WIDTH * FULL_WIDTH;
 pub const BUFFER_SIZE: usize = VIEWPORT_WIDTH * VIEWPORT_HEIGHT;
 
 // https://gbdev.io/pandocs/Graphics.html
@@ -88,8 +88,9 @@ pub struct Ppu {
     sprite_palette0: u8,
     sprite_palette1: u8,
     counter: u16,
-    overlap_map: [bool; OVERLAP_MAP_SIZE],
+    pub overlap_map: [bool; OVERLAP_MAP_SIZE],
     pub screen_buffer: [Color; BUFFER_SIZE],
+    pub should_draw: bool,
 }
 
 impl MemoryAccess for Ppu {
@@ -164,32 +165,8 @@ impl MemoryAccess for Ppu {
     }
 }
 
-impl Ppu {
-    pub fn new() -> Self {
-        Self {
-            enabled: true,
-            interrupts: 0,
-            video_ram: [0; VRAM_SIZE],
-            oam: [OAM::new(); OAM_SIZE],
-            lcd_control: LCD_control::new(),
-            lcd_status: LCD_status::new(),
-            scroll_x: 0,
-            scroll_y: 0,
-            window_x: 0,
-            window_y: 0,
-            line_y: 0,
-            line_y_compare: 0,
-            window_line_counter: 0,
-            bg_palette: 0,
-            sprite_palette0: 0,
-            sprite_palette1: 0,
-            counter: 0,
-            overlap_map: [false; OVERLAP_MAP_SIZE],
-            screen_buffer: [WHITE; BUFFER_SIZE],
-        }
-    }
-
-    pub fn tick(&mut self, m_cycles: u8, canvas: &mut Canvas<Window>) {
+impl ComponentTick for Ppu {
+    fn tick(&mut self, m_cycles: u8) {
         if !self.lcd_control.lcd_enabled {
             return;
         }
@@ -234,9 +211,8 @@ impl Ppu {
 
                 if self.line_y >= LINES_Y {
                     self.lcd_status.set_mode(Mode::VBlank, &mut self.interrupts);
-                    self.draw_viewport(canvas);
+                    self.should_draw = true;
                     self.interrupts |= VBLANK_MASK;
-                    self.clear_screen();
                 } else {
                     self.set_line_y(self.line_y + 1);
                     self.lcd_status.set_mode(Mode::OAM, &mut self.interrupts);
@@ -259,6 +235,33 @@ impl Ppu {
 
                 self.counter -= CYCLES_VBLANK;
             }
+        }
+    }
+}
+
+impl Ppu {
+    pub fn new() -> Self {
+        Self {
+            enabled: true,
+            interrupts: 0,
+            video_ram: [0; VRAM_SIZE],
+            oam: [OAM::new(); OAM_SIZE],
+            lcd_control: LCD_control::new(),
+            lcd_status: LCD_status::new(),
+            scroll_x: 0,
+            scroll_y: 0,
+            window_x: 0,
+            window_y: 0,
+            line_y: 0,
+            line_y_compare: 0,
+            window_line_counter: 0,
+            bg_palette: 0,
+            sprite_palette0: 0,
+            sprite_palette1: 0,
+            counter: 0,
+            overlap_map: [false; OVERLAP_MAP_SIZE],
+            screen_buffer: [WHITE; BUFFER_SIZE],
+            should_draw: false,
         }
     }
 
@@ -393,14 +396,14 @@ impl Ppu {
             let object_y = oam_entry.y_pos as i16 - 16;
 
             // A tile consists of 16 bytes
-            let mut object_index = oam_entry.tile_index as u16 * 16;
+            let mut object_index = oam_entry.tile_index;
 
             // Ignore last bit for 8x16 sprites
             if tile_height == TILE_HEIGHT as i16 * 2 {
                 object_index &= 0b1111_1110;
             }
 
-            let tile_begin_address = TILE_DATA_START + object_index;
+            let tile_begin_address = TILE_DATA_START + (object_index as u16 * 16);
 
             // Calculate line offset based on if the sprite is vertically mirrored
             let line_offset = if oam_entry.y_flip_enabled() {
@@ -509,16 +512,6 @@ impl Ppu {
         }
 
         !self.overlap_map[offset]
-    }
-
-    pub fn draw_viewport(&mut self, canvas: &mut Canvas<Window>) {
-        for (index, pixel) in self.screen_buffer.iter().enumerate() {
-            let x_coord = (index % VIEWPORT_WIDTH) as i32;
-            let y_coord = (index / VIEWPORT_WIDTH) as i32;
-
-            canvas.set_draw_color(*pixel);
-            canvas.draw_point(Point::new(x_coord, y_coord)).unwrap();
-        }
     }
 
     fn clear_screen(&mut self) {

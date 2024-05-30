@@ -6,19 +6,11 @@
  */
 use sdl2::{
     audio::{AudioDevice, AudioSpecDesired},
-    pixels::Color,
-    rect::Point,
+    pixels::Color, rect::Point,
 };
 
 use crate::{
-    apu::{audio::{Audio, SAMPLING_FREQUENCY, SAMPLING_RATE}, AUDIO_BUFFER_SIZE},
-    clock::Clock,
-    cpu::Cpu,
-    event_handler::EventHandler,
-    memory_bus::ComponentTick,
-    ppu::{BUFFER_SIZE, OVERLAP_MAP_SIZE, VIEWPORT_WIDTH, WHITE},
-    sdl::{window::Window, SDL},
-    MachineState,
+    apu::audio::{Audio, SAMPLING_FREQUENCY, SAMPLING_RATE}, clock::Clock, cpu::Cpu, event_handler::EventHandler, ppu::VIEWPORT_WIDTH, sdl::SDL, MachineState
 };
 
 pub const FPS: f32 = 59.7275;
@@ -42,11 +34,8 @@ impl Machine {
         let audio_device = self.create_audio_device(sdl, &event_handler.volume);
         audio_device.resume();
 
-        // Using an unsigned integer for the frame duration effectively lets the
-        // core emulation loop run at 62.5 FPS (16ms frame duration) instead of
-        // 59.7275 FPS (16.74 frame duration). This is needed to synchronize
-        // the audio frequency with the cpu frequency.
-        let frame_duration = std::time::Duration::from_millis((1_000.0 / FPS) as u64);
+        let frame_duration_nanos = (1_000_000_000.0 / FPS) as u64;
+        let frame_duration = std::time::Duration::from_nanos(frame_duration_nanos);
 
         // Core emulation loop
         while !event_handler.pressed_escape {
@@ -65,26 +54,21 @@ impl Machine {
             // Component tick
             while self.clock.cycles_passed <= self.clock.cycles_per_frame {
                 let m_cycles = self.cpu.step();
-                self.cpu.memory_bus.tick(m_cycles);
-                if self.cpu.memory_bus.ppu.should_draw {
-                    self.draw_viewport(&mut sdl.window, &event_handler.volume);
-                }
+                self.cpu.memory_bus.tick(m_cycles, &mut sdl.window.canvas);
                 self.clock.tick(m_cycles);
             }
 
             self.clock.reset();
 
-            // Tick at  62.5 Hz using a spin-lock
+            let text: &str =
+                &format!("VOL: {}% | FPS: {:.2}", event_handler.volume, &self.fps).to_string();
+            sdl.window.render_text(text, Color::RGB(0, 255, 0));
+            sdl.window.canvas.present();
+
+            // Tick at 59.73 Hz using a spin-lock
             while frame_start_time.elapsed() < frame_duration {
                 std::hint::spin_loop();
             }
-
-            // Synchronize the audio frequency with the cpu frequency
-            while self.cpu.memory_bus.apu.audio_buffer.len() > AUDIO_BUFFER_SIZE {
-                std::hint::spin_loop();
-            }
-
-
             self.fps = 1.0 / frame_start_time.elapsed().as_secs_f32();
 
             /* This isn't precise enough as thread scheduling is OS-dependent
@@ -98,34 +82,25 @@ impl Machine {
         event_handler.pressed_escape = false;
     }
 
-    fn draw_viewport(&mut self, window: &mut Window, volume: &u8) {
+    fn draw_viewport(&mut self, canvas: &mut Canvas<Window>) {
         for (index, pixel) in self.cpu.memory_bus.ppu.screen_buffer.iter().enumerate() {
             let x_coord = (index % VIEWPORT_WIDTH) as i32;
             let y_coord = (index / VIEWPORT_WIDTH) as i32;
 
-            window.canvas.set_draw_color(*pixel);
-            window
-                .canvas
-                .draw_point(Point::new(x_coord, y_coord))
-                .unwrap();
+            canvas.set_draw_color(*pixel);
+            canvas.draw_point(Point::new(x_coord, y_coord)).unwrap();
         }
-
-        let text: &str = &format!("VOL: {}% | FPS: {:.2}", volume, &self.fps).to_string();
-        window.render_text(text, Color::RGB(0, 255, 0));
-        window.canvas.present();
-        self.cpu.memory_bus.ppu.should_draw = false;
-
-        self.clear_screen();
     }
 
     fn clear_screen(&mut self) {
         for i in 0..OVERLAP_MAP_SIZE {
             if i < BUFFER_SIZE {
-                self.cpu.memory_bus.ppu.screen_buffer[i] = WHITE;
+                self.screen_buffer[i] = WHITE;
             }
-            self.cpu.memory_bus.ppu.overlap_map[i] = false;
+            self.overlap_map[i] = false;
         }
     }
+
 
     fn create_audio_device<'a, 'b: 'a>(
         &'a mut self,
