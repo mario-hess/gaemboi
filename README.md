@@ -8,7 +8,7 @@
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-This is a Nintendo Game Boy emulator written in Rust. It aims to accurately emulate the functionality and behavior of the original Game Boy hardware.
+This is a Nintendo Game Boy emulator written in Rust. It aims to accurately emulate the functionality and behaviour of the original Game Boy hardware.
 
 ## Features
 
