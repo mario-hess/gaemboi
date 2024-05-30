@@ -2,7 +2,7 @@
  * @file    registers/mod.rs
  * @brief   Module for handling CPU registers.
  * @author  Mario Hess
- * @date    May 27, 2024
+ * @date    May 30, 2024
  */
 mod flags_register;
 
@@ -37,7 +37,7 @@ impl Registers {
     }
 
     pub fn get_af(&self) -> u16 {
-        let f: u8 = self.flags.into();
+        let f: u8 = (&self.flags).into();
         (self.a as u16) << 8 | f as u16
     }
 

@@ -2,9 +2,18 @@
  * @file    ppu/lcd_control.rs
  * @brief   Handles the PPU's LCD Control register.
  * @author  Mario Hess
- * @date    May 27, 2024
+ * @date    May 30, 2024
  */
 use crate::ppu::{TILEMAP_START_0, TILEMAP_START_1};
+
+const BG_ENABLED_MASK: u8 = 0x01;
+const OBJECT_ENABLED_MASK: u8 = 0x02;
+const OBJECT_SIZE_MASK: u8 = 0x04;
+const BG_TILEMAP_MASK: u8 = 0x08;
+const ADDRESSING_MODE_MASK: u8 = 0x10;
+const WINDOW_ENABLED_MASK: u8 = 0x20;
+const WINDOW_TILEMAP_MASK: u8 = 0x40;
+const LCD_ENABLED_MASK: u8 = 0x80;
 
 pub const TILE_BLOCK_0: u16 = 0x8000;
 const TILE_BLOCK_1: u16 = 0x8800;
@@ -39,38 +48,6 @@ impl LCD_control {
             lcd_enabled: true,
         }
     }
-
-    pub fn get(self) -> u8 {
-        let bg_enabled: u8 = if self.bg_enabled { 0x01 } else { 0 };
-        let object_enabled: u8 = if self.object_enabled { 0x02 } else { 0 };
-        let object_size: u8 = if self.object_size { 0x04 } else { 0 };
-        let bg_tilemap: u8 = if self.bg_tilemap { 0x08 } else { 0 };
-        let addressing_mode: u8 = if self.addressing_mode { 0x10 } else { 0 };
-        let window_enabled: u8 = if self.window_enabled { 0x20 } else { 0 };
-        let window_tilemap: u8 = if self.window_tilemap { 0x40 } else { 0 };
-        let lcd_enable: u8 = if self.lcd_enabled { 0x80 } else { 0 };
-
-        bg_enabled
-            | object_enabled
-            | object_size
-            | bg_tilemap
-            | addressing_mode
-            | window_enabled
-            | window_tilemap
-            | lcd_enable
-    }
-
-    pub fn set(&mut self, value: u8) {
-        self.bg_enabled = value & 0x01 != 0;
-        self.object_enabled = value & 0x02 != 0;
-        self.object_size = value & 0x04 != 0;
-        self.bg_tilemap = value & 0x08 != 0;
-        self.addressing_mode = value & 0x10 != 0;
-        self.window_enabled = value & 0x20 != 0;
-        self.window_tilemap = value & 0x40 != 0;
-        self.lcd_enabled = value & 0x80 != 0;
-    }
-
     pub fn get_bg_address(self) -> u16 {
         if !self.bg_tilemap {
             TILEMAP_START_0
@@ -96,5 +73,49 @@ impl LCD_control {
         } else {
             TILE_BLOCK_1 + ((tile_index - 128) as u16 * TILE_OFFSET)
         }
+    }
+}
+
+#[rustfmt::skip]
+impl std::convert::From<&LCD_control> for u8 {
+    fn from(lcd_control: &LCD_control) -> u8 {
+        (if lcd_control.bg_enabled { BG_ENABLED_MASK } else { 0 })
+            | (if lcd_control.object_enabled { OBJECT_ENABLED_MASK } else { 0 })
+            | (if lcd_control.object_size { OBJECT_SIZE_MASK } else { 0 })
+            | (if lcd_control.bg_tilemap { BG_TILEMAP_MASK } else { 0 })
+            | (if lcd_control.addressing_mode { ADDRESSING_MODE_MASK } else { 0 })
+            | (if lcd_control.window_enabled { WINDOW_ENABLED_MASK } else { 0 })
+            | (if lcd_control.window_tilemap { WINDOW_TILEMAP_MASK } else { 0 })
+            | (if lcd_control.lcd_enabled { LCD_ENABLED_MASK } else { 0 })
+    }
+}
+
+impl std::convert::From<u8> for LCD_control {
+    fn from(byte: u8) -> Self {
+        let bg_enabled = (byte & BG_ENABLED_MASK) != 0;
+        let object_enabled = (byte & OBJECT_ENABLED_MASK) != 0;
+        let object_size = (byte & OBJECT_SIZE_MASK) != 0;
+        let bg_tilemap = (byte & BG_TILEMAP_MASK) != 0;
+        let addressing_mode = (byte & ADDRESSING_MODE_MASK) != 0;
+        let window_enabled = (byte & WINDOW_ENABLED_MASK) != 0;
+        let window_tilemap = (byte & WINDOW_TILEMAP_MASK) != 0;
+        let lcd_enabled = (byte & LCD_ENABLED_MASK) != 0;
+
+        LCD_control {
+            bg_enabled,
+            object_enabled,
+            object_size,
+            bg_tilemap,
+            addressing_mode,
+            window_enabled,
+            window_tilemap,
+            lcd_enabled,
+        }
+    }
+}
+
+impl Default for LCD_control {
+    fn default() -> Self {
+        Self::new()
     }
 }

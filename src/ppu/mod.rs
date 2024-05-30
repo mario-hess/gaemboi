@@ -2,7 +2,7 @@
  * @file    ppu/mod.rs
  * @brief   Handles the Picture Processing Unit for graphics rendering.
  * @author  Mario Hess
- * @date    May 28, 2024
+ * @date    May 30, 2024
  */
 mod lcd_control;
 mod lcd_status;
@@ -13,7 +13,11 @@ use sdl2::pixels::Color;
 use crate::{
     interrupt::{LCD_STAT_MASK, VBLANK_MASK},
     memory_bus::{ComponentTick, MemoryAccess, OAM_END, OAM_START, VRAM_END, VRAM_START},
-    ppu::{lcd_control::LCD_control, lcd_status::LCD_status, oam::OAM},
+    ppu::{
+        lcd_control::LCD_control,
+        lcd_status::{LCD_status, MODE_HBLANK, MODE_OAM, MODE_TRANSFER, MODE_VBLANK},
+        oam::OAM,
+    },
 };
 
 pub const VRAM_SIZE: usize = 8 * 1024;
@@ -61,14 +65,6 @@ pub const BUFFER_SIZE: usize = VIEWPORT_WIDTH * VIEWPORT_HEIGHT;
 
 // https://gbdev.io/pandocs/Graphics.html
 // https://hacktix.github.io/GBEDG/ppu/
-#[allow(clippy::upper_case_acronyms, non_camel_case_types)]
-#[derive(Copy, Clone)]
-pub enum Mode {
-    OAM = 2,
-    Transfer = 3,
-    HBlank = 0,
-    VBlank = 1,
-}
 
 pub struct Ppu {
     enabled: bool,
@@ -101,9 +97,9 @@ impl MemoryAccess for Ppu {
             // 0xFE00 - 0xFE9F (Object Attribute Memory)
             OAM_START..=OAM_END => self.read_oam(address - OAM_START),
             // 0xFF40 (LCD Control)
-            LCD_CONTROL => self.lcd_control.get(),
+            LCD_CONTROL => (&self.lcd_control).into(),
             // 0xFF41 (LCD Status)
-            LCD_STATUS => self.lcd_status.get(),
+            LCD_STATUS => (&self.lcd_status).into(),
             // 0xFF42 (Scroll Y)
             SCROLL_Y => self.scroll_y,
             // 0xFF43 (Scroll X)
@@ -135,7 +131,7 @@ impl MemoryAccess for Ppu {
             // 0xFF40 (LCD Control)
             LCD_CONTROL => self.set_lcd_control(value),
             // 0xFF41 (LCD Status)
-            LCD_STATUS => self.lcd_status.set(value),
+            LCD_STATUS => self.lcd_status = value.into(),
             // 0xFF42 (Scroll Y)
             SCROLL_Y => self.scroll_y = value,
             // 0xFF43 (Scroll X)
@@ -176,27 +172,27 @@ impl ComponentTick for Ppu {
 
         // https://gbdev.io/pandocs/Rendering.html
         match self.lcd_status.mode {
-            Mode::OAM => {
+            MODE_OAM => {
                 if self.counter < CYCLES_OAM {
                     return;
                 }
 
                 self.lcd_status
-                    .set_mode(Mode::Transfer, &mut self.interrupts);
+                    .set_mode(MODE_TRANSFER, &mut self.interrupts);
 
                 self.counter -= CYCLES_OAM;
             }
-            Mode::Transfer => {
+            MODE_TRANSFER => {
                 if self.counter < CYCLES_TRANSFER {
                     return;
                 }
 
                 self.render_scanline();
-                self.lcd_status.set_mode(Mode::HBlank, &mut self.interrupts);
+                self.lcd_status.set_mode(MODE_HBLANK, &mut self.interrupts);
 
                 self.counter -= CYCLES_TRANSFER;
             }
-            Mode::HBlank => {
+            MODE_HBLANK => {
                 if self.counter < CYCLES_HBLANK {
                     return;
                 }
@@ -210,17 +206,17 @@ impl ComponentTick for Ppu {
                 }
 
                 if self.line_y >= LINES_Y {
-                    self.lcd_status.set_mode(Mode::VBlank, &mut self.interrupts);
+                    self.lcd_status.set_mode(MODE_VBLANK, &mut self.interrupts);
                     self.should_draw = true;
                     self.interrupts |= VBLANK_MASK;
                 } else {
                     self.set_line_y(self.line_y + 1);
-                    self.lcd_status.set_mode(Mode::OAM, &mut self.interrupts);
+                    self.lcd_status.set_mode(MODE_OAM, &mut self.interrupts);
                 }
 
                 self.counter -= CYCLES_HBLANK;
             }
-            Mode::VBlank => {
+            MODE_VBLANK => {
                 if self.counter < CYCLES_VBLANK {
                     return;
                 }
@@ -228,13 +224,14 @@ impl ComponentTick for Ppu {
                 self.set_line_y(self.line_y + 1);
 
                 if self.line_y > MAX_LINES_Y {
-                    self.lcd_status.set_mode(Mode::OAM, &mut self.interrupts);
+                    self.lcd_status.set_mode(MODE_OAM, &mut self.interrupts);
                     self.window_line_counter = 0;
                     self.set_line_y(0);
                 }
 
                 self.counter -= CYCLES_VBLANK;
             }
+            _ => unreachable!(),
         }
     }
 }
@@ -246,8 +243,8 @@ impl Ppu {
             interrupts: 0,
             video_ram: [0; VRAM_SIZE],
             oam: [OAM::new(); OAM_SIZE],
-            lcd_control: LCD_control::new(),
-            lcd_status: LCD_status::new(),
+            lcd_control: LCD_control::default(),
+            lcd_status: LCD_status::default(),
             scroll_x: 0,
             scroll_y: 0,
             window_x: 0,
@@ -314,13 +311,13 @@ impl Ppu {
     }
 
     fn set_lcd_control(&mut self, value: u8) {
-        self.lcd_control.set(value);
+        self.lcd_control = value.into();
 
         if !self.lcd_control.lcd_enabled {
             self.clear_screen();
             self.window_line_counter = 0;
             self.set_line_y(0);
-            self.lcd_status.mode = Mode::HBlank;
+            self.lcd_status.mode = MODE_HBLANK;
             self.counter = 0;
             self.enabled = false;
         }
