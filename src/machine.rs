@@ -44,7 +44,7 @@ impl Machine {
 
         // Using an unsigned integer for the frame duration effectively lets the
         // core emulation loop run at 62.5 FPS (16ms frame duration) instead of
-        // 59.7275 FPS (16.74 frame duration). This is needed to synchronize
+        // 59.7275 FPS (16.74ms frame duration). This is needed to synchronize
         // the audio frequency with the cpu frequency.
         let frame_duration = std::time::Duration::from_millis((1_000.0 / FPS) as u64);
 
@@ -74,16 +74,16 @@ impl Machine {
 
             self.clock.reset();
 
-            // Tick at  62.5 Hz using a spin-lock
+            // Tick at 62.5 Hz using a spin-lock
             while frame_start_time.elapsed() < frame_duration {
                 std::hint::spin_loop();
             }
 
-            // Synchronize the audio frequency with the cpu frequency
+            // Synchronize the audio frequency with the cpu frequency,
+            // effectively clocking the system at 59.7275 Hz
             while self.cpu.memory_bus.apu.audio_buffer.len() > AUDIO_BUFFER_SIZE {
                 std::hint::spin_loop();
             }
-
 
             self.fps = 1.0 / frame_start_time.elapsed().as_secs_f32();
 
