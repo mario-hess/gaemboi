@@ -193,9 +193,9 @@ impl ComponentTick for Ppu {
 
                 self.oam_buffer.clear();
 
-                // Convert line_y to an i16 and determine the height of the sprite (8x8 or 8x16)
                 let line_y = self.line_y;
 
+                // Determine the height of the sprite (8x8 or 8x16)
                 let tile_height = if self.lcd_control.object_size {
                     TILE_HEIGHT as u8 * 2
                 } else {
@@ -425,8 +425,9 @@ impl Ppu {
     }
 
     fn render_object_line(&mut self) {
-        // Convert line_y to an i16 and determine the height of the sprite (8x8 or 8x16)
         let line_y = self.line_y;
+
+        // Determine the height of the sprite (8x8 or 8x16)
         let tile_height = if self.lcd_control.object_size {
             TILE_HEIGHT as u8 * 2
         } else {
