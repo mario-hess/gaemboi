@@ -1,4 +1,4 @@
-mod core;
+pub mod core;
 pub mod length_counter;
 pub mod noise_channel;
 pub mod square_channel;

@@ -146,7 +146,8 @@ impl ComponentTick for Apu {
 
         while self.counter >= CPU_CYCLES_PER_SAMPLE {
             let (output_left, output_right) =
-                self.mixer.mix(&self.ch1, &self.ch2, &self.ch3, &self.ch4);
+                self.mixer
+                    .mix([&self.ch1.core, &self.ch2.core, &self.ch3.core, &self.ch4.core]);
 
             self.audio_buffer.push_back(output_left);
             self.audio_buffer.push_back(output_right);
