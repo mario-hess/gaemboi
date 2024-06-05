@@ -2,7 +2,7 @@
  * @file    apu/mod.rs
  * @brief   Implementation of the Audio Processing Unit (APU).
  * @author  Mario Hess
- * @date    May 28, 2024
+ * @date    June 5, 2024
  */
 pub mod audio;
 mod channel;
@@ -115,7 +115,7 @@ impl MemoryAccess for Apu {
             CH4_START..=CH4_END => self.ch4.write_byte(address, value),
             MASTER_VOLUME => self.set_master_volume(value),
             PANNING => {
-                self.mixer.set_panning(value);
+                self.mixer = value.into();
             }
             MASTER_CONTROL => {}
             WAVE_PATTERN_START..=WAVE_PATTERN_END => self.ch3.write_wave_ram(address, value),

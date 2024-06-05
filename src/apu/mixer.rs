@@ -50,13 +50,6 @@ impl Mixer {
         (output_left / 4, output_right / 4)
     }
 
-    pub fn set_panning(&mut self, value: u8) {
-        for (i, &(right_mask, left_mask)) in MASKS.iter().enumerate() {
-            self.panning[i] = value & right_mask != 0;
-            self.panning[i + 4] = value & left_mask != 0;
-        }
-    }
-
     pub fn reset(&mut self) {
         self.panning = [false; 8];
     }
@@ -77,6 +70,17 @@ impl std::convert::From<Mixer> for u8 {
                 acc | if mixer.panning[i] { right_mask } else { 0 }
                     | if mixer.panning[i + 4] { left_mask } else { 0 }
             })
+    }
+}
+
+impl std::convert::From<u8> for Mixer {
+    fn from(value: u8) -> Self {
+        let mut mixer = Mixer::new();
+        for (i, &(right_mask, left_mask)) in MASKS.iter().enumerate() {
+            mixer.panning[i] = value & right_mask != 0;
+            mixer.panning[i + 4] = value & left_mask != 0;
+        }
+        mixer
     }
 }
 
