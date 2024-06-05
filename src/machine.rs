@@ -16,7 +16,7 @@ use crate::{
     cpu::Cpu,
     event_handler::EventHandler,
     memory_bus::ComponentTick,
-    ppu::{BUFFER_SIZE, OVERLAP_MAP_SIZE, VIEWPORT_WIDTH, WHITE},
+    ppu::VIEWPORT_WIDTH,
     sdl::{window::Window, SDL},
     MachineState,
 };

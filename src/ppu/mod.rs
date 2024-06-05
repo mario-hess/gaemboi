@@ -249,25 +249,18 @@ impl ComponentTick for Ppu {
                     return;
                 }
 
-                // Increase internal window line counter if window is visible on
-                // the viewport
-                // The Window is visible (if enabled) when both coordinates are in the ranges WX=0..166,
-                // WY=0..143 respectively. Values WX=7, WY=0 place the Window at the top left of the
-                // screen, completely covering the background.
-                if self.lcd_control.window_enabled
-                    && self.window_x - 7 < VIEWPORT_WIDTH as u8
-                    && self.window_y < VIEWPORT_HEIGHT as u8
-                    && self.line_y >= self.window_y
-                {
-                    self.window_line_counter += 1;
-                }
-
                 if self.line_y >= LINES_Y {
                     self.lcd_status.set_mode(MODE_VBLANK, &mut self.interrupts);
                     // Draw the current frame to the screen
                     self.should_draw = true;
                     self.interrupts |= VBLANK_MASK;
                 } else {
+                    // Increase internal window line counter alongside line_y if window is visible on
+                    // the viewport .
+                    if self.is_window_visible() {
+                        self.window_line_counter += 1;
+                    }
+
                     self.set_line_y(self.line_y + 1);
                     self.lcd_status.set_mode(MODE_OAM, &mut self.interrupts);
                 }
@@ -548,6 +541,16 @@ impl Ppu {
         let second_byte = self.read_byte(address + 1);
 
         (first_byte, second_byte)
+    }
+
+    // The Window is visible (if enabled) when both coordinates are in
+    // the ranges WX=0..166 and WY=0..143 respectively. Values WX=7, WY=0 place the
+    // Window at the top left of the screen, completely covering the background.
+    fn is_window_visible(&self) -> bool {
+        self.lcd_control.window_enabled
+            && self.window_x - 7 < VIEWPORT_WIDTH as u8
+            && self.window_y < VIEWPORT_HEIGHT as u8
+            && self.line_y >= self.window_y
     }
 
     fn is_overlapping(&self, oam_entry: &OAM, offset: usize) -> bool {
