@@ -2,7 +2,7 @@
  * @file    apu/mod.rs
  * @brief   Implementation of the Audio Processing Unit (APU).
  * @author  Mario Hess
- * @date    June 5, 2024
+ * @date    June 7, 2024
  */
 pub mod audio;
 mod channel;
@@ -51,7 +51,7 @@ const MASTER_CONTROL: u16 = 0xFF26; // NR52
 pub const AUDIO_START: u16 = CH1_START;
 pub const AUDIO_END: u16 = WAVE_PATTERN_END;
 
-/**
+/*
  * https://gbdev.io/pandocs/Audio.html
  * https://gbdev.gg8.se/wiki/articles/Gameboy_sound_hardware
  * https://nightshade256.github.io/2021/03/27/gb-sound-emulation.html
@@ -84,7 +84,7 @@ impl MemoryAccess for Apu {
             CH3_START..=CH3_END => self.ch3.read_byte(address),
             CH4_START..=CH4_END => self.ch4.read_byte(address),
             MASTER_VOLUME => self.get_master_volume(),
-            PANNING => u8::from(self.mixer),
+            PANNING => (&self.mixer).into(),
             MASTER_CONTROL => self.get_master_control(),
             WAVE_PATTERN_START..=WAVE_PATTERN_END => self.ch3.read_wave_ram(address),
             _ => unreachable!(),
@@ -92,7 +92,7 @@ impl MemoryAccess for Apu {
     }
 
     fn write_byte(&mut self, address: u16, value: u8) {
-        // Even when disabled, MASTER_CONTROL (NR52) is accessible
+        // NR52 (Master Control) is accessible even if the APU is turned off
         if address == MASTER_CONTROL {
             self.set_master_control(value);
             return;
@@ -145,9 +145,12 @@ impl ComponentTick for Apu {
         self.counter += t_cycles as f32;
 
         while self.counter >= CPU_CYCLES_PER_SAMPLE {
-            let (output_left, output_right) =
-                self.mixer
-                    .mix([&self.ch1.core, &self.ch2.core, &self.ch3.core, &self.ch4.core]);
+            let (output_left, output_right) = self.mixer.mix([
+                &self.ch1.core,
+                &self.ch2.core,
+                &self.ch3.core,
+                &self.ch4.core,
+            ]);
 
             self.audio_buffer.push_back(output_left);
             self.audio_buffer.push_back(output_right);
@@ -181,6 +184,15 @@ impl Apu {
         self.ch4.tick(m_cycles);
     }
 
+    /*
+     * 0xFF26 — NR52 (Audio master control)
+     * Bit 7: Audio on/off (Read/Write): This controls whether the APU is
+     * powered on at all. Turning the APU off clears all APU registers and
+     * makes them read-only until turned back on, except NR521.
+     * Bit 0-3: CHn on? (Read-only): Each of these four bits allows checking
+     * whether channels are active. Writing to those does not enable or
+     * disable the channels, despite many emulators behaving as if.
+     */
     fn get_master_control(&self) -> u8 {
         let ch1_enabled = if self.ch1.core.enabled { 0x01 } else { 0x00 };
         let ch2_enabled = if self.ch2.core.enabled { 0x02 } else { 0x00 };
@@ -199,6 +211,14 @@ impl Apu {
         }
     }
 
+    /*
+     * 0xFF24 — NR50 (Master volume)
+     * Bit 4-6: Left volume, Bit 0-2: Right volume
+     * These specify the master volume, i.e. how much each outputvshould be scaled.
+     * A value of 0 is treated as a volume of 1 (very quiet), and a value of 7 is
+     * treated as a volume of 8 (no volume reduction). Importantly, the amplifier
+     * never mutes a non-silent input.
+     */
     fn get_master_volume(&self) -> u8 {
         let right_volume = self.right_volume - 1;
         let left_volume = (self.left_volume - 1) << 4;
