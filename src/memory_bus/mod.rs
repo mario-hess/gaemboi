@@ -85,11 +85,11 @@ impl MemoryAccess for MemoryBus {
     fn read_byte(&self, address: u16) -> u8 {
         match address {
             // 0x0000 - 0x7FFF (Cartridge ROM Banks)
-            CARTRIDGE_ROM_START..=CARTRIDGE_ROM_END => self.cartridge.read(address),
+            CARTRIDGE_ROM_START..=CARTRIDGE_ROM_END => self.cartridge.read_byte(address),
             // 0x8000 - 0x9FFF (Video Ram)
             VRAM_START..=VRAM_END => self.ppu.read_byte(address),
             // 0xA000 - 0xBFFF (Cartridge RAM Banks)
-            CARTRIDGE_RAM_START..=CARTRIDGE_RAM_END => self.cartridge.read(address),
+            CARTRIDGE_RAM_START..=CARTRIDGE_RAM_END => self.cartridge.read_byte(address),
             // 0xC000 - 0xDFFF (Work RAM)
             WRAM_START..=WRAM_END => self.wram[address as usize - WRAM_START as usize],
             // 0xE000 - 0xFDFF (Echo Ram)
@@ -133,11 +133,11 @@ impl MemoryAccess for MemoryBus {
     fn write_byte(&mut self, address: u16, value: u8) {
         match address {
             // 0x0000 - 0x7FFF (Cartridge ROM Banks)
-            CARTRIDGE_ROM_START..=CARTRIDGE_ROM_END => self.cartridge.write(address, value),
+            CARTRIDGE_ROM_START..=CARTRIDGE_ROM_END => self.cartridge.write_byte(address, value),
             // 0x8000 - 0x9FFF (Video Ram)
             VRAM_START..=VRAM_END => self.ppu.write_byte(address, value),
             // 0xA000 - 0xBFFF (Cartridge RAM Banks)
-            CARTRIDGE_RAM_START..=CARTRIDGE_RAM_END => self.cartridge.write(address, value),
+            CARTRIDGE_RAM_START..=CARTRIDGE_RAM_END => self.cartridge.write_byte(address, value),
             // 0xC000 - 0xDFFF (Work RAM)
             WRAM_START..=WRAM_END => self.wram[address as usize - WRAM_START as usize] = value,
             // 0xE000 - 0xFDFF (Echo Ram)

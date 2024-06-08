@@ -12,7 +12,10 @@ mod mbc3;
 
 use std::{fs::File, io::Write};
 
-use crate::cartridge::{core::CartridgeCore, mbc0::Mbc0, mbc1::Mbc1, mbc2::Mbc2, mbc3::Mbc3};
+use crate::{
+    cartridge::{core::CartridgeCore, mbc0::Mbc0, mbc1::Mbc1, mbc2::Mbc2, mbc3::Mbc3},
+    memory_bus::MemoryAccess,
+};
 
 const ROM_BANK_SIZE: usize = 16 * 1024;
 const RAM_BANK_SIZE: usize = 8 * 1024;
@@ -36,20 +39,8 @@ pub struct Cartridge {
     pub mbc: Box<dyn MemoryBankController>,
 }
 
-impl Cartridge {
-    pub fn build(rom_data: Vec<u8>) -> Self {
-        let mbc: Box<dyn MemoryBankController> = match rom_data[CARTRIDGE_TYPE_ADDRESS] {
-            0x0 => Box::new(Mbc0::new(rom_data)),
-            0x01..=0x03 => Box::new(Mbc1::new(rom_data)),
-            0x05 | 0x06 => Box::new(Mbc2::new(rom_data)),
-            0x0F..=0x13 => Box::new(Mbc3::new(rom_data)),
-            _ => panic!("Error: Cartridge type not supported"),
-        };
-
-        Self { mbc }
-    }
-
-    pub fn read(&self, address: u16) -> u8 {
+impl MemoryAccess for Cartridge {
+    fn read_byte(&self, address: u16) -> u8 {
         match (address & MASK_MSB) >> 12 {
             0x0..=0x7 => self.mbc.read_rom(address),
             0xA | 0xB => self.mbc.read_ram(address),
@@ -61,7 +52,7 @@ impl Cartridge {
         }
     }
 
-    pub fn write(&mut self, address: u16, value: u8) {
+    fn write_byte(&mut self, address: u16, value: u8) {
         match (address & MASK_MSB) >> 12 {
             0x0..=0x7 => self.mbc.write_rom(address, value),
             0xA | 0xB => self.mbc.write_ram(address, value),
@@ -70,6 +61,20 @@ impl Cartridge {
                 address, value
             ),
         }
+    }
+}
+
+impl Cartridge {
+    pub fn build(rom_data: Vec<u8>) -> Self {
+        let mbc: Box<dyn MemoryBankController> = match rom_data[CARTRIDGE_TYPE_ADDRESS] {
+            0x0 => Box::new(Mbc0::new(rom_data)),
+            0x01..=0x03 => Box::new(Mbc1::new(rom_data)),
+            0x05 | 0x06 => Box::new(Mbc2::new(rom_data)),
+            0x0F..=0x13 => Box::new(Mbc3::new(rom_data)),
+            _ => panic!("Error: Cartridge type not supported"),
+        };
+
+        Self { mbc }
     }
 
     pub fn load_game(&mut self, ram_data: Vec<u8>) {
