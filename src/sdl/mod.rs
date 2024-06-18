@@ -15,7 +15,7 @@ pub struct SDL<'a> {
     pub audio_subsystem: AudioSubsystem,
     pub event_pump: EventPump,
     pub window: Window<'a>,
-    gamepad: Option<GameController>,
+    _gamepad: Option<GameController>,
 }
 
 impl<'a> SDL<'a> {
@@ -31,7 +31,7 @@ impl<'a> SDL<'a> {
             .map_err(|e| format!("can't enumerate joysticks: {}", e))
             .unwrap();
 
-        let gamepad = (0..available).find_map(|id| {
+        let _gamepad = (0..available).find_map(|id| {
             if !controller_subsystem.is_game_controller(id) {
                 println!("{} is not a gamepad", id);
                 return None;
@@ -67,7 +67,7 @@ impl<'a> SDL<'a> {
             audio_subsystem,
             event_pump,
             window,
-            gamepad,
+            _gamepad,
         }
     }
 }
