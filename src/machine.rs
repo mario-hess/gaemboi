@@ -11,7 +11,10 @@ use sdl2::{
 };
 
 use crate::{
-    apu::{audio::{Audio, SAMPLING_FREQUENCY, SAMPLING_RATE}, AUDIO_BUFFER_THRESHOLD},
+    apu::{
+        audio::{Audio, SAMPLING_FREQUENCY, SAMPLING_RATE},
+        AUDIO_BUFFER_THRESHOLD,
+    },
     clock::Clock,
     cpu::Cpu,
     event_handler::EventHandler,
