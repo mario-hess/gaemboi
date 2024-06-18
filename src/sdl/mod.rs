@@ -5,7 +5,9 @@ use crate::{
     ppu::{VIEWPORT_HEIGHT, VIEWPORT_WIDTH},
     sdl::window::Window,
 };
-use sdl2::{AudioSubsystem, EventPump, VideoSubsystem, ttf::Sdl2TtfContext};
+use sdl2::{
+    controller::GameController, ttf::Sdl2TtfContext, AudioSubsystem, EventPump, VideoSubsystem,
+};
 
 #[allow(clippy::upper_case_acronyms)]
 pub struct SDL<'a> {
@@ -13,6 +15,7 @@ pub struct SDL<'a> {
     pub audio_subsystem: AudioSubsystem,
     pub event_pump: EventPump,
     pub window: Window<'a>,
+    gamepad: Option<GameController>,
 }
 
 impl<'a> SDL<'a> {
@@ -28,7 +31,7 @@ impl<'a> SDL<'a> {
             .map_err(|e| format!("can't enumerate joysticks: {}", e))
             .unwrap();
 
-        let _gamepad = (0..available).find_map(|id| {
+        let gamepad = (0..available).find_map(|id| {
             if !controller_subsystem.is_game_controller(id) {
                 println!("{} is not a gamepad", id);
                 return None;
@@ -64,6 +67,7 @@ impl<'a> SDL<'a> {
             audio_subsystem,
             event_pump,
             window,
+            gamepad,
         }
     }
 }
