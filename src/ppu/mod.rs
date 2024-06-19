@@ -420,7 +420,7 @@ impl Ppu {
             }
 
             // A tile consists of 16 bytes
-            let tile_begin_address = TILE_DATA_START + (tile_index as u16 * 16);
+            let tile_index = TILE_DATA_START + (tile_index as u16 * 16);
 
             // Calculate line offset based on if the sprite is vertically mirrored
             let line_offset = if oam_entry.y_flip_enabled() {
@@ -430,7 +430,7 @@ impl Ppu {
             };
 
             // Since each line consists of 2 bytes, the offset has to be multiplied by 2
-            let tile_address = tile_begin_address + line_offset as u16 * 2;
+            let tile_address = tile_index + line_offset as u16 * 2;
             let (first_byte, second_byte) = self.get_tile_bytes(tile_address);
 
             for pixel_index in 0..TILE_WIDTH {
