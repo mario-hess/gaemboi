@@ -1,10 +1,10 @@
-mod background;
 /**
  * @file    ppu/mod.rs
  * @brief   Handles the Picture Processing Unit for graphics rendering.
  * @author  Mario Hess
- * @date    May 30, 2024
+ * @date    June 19, 2024
  */
+mod background;
 mod lcd_control;
 mod lcd_status;
 mod oam;
@@ -56,8 +56,9 @@ const CYCLES_VBLANK: u16 = 456;
 const LINES_Y: u8 = 143;
 const MAX_LINES_Y: u8 = 153;
 
-const TILE_WIDTH: usize = 8;
-const TILE_HEIGHT: usize = TILE_WIDTH;
+const TILE_WIDTH: u8 = 8;
+const TILE_HEIGHT: u8 = TILE_WIDTH;
+const TILE_HEIGHT_BIG: u8 = TILE_HEIGHT * 2;
 
 pub const VIEWPORT_WIDTH: usize = 160;
 pub const VIEWPORT_HEIGHT: usize = 144;
@@ -92,6 +93,7 @@ pub struct Ppu {
     // corresponding palette. Color index 0 is transparent for Objects.
     sprite_palette0: u8,
     sprite_palette1: u8,
+    tile_height: u8,
     counter: u16,
     pub overlap_map: [bool; OVERLAP_MAP_SIZE],
     pub viewport_buffer: [Color; BUFFER_SIZE],
@@ -185,10 +187,10 @@ impl ComponentTick for Ppu {
                 self.oam_buffer.clear();
 
                 // Determine the height of the sprite (8x8 or 8x16)
-                let tile_height = if self.lcd_control.object_size {
-                    TILE_HEIGHT as u8 * 2
+                self.tile_height = if self.lcd_control.object_size {
+                    TILE_HEIGHT_BIG
                 } else {
-                    TILE_HEIGHT as u8
+                    TILE_HEIGHT
                 };
 
                 for i in 0..OAM_SIZE {
@@ -201,7 +203,7 @@ impl ComponentTick for Ppu {
                     let object_x = oam_entry.x_pos - 8;
 
                     // Determine if the current scanline intersects with the vertical span of the object
-                    if self.scan_y >= object_y && self.scan_y < object_y + tile_height {
+                    if self.scan_y >= object_y && self.scan_y < object_y + self.tile_height {
                         self.oam_buffer.push((i, object_x));
                     }
                 }
@@ -297,6 +299,7 @@ impl Ppu {
             bg_palette: 0,
             sprite_palette0: 0,
             sprite_palette1: 0,
+            tile_height: TILE_HEIGHT,
             counter: 0,
             overlap_map: [false; OVERLAP_MAP_SIZE],
             viewport_buffer: [WHITE; BUFFER_SIZE],
@@ -398,47 +401,40 @@ impl Ppu {
 
             let pixel = get_pixel_color(self.bg_palette, color_index);
 
-            // Calculate the offset for the current pixel and update the screen buffer
+            // Calculate the offset for the current pixel and update the viewport buffer
             let offset = scan_x as usize + self.scan_y as usize * VIEWPORT_WIDTH;
             self.viewport_buffer[offset] = pixel;
         }
     }
 
     fn render_object_line(&mut self) {
-        // Determine the height of the sprite (8x8 or 8x16)
-        let tile_height = if self.lcd_control.object_size {
-            TILE_HEIGHT as u8 * 2
-        } else {
-            TILE_HEIGHT as u8
-        };
+        for (oam_index, x_offset) in self.oam_buffer.iter() {
+            let oam_entry = self.oam[*oam_index];
+            let y_offset = oam_entry.y_pos - 16;
 
-        for (index, x_offset) in self.oam_buffer.iter() {
-            let oam_entry = self.oam[*index];
-            let object_y = oam_entry.y_pos - 16;
-
-            let mut object_index = oam_entry.tile_index;
+            let mut tile_index = oam_entry.tile_index;
 
             // Ignore last bit for 8x16 sprites
-            if tile_height == TILE_HEIGHT as u8 * 2 {
-                object_index &= 0b1111_1110;
+            if self.tile_height == TILE_HEIGHT_BIG {
+                tile_index &= 0b1111_1110;
             }
 
             // A tile consists of 16 bytes
-            let tile_begin_address = TILE_DATA_START + (object_index as u16 * 16);
+            let tile_begin_address = TILE_DATA_START + (tile_index as u16 * 16);
 
             // Calculate line offset based on if the sprite is vertically mirrored
             let line_offset = if oam_entry.y_flip_enabled() {
-                tile_height - 1 - (self.scan_y - object_y)
+                self.tile_height - 1 - (self.scan_y - y_offset)
             } else {
-                self.scan_y - object_y
+                self.scan_y - y_offset
             };
 
             // Since each line consists of 2 bytes, the offset has to be multiplied by 2
             let tile_address = tile_begin_address + line_offset as u16 * 2;
             let (first_byte, second_byte) = self.get_tile_bytes(tile_address);
 
-            for x in 0..8 {
-                let x_offset = x_offset + x;
+            for pixel_index in 0..TILE_WIDTH {
+                let x_offset = x_offset + pixel_index;
 
                 // Skip rendering pixel outside of viewport
                 if !(0..VIEWPORT_WIDTH).contains(&(x_offset as usize)) {
@@ -452,7 +448,11 @@ impl Ppu {
                 }
 
                 // Check if pixel is horizontally mirrored
-                let pixel_index = if oam_entry.x_flip_enabled() { x } else { 7 - x };
+                let pixel_index = if oam_entry.x_flip_enabled() {
+                    pixel_index
+                } else {
+                    7 - pixel_index
+                };
 
                 let color_index = get_color_index(first_byte, second_byte, pixel_index);
 
@@ -469,7 +469,7 @@ impl Ppu {
 
                 let pixel = get_pixel_color(sprite_palette, color_index);
 
-                // Calculate the offset for the current pixel and update the screen buffer
+                // Calculate the offset for the current pixel and update the viewport buffer
                 let offset = x_offset as usize + self.scan_y as usize * VIEWPORT_WIDTH;
                 self.viewport_buffer[offset] = pixel;
             }
@@ -545,7 +545,7 @@ fn get_pixel_color(palette: u8, color_index: u8) -> Color {
 }
 
 fn calculate_address(base_address: u16, x: u8, y: u8) -> u16 {
-    let sprites_per_row: u16 = (FULL_WIDTH / TILE_WIDTH) as u16;
+    let sprites_per_row: u16 = (FULL_WIDTH / TILE_WIDTH as usize) as u16;
     let sprite_x = (x as u16) / TILE_WIDTH as u16;
     let sprite_y = (y as u16) / TILE_HEIGHT as u16;
 
