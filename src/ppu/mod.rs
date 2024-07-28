@@ -75,7 +75,7 @@ pub struct Ppu {
     pub interrupts: u8,
     video_ram: [u8; VRAM_SIZE],
     oam: [OAM; OAM_SIZE],
-    oam_buffer: Vec<(usize, u8)>,
+    oam_buffer: Vec<(usize, i16)>,
     lcd_control: LCD_control,
     lcd_status: LCD_status,
     window: Window,
@@ -187,6 +187,7 @@ impl ComponentTick for Ppu {
                 self.oam_buffer.clear();
 
                 // Determine the height of the sprite (8x8 or 8x16)
+                let scan_y = self.scan_y as i16;
                 self.tile_height = if self.lcd_control.object_size {
                     TILE_HEIGHT_BIG
                 } else {
@@ -197,13 +198,13 @@ impl ComponentTick for Ppu {
                     let oam_entry = self.oam[i];
                     // First byte in OAM (oam_entry.y_pos) is the
                     // object’s vertical position on the screen + 16
-                    let object_y = oam_entry.y_pos - 16;
+                    let object_y = oam_entry.y_pos as i16 - 16;
                     // Second byte in OAM (oam_entry.x_pos) is the
                     // object’s horizontal position on the screen + 8
-                    let object_x = oam_entry.x_pos - 8;
+                    let object_x = oam_entry.x_pos as i16 - 8;
 
                     // Determine if the current scanline intersects with the vertical span of the object
-                    if self.scan_y >= object_y && self.scan_y < object_y + self.tile_height {
+                    if scan_y >= object_y && scan_y < object_y + self.tile_height as i16 {
                         self.oam_buffer.push((i, object_x));
                     }
                 }
@@ -410,8 +411,9 @@ impl Ppu {
     fn render_object_line(&mut self) {
         for (oam_index, x_offset) in self.oam_buffer.iter() {
             let oam_entry = self.oam[*oam_index];
-            let y_offset = oam_entry.y_pos - 16;
+            let y_offset = oam_entry.y_pos as i16 - 16;
 
+            let scan_y = self.scan_y as i16;
             let mut tile_index = oam_entry.tile_index;
 
             // Ignore last bit for 8x16 sprites
@@ -424,9 +426,9 @@ impl Ppu {
 
             // Calculate line offset based on if the sprite is vertically mirrored
             let line_offset = if oam_entry.y_flip_enabled() {
-                self.tile_height - 1 - (self.scan_y - y_offset)
+                self.tile_height as i16 - 1 - (scan_y - y_offset)
             } else {
-                self.scan_y - y_offset
+                self.scan_y as i16 - y_offset
             };
 
             // Since each line consists of 2 bytes, the offset has to be multiplied by 2
@@ -434,7 +436,7 @@ impl Ppu {
             let (first_byte, second_byte) = self.get_tile_bytes(tile_address);
 
             for pixel_index in 0..TILE_WIDTH {
-                let x_offset = x_offset + pixel_index;
+                let x_offset = x_offset + pixel_index as i16;
 
                 // Skip rendering pixel outside of viewport
                 if !(0..VIEWPORT_WIDTH).contains(&(x_offset as usize)) {
@@ -470,7 +472,7 @@ impl Ppu {
                 let pixel = get_pixel_color(sprite_palette, color_index);
 
                 // Calculate the offset for the current pixel and update the viewport buffer
-                let offset = x_offset as usize + self.scan_y as usize * VIEWPORT_WIDTH;
+                let offset = x_offset as usize + scan_y as usize * VIEWPORT_WIDTH;
                 self.viewport_buffer[offset] = pixel;
             }
         }
