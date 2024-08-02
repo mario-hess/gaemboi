@@ -235,6 +235,9 @@ impl MemoryBus {
     }
 
     pub fn save_game(&self, file_path: &str) {
-        self.cartridge.save_game(file_path);
+        match self.cartridge.save_game(file_path) {
+            Ok(_) => println!("Game saved."),
+            Err(e) => eprintln!("Error saving game: {e}."),
+        }
     }
 }

@@ -6,7 +6,6 @@
  */
 use sdl2::{
     audio::{AudioDevice, AudioSpecDesired},
-    pixels::Color,
     rect::Point,
 };
 
@@ -19,12 +18,14 @@ use crate::{
     cpu::Cpu,
     event_handler::EventHandler,
     memory_bus::ComponentTick,
-    ppu::VIEWPORT_WIDTH,
+    ppu::{BLACK, VIEWPORT_WIDTH, WHITE},
     sdl::{window::Window, SDL},
     MachineState,
 };
 
+const FRAME_DURATION_MS: f64 = 16.7;
 pub const FPS: f32 = 59.7275;
+pub const STATUSBAR_OFFSET: u8 = 8;
 
 pub struct Machine {
     pub cpu: Cpu,
@@ -41,15 +42,14 @@ impl Machine {
         }
     }
 
-    pub fn run(&mut self, sdl: &mut SDL, event_handler: &mut EventHandler) {
+    pub fn run(&mut self, sdl: &mut SDL, event_handler: &mut EventHandler, game_title: String) {
         let audio_device = self.create_audio_device(sdl, &event_handler.volume);
         audio_device.resume();
 
-        // Using an unsigned integer for the frame duration effectively lets the
-        // core emulation loop run at 62.5 FPS (16ms frame duration) instead of
-        // 59.7275 FPS (16.74ms frame duration). This is needed to synchronize
-        // the audio frequency with the cpu frequency.
-        let frame_duration = std::time::Duration::from_millis((1_000.0 / FPS) as u64);
+        // Use a frame duration of 16.7ms instead of 16.74ms.
+        // This is needed to synchronize the audio frequency with the cpu frequency.
+        let frame_duration_nanos = (FRAME_DURATION_MS * 1_000_000.0) as u64;
+        let frame_duration = std::time::Duration::from_nanos(frame_duration_nanos);
 
         // Core emulation loop
         while !event_handler.pressed_escape {
@@ -65,13 +65,22 @@ impl Machine {
                 break;
             }
 
+            sdl.window.canvas.set_draw_color(WHITE);
+            sdl.window.canvas.clear();
+
             // Component tick
             while self.clock.cycles_passed <= self.clock.cycles_per_frame {
                 let m_cycles = self.cpu.step();
                 self.cpu.memory_bus.tick(m_cycles);
 
                 if self.cpu.memory_bus.ppu.should_draw {
-                    self.draw_viewport(&mut sdl.window, &event_handler.volume);
+                    self.draw_statusbar(
+                        &mut sdl.window,
+                        &event_handler.volume,
+                        &mut game_title.clone(),
+                    );
+                    self.draw_viewport(&mut sdl.window);
+                    sdl.window.canvas.present();
                 }
 
                 self.clock.tick(m_cycles);
@@ -79,7 +88,7 @@ impl Machine {
 
             self.clock.reset();
 
-            // Tick at 62.5 Hz using a spin-lock
+            // Tick at ~59.76 Hz using a spin-lock
             while frame_start_time.elapsed() < frame_duration {
                 std::hint::spin_loop();
             }
@@ -90,20 +99,20 @@ impl Machine {
                 std::hint::spin_loop();
             }
 
-            self.fps = 1.0 / frame_start_time.elapsed().as_secs_f32();
-
             /* This isn't precise enough as thread scheduling is OS-dependent
             let elapsed_time = frame_start_time.elapsed();
             if elapsed_time < frame_duration {
                 std::thread::sleep(frame_duration - elapsed_time);
             }
             */
+
+            self.fps = 1.0 / frame_start_time.elapsed().as_secs_f32();
         }
 
         event_handler.pressed_escape = false;
     }
 
-    fn draw_viewport(&mut self, window: &mut Window, volume: &u8) {
+    fn draw_viewport(&mut self, window: &mut Window) {
         for (index, pixel) in self.cpu.memory_bus.ppu.viewport_buffer.iter().enumerate() {
             let x_coord = (index % VIEWPORT_WIDTH) as i32;
             let y_coord = (index / VIEWPORT_WIDTH) as i32;
@@ -111,17 +120,37 @@ impl Machine {
             window.canvas.set_draw_color(*pixel);
             window
                 .canvas
-                .draw_point(Point::new(x_coord, y_coord))
+                .draw_point(Point::new(x_coord, y_coord + STATUSBAR_OFFSET as i32))
                 .unwrap();
         }
 
-        let text: &str = &format!("VOL: {}% | FPS: {:.2}", volume, &self.fps).to_string();
-        window.render_text(text, Color::RGB(0, 255, 0));
-        window.canvas.present();
         self.cpu.memory_bus.ppu.should_draw = false;
-
         self.cpu.memory_bus.ppu.clear_screen();
     }
+
+    fn draw_statusbar(&mut self, window: &mut Window, volume: &u8, game_title: &mut String) {
+        let fps_str = format!("VOL: {}% | FPS: {:.2}", volume, self.fps);
+        let fps_str_position = Point::new(106, 0);
+
+        if game_title.len() > 20 {
+            game_title.truncate(20);
+            *game_title = game_title.to_owned() + "...";
+        }
+
+        let title_str = game_title.clone();
+        let title_position = Point::new(1, 0);
+
+        // Render text
+        window.render_text(&fps_str, BLACK, fps_str_position);
+        window.render_text(&title_str, BLACK, title_position);
+
+        // Status bar bottom border
+        for i in 0..160 {
+            window.canvas.set_draw_color(BLACK);
+            window.canvas.draw_point(Point::new(i, STATUSBAR_OFFSET as i32 - 1)).unwrap();
+        }
+    }
+
     fn create_audio_device<'a, 'b: 'a>(
         &'a mut self,
         sdl: &SDL,

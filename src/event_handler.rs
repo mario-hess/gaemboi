@@ -14,8 +14,7 @@ use sdl2::{
 };
 
 use crate::{
-    ppu::{VIEWPORT_HEIGHT, VIEWPORT_WIDTH},
-    MachineState,
+    machine::STATUSBAR_OFFSET, ppu::{VIEWPORT_HEIGHT, VIEWPORT_WIDTH}, MachineState
 };
 
 pub struct EventHandler {
@@ -181,8 +180,8 @@ impl EventHandler {
         canvas
             .window_mut()
             .set_size(
-                (VIEWPORT_WIDTH) as u32 * self.window_scale,
-                (VIEWPORT_HEIGHT as u32) * self.window_scale,
+                VIEWPORT_WIDTH as u32 * self.window_scale,
+                (VIEWPORT_HEIGHT + STATUSBAR_OFFSET as usize) as u32 * self.window_scale,
             )
             .unwrap();
 

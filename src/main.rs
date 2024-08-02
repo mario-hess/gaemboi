@@ -71,7 +71,8 @@ fn main() -> Result<(), Error> {
             }
             MachineState::Play => {
                 let file_path = event_handler.file_path.clone().unwrap();
-                let rom_data = read_file(event_handler.file_path.unwrap())?;
+                let path = event_handler.file_path.clone().unwrap();
+                let rom_data = read_file(path.clone())?;
 
                 let mut machine = Machine::new(rom_data);
 
@@ -81,10 +82,12 @@ fn main() -> Result<(), Error> {
                     Err(_) => println!("Couldn't load game progress."),
                 }
 
+                let game_title = extract_title(path.clone().as_str());
+
                 event_handler.file_path = None;
 
                 // Delegate control to the core emulation loop
-                machine.run(&mut sdl, &mut event_handler);
+                machine.run(&mut sdl, &mut event_handler, game_title);
 
                 // Try to create a save file
                 machine
@@ -107,4 +110,18 @@ fn read_file(file_path: String) -> Result<Vec<u8>, Error> {
     file.read_to_end(&mut data)?;
 
     Ok(data)
+}
+
+fn extract_title(file_path: &str) -> String {
+    let path = std::path::Path::new(file_path);
+
+    let (title, _extension) = path
+        .file_name()
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .rsplit_once('.')
+        .unwrap();
+
+    title.to_string()
 }

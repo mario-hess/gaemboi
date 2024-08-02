@@ -185,9 +185,9 @@ impl ComponentTick for Ppu {
                 }
 
                 self.oam_buffer.clear();
+                let scan_y = self.scan_y as i16;
 
                 // Determine the height of the sprite (8x8 or 8x16)
-                let scan_y = self.scan_y as i16;
                 self.tile_height = if self.lcd_control.object_size {
                     TILE_HEIGHT_BIG
                 } else {
@@ -248,7 +248,7 @@ impl ComponentTick for Ppu {
                     self.interrupts |= VBLANK_MASK;
                 } else {
                     // Increase internal window line counter alongside scan_y if window is visible on
-                    // the viewport.
+                    // the viewport
                     self.window
                         .increase_line_counter(self.lcd_control.window_enabled, self.scan_y);
 
@@ -519,12 +519,16 @@ impl Ppu {
     }
 
     pub fn clear_screen(&mut self) {
+        self.overlap_map.fill(false);
+        self.viewport_buffer.fill(WHITE);
+        /*
         for i in 0..OVERLAP_MAP_SIZE {
             if i < BUFFER_SIZE {
                 self.viewport_buffer[i] = WHITE;
             }
             self.overlap_map[i] = false;
         }
+        */
     }
 
     pub fn reset_interrupts(&mut self) {
@@ -538,10 +542,10 @@ fn get_pixel_color(palette: u8, color_index: u8) -> Color {
         .collect::<Vec<u8>>();
 
     match color_palette[color_index as usize] {
-        0 => WHITE,
-        1 => LIGHT,
-        2 => DARK,
-        3 => BLACK,
+        0b00 => WHITE,
+        0b01 => LIGHT,
+        0b10 => DARK,
+        0b11 => BLACK,
         _ => BLACK,
     }
 }

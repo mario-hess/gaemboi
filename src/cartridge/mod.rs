@@ -10,7 +10,10 @@ mod mbc1;
 mod mbc2;
 mod mbc3;
 
-use std::{fs::File, io::Write};
+use std::{
+    fs::File,
+    io::{Error, Write},
+};
 
 use crate::{
     cartridge::{core::CartridgeCore, mbc0::Mbc0, mbc1::Mbc1, mbc2::Mbc2, mbc3::Mbc3},
@@ -83,13 +86,13 @@ impl Cartridge {
         println!("Game loaded.")
     }
 
-    pub fn save_game(&self, save_path: &str) {
+    pub fn save_game(&self, save_path: &str) -> Result<(), Error> {
         let core = self.mbc.get_core();
         if let Some(ram_data) = &core.ram_data {
-            let mut file = File::create(save_path).expect("Failed to create save file.");
-            file.write_all(ram_data)
-                .expect("Failed to write save file.");
-            println!("Game saved.")
+            let mut file = File::create(save_path)?;
+            file.write_all(ram_data)?;
         }
+
+        Ok(())
     }
 }

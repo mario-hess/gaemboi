@@ -85,9 +85,9 @@ impl Window {
 
     // Calculate the pixels position within the tile
     pub fn pixel_offsets(&self, scan_x: u8, scan_y: u8) -> (u8, u8) {
-        let x_offset = self.x_coord.wrapping_sub(scan_x) % TILE_WIDTH as u8;
+        let x_offset = self.x_coord.wrapping_sub(scan_x) % TILE_WIDTH;
         // Since each line consists of 2 bytes, the offset has to be multiplied by 2
-        let y_offset = ((scan_y - self.y_coord) % TILE_HEIGHT as u8) * 2;
+        let y_offset = ((scan_y - self.y_coord) % TILE_HEIGHT) * 2;
 
         (x_offset, y_offset)
     }
