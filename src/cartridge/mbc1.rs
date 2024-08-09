@@ -52,12 +52,12 @@ impl MemoryBankController for Mbc1 {
                 // Specify the lower 5 bits
                 let bank_number = if value == 0 { 1 } else { value };
                 self.core.rom_bank =
-                    (self.core.rom_bank & 0b0110_0000) | (bank_number & 0b0001_1111);
+                    (self.core.rom_bank & 0b0110_0000) | (bank_number & 0b0001_1111) as u16;
             }
             // 0x4000 - 0x5FFF (RAM bank number — or — upper bits of ROM bank number)
             0x4 | 0x5 => match self.mode {
                 Mode::RamBanking => self.core.ram_bank = value,
-                Mode::RomBanking => self.core.rom_bank |= (value & 0b0000_0011) << 5,
+                Mode::RomBanking => self.core.rom_bank |= ((value & 0b0000_0011) << 5) as u16,
             },
             // 0x6000 - 0x7FFF (Banking mode select)
             0x6 | 0x7 => match value {

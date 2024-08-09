@@ -51,6 +51,7 @@ const BG_PALETTE: u16 = 0xFF47;
 const PPU_IO_END: u16 = 0xFF4B;
 
 const SPEED_SWITCH: u16 = 0xFF4D;
+const CGB_VRAM_SELECT: u16 = 0xFF4F;
 
 const HRAM_START: u16 = 0xFF80;
 const HRAM_END: u16 = 0xFFFE;
@@ -118,12 +119,14 @@ impl MemoryAccess for MemoryBus {
             BG_PALETTE..=PPU_IO_END => self.ppu.read_byte(address),
             // 0xFF4D (Speed Switch)
             SPEED_SWITCH => self.speed_switch,
+            // 0xFF4F (CGB VRAM Select)
+            CGB_VRAM_SELECT => 0xFF,
             // 0xFF80 - 0xFFFE (High RAM)
             HRAM_START..=HRAM_END => self.hram[address as usize - HRAM_START as usize],
             // 0xFFFF (Interrupt Enable Register)
             INTERRUPT_ENABLE => self.interrupt_enabled,
             _ => {
-                eprintln!("Unknown address: {:#X} Can't read byte.", address);
+                eprintln!("Memory Bus Unknown address: {:#X} Can't read byte.", address);
 
                 0xFF
             }
@@ -168,12 +171,14 @@ impl MemoryAccess for MemoryBus {
             BG_PALETTE..=PPU_IO_END => self.ppu.write_byte(address, value),
             // 0xFF4D (Speed Switch)
             SPEED_SWITCH => self.speed_switch = value,
+            // 0xFF4F (CGB VRAM Select)
+            CGB_VRAM_SELECT => {},
             // 0xFF80 - 0xFFFE (High RAM)
             HRAM_START..=HRAM_END => self.hram[address as usize - HRAM_START as usize] = value,
             // 0xFFFF (Interrupt Enable Register)
             INTERRUPT_ENABLE => self.interrupt_enabled = value,
             _ => eprintln!(
-                "Unknown address: {:#X} Can't write byte: {:#X}.",
+                "Memory Bus Unknown address: {:#X} Can't write byte: {:#X}.",
                 address, value
             ),
         }

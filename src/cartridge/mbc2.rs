@@ -53,7 +53,7 @@ impl MemoryBankController for Mbc2 {
                 }
 
                 let bank_number = if value == 0 { 1 } else { value };
-                self.core.rom_bank = bank_number & 0xF;
+                self.core.rom_bank = (bank_number & 0xF) as u16;
             }
             0x4..=0x7 => {}
             _ => eprintln!(

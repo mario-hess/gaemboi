@@ -1,16 +1,16 @@
 /**
- * @file    cartridge/mbc3.rs
- * @brief   MBC3 Memory Bank Controller implementation.
+ * @file    cartridge/mbc5.rs
+ * @brief   MBC5 Memory Bank Controller implementation.
  * @author  Mario Hess
- * @date    June 8, 2024
+ * @date    August 09, 2024
  */
 use crate::cartridge::{core::CartridgeCore, MemoryBankController, MASK_MSB, RAM_ADDRESS};
 
-pub struct Mbc3 {
+pub struct Mbc5 {
     core: CartridgeCore,
 }
 
-impl Mbc3 {
+impl Mbc5 {
     pub fn new(rom_data: Vec<u8>) -> Self {
         Self {
             core: CartridgeCore::new(&rom_data),
@@ -18,7 +18,7 @@ impl Mbc3 {
     }
 }
 
-impl MemoryBankController for Mbc3 {
+impl MemoryBankController for Mbc5 {
     fn read_rom(&self, address: u16) -> u8 {
         match (address & MASK_MSB) >> 12 {
             // 0x0000 - 0x3FFF (Bank 00)
@@ -41,12 +41,16 @@ impl MemoryBankController for Mbc3 {
             // 0x0000 - 0x1FFF (RAM enable)
             0x0 | 0x1 => self.core.ram_enabled = (value & 0x0F) == 0x0A,
             // 0x2000 - 0x3FFF (ROM bank number)
-            0x2 | 0x3 => {
-                let bank_number = if value == 0 { 1 } else { value };
-                self.core.rom_bank = (bank_number & 0b0111_1111) as u16;
+            0x2 => {
+                let high_byte = (self.core.rom_bank >> 8) as u8;
+                self.core.rom_bank = (high_byte as u16) << 8 | value as u16;
+            }
+            0x3 => {
+                let high_byte = (self.core.rom_bank >> 8) as u8;
+                self.core.rom_bank = (high_byte as u16) << 8 | value as u16;
             }
             // 0x4000 - 0x5FFF (RAM bank number)
-            0x4 | 0x5 => self.core.ram_bank = value & 0b0000_0011,
+            0x4 | 0x5 => self.core.ram_bank = value & 0xF,
             0x6 | 0x7 => {}
             _ => eprintln!(
                 "Unknown address: {:#X}. Can't write byte: {:#X}.",

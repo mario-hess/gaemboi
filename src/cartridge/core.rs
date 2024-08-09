@@ -9,7 +9,7 @@ use crate::cartridge::{CARTRIDGE_TYPE_ADDRESS, RAM_BANK_SIZE, RAM_SIZE_ADDRESS, 
 pub struct CartridgeCore {
     pub rom_data: Vec<u8>,
     pub ram_data: Option<Vec<u8>>,
-    pub rom_bank: u8,
+    pub rom_bank: u16,
     pub ram_bank: u8,
     pub rom_offset: usize,
     pub ram_offset: usize,

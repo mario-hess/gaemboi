@@ -9,11 +9,14 @@ mod mbc0;
 mod mbc1;
 mod mbc2;
 mod mbc3;
+mod mbc5;
 
 use std::{
     fs::File,
     io::{Error, Write},
 };
+
+use mbc5::Mbc5;
 
 use crate::{
     cartridge::{core::CartridgeCore, mbc0::Mbc0, mbc1::Mbc1, mbc2::Mbc2, mbc3::Mbc3},
@@ -70,10 +73,26 @@ impl MemoryAccess for Cartridge {
 impl Cartridge {
     pub fn build(rom_data: Vec<u8>) -> Self {
         let mbc: Box<dyn MemoryBankController> = match rom_data[CARTRIDGE_TYPE_ADDRESS] {
-            0x0 => Box::new(Mbc0::new(rom_data)),
-            0x01..=0x03 => Box::new(Mbc1::new(rom_data)),
-            0x05 | 0x06 => Box::new(Mbc2::new(rom_data)),
-            0x0F..=0x13 => Box::new(Mbc3::new(rom_data)),
+            0x0 => {
+                println!("MBC0");
+                Box::new(Mbc0::new(rom_data))
+            },
+            0x01..=0x03 => {
+                println!("MBC1");
+                Box::new(Mbc1::new(rom_data))
+            },
+            0x05 | 0x06 => {
+                println!("MBC3");
+                Box::new(Mbc2::new(rom_data))
+            },
+            0x0F..=0x13 => {
+                println!("MBC3");
+                Box::new(Mbc3::new(rom_data))
+            },
+            0x19..= 0x1E => {
+                println!("MBC5");
+                Box::new(Mbc5::new(rom_data))
+            },
             _ => panic!("Error: Cartridge type not supported"),
         };
 
