@@ -22,7 +22,6 @@ mod machine;
 mod memory_bus;
 mod menu;
 mod ppu;
-mod registers;
 mod sdl;
 
 use std::{

@@ -391,7 +391,7 @@ impl Ppu {
 
             let (first_byte, second_byte) = self.get_tile_bytes(tile_address + y_offset as u16);
 
-            let color_index = get_color_index(first_byte, second_byte, x_offset);
+            let color_index = color_index(first_byte, second_byte, x_offset);
 
             // Calculate the offset for the current pixel based on
             // the background width and update the overlap map
@@ -400,7 +400,7 @@ impl Ppu {
                 self.overlap_map[overlap_offset] = true;
             }
 
-            let pixel = get_pixel_color(self.bg_palette, color_index);
+            let pixel = pixel_color(self.bg_palette, color_index);
 
             // Calculate the offset for the current pixel and update the viewport buffer
             let offset = scan_x as usize + self.scan_y as usize * VIEWPORT_WIDTH;
@@ -456,7 +456,7 @@ impl Ppu {
                     7 - pixel_index
                 };
 
-                let color_index = get_color_index(first_byte, second_byte, pixel_index);
+                let color_index = color_index(first_byte, second_byte, pixel_index);
 
                 // Skip rendering transparent pixels
                 if color_index == 0 {
@@ -469,7 +469,7 @@ impl Ppu {
                     self.sprite_palette0
                 };
 
-                let pixel = get_pixel_color(sprite_palette, color_index);
+                let pixel = pixel_color(sprite_palette, color_index);
 
                 // Calculate the offset for the current pixel and update the viewport buffer
                 let offset = x_offset as usize + scan_y as usize * VIEWPORT_WIDTH;
@@ -511,7 +511,7 @@ impl Ppu {
     }
 
     fn is_overlapping(&self, oam_entry: &OAM, offset: usize) -> bool {
-        if !oam_entry.overlap_enabled() {
+        if !oam_entry.priority_enabled() {
             return false;
         }
 
@@ -521,14 +521,6 @@ impl Ppu {
     pub fn clear_screen(&mut self) {
         self.overlap_map.fill(false);
         self.viewport_buffer.fill(WHITE);
-        /*
-        for i in 0..OVERLAP_MAP_SIZE {
-            if i < BUFFER_SIZE {
-                self.viewport_buffer[i] = WHITE;
-            }
-            self.overlap_map[i] = false;
-        }
-        */
     }
 
     pub fn reset_interrupts(&mut self) {
@@ -536,17 +528,13 @@ impl Ppu {
     }
 }
 
-fn get_pixel_color(palette: u8, color_index: u8) -> Color {
-    let color_palette: Vec<u8> = (0..=3)
-        .map(|i| (palette >> (i * 2) & 0x03))
-        .collect::<Vec<u8>>();
-
-    match color_palette[color_index as usize] {
+fn pixel_color(palette: u8, color_index: u8) -> Color {
+    match (palette >> (color_index << 1)) & 0b11 {
         0b00 => WHITE,
         0b01 => LIGHT,
         0b10 => DARK,
         0b11 => BLACK,
-        _ => BLACK,
+        _ => unreachable!(),
     }
 }
 
@@ -560,8 +548,11 @@ fn calculate_address(base_address: u16, x: u8, y: u8) -> u16 {
     base_address + offset
 }
 
-fn get_color_index(first_byte: u8, second_byte: u8, pixel_index: u8) -> u8 {
-    // The first byte specifies the least significant bit of the color ID of
-    // each pixel, and the second byte specifies the most significant bit
-    ((first_byte >> pixel_index) & 0x01) | ((second_byte >> pixel_index) & 0x01) << 1
+// The first byte specifies the least significant bit of the color ID of
+// each pixel, and the second byte specifies the most significant bit
+fn color_index(first_byte: u8, second_byte: u8, pixel_index: u8) -> u8 {
+    let lsb = (first_byte >> pixel_index) & 0b1;
+    let msb = ((second_byte >> pixel_index) & 0b1) << 1;
+
+    msb | lsb
 }

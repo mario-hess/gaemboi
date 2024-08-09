@@ -37,6 +37,7 @@ pub struct EventHandler {
     pub window_resized: bool,
     pub volume: u8,
     pub quit: bool,
+    pub potato_mode: bool,
 }
 
 impl EventHandler {
@@ -61,6 +62,7 @@ impl EventHandler {
             window_resized: false,
             volume: 50,
             quit: false,
+            potato_mode: true,
         }
     }
 
@@ -99,6 +101,7 @@ impl EventHandler {
                     Some(Keycode::Down) => self.decrease_scale(),
                     Some(Keycode::Left) => self.decrease_volume(),
                     Some(Keycode::Right) => self.increase_volume(),
+                    Some(Keycode::P) => self.potato_mode = !self.potato_mode,
                     _ => {}
                 },
                 Event::ControllerButtonDown { button, .. } => match button {

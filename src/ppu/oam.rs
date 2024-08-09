@@ -36,7 +36,7 @@ impl OAM {
         self.attributes & 0x40 != 0
     }
 
-    pub fn overlap_enabled(&self) -> bool {
+    pub fn priority_enabled(&self) -> bool {
         self.attributes & 0x80 != 0
     }
 }

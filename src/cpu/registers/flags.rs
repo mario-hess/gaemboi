@@ -11,14 +11,14 @@ const SUBTRACT_MASK: u8 = 0x40;
 const HALF_CARRY_MASK: u8 = 0x20;
 const CARRY_MASK: u8 = 0x10;
 
-pub struct FlagsRegister {
+pub struct Flags {
     zero: bool,
     subtract: bool,
     half_carry: bool,
     carry: bool,
 }
 
-impl FlagsRegister {
+impl Flags {
     pub fn new(enable_flags: bool) -> Self {
         Self {
             zero: true,
@@ -70,27 +70,22 @@ impl FlagsRegister {
     }
 }
 
-impl std::convert::From<&FlagsRegister> for u8 {
-    fn from(flag: &FlagsRegister) -> u8 {
-        (if flag.zero { ZERO_MASK } else { 0 })
-            | (if flag.subtract { SUBTRACT_MASK } else { 0 })
-            | (if flag.half_carry { HALF_CARRY_MASK } else { 0 })
-            | (if flag.carry { CARRY_MASK } else { 0 })
+impl std::convert::From<&Flags> for u8 {
+    fn from(flags: &Flags) -> u8 {
+        (if flags.zero { ZERO_MASK } else { 0 })
+            | (if flags.subtract { SUBTRACT_MASK } else { 0 })
+            | (if flags.half_carry { HALF_CARRY_MASK } else { 0 })
+            | (if flags.carry { CARRY_MASK } else { 0 })
     }
 }
 
-impl std::convert::From<u8> for FlagsRegister {
+impl std::convert::From<u8> for Flags {
     fn from(byte: u8) -> Self {
-        let zero = (byte & ZERO_MASK) != 0;
-        let subtract = (byte & SUBTRACT_MASK) != 0;
-        let half_carry = (byte & HALF_CARRY_MASK) != 0;
-        let carry = (byte & CARRY_MASK) != 0;
-
-        FlagsRegister {
-            zero,
-            subtract,
-            half_carry,
-            carry,
+        Self {
+            zero: (byte & ZERO_MASK) != 0,
+            subtract: (byte & SUBTRACT_MASK) != 0,
+            half_carry: (byte & HALF_CARRY_MASK) != 0,
+            carry: (byte & CARRY_MASK) != 0,
         }
     }
 }

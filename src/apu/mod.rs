@@ -26,11 +26,11 @@ use crate::{
     memory_bus::{ComponentTick, MemoryAccess},
 };
 
-const CPU_CYCLES_PER_SAMPLE: f32 = CPU_CLOCK_SPEED as f32 / SAMPLING_FREQUENCY as f32;
+const CPU_CYCLES_PER_SAMPLE: u32 = CPU_CLOCK_SPEED / SAMPLING_FREQUENCY as u32;
 pub const APU_CLOCK_SPEED: u16 = 512;
 pub const LENGTH_TIMER_MAX: u16 = 64;
 
-pub const AUDIO_BUFFER_THRESHOLD: usize = SAMPLING_RATE as usize * 4;
+pub const AUDIO_BUFFER_THRESHOLD: usize = SAMPLING_RATE as usize * 8;
 
 const CH1_START: u16 = 0xFF10;
 const CH1_END: u16 = 0xFF14;
@@ -66,7 +66,7 @@ pub struct Apu {
     pub right_volume: u8,
     pub left_volume: u8,
     enabled: bool,
-    counter: f32,
+    counter: u32,
     pub audio_buffer: VecDeque<u8>,
 }
 
@@ -142,7 +142,7 @@ impl ComponentTick for Apu {
 
         self.tick_channels(m_cycles);
 
-        self.counter += t_cycles as f32;
+        self.counter += t_cycles as u32;
 
         while self.counter >= CPU_CYCLES_PER_SAMPLE {
             let (output_left, output_right) = self.mixer.mix([
@@ -172,7 +172,7 @@ impl Apu {
             right_volume: 0,
             left_volume: 0,
             enabled: false,
-            counter: 0.0,
+            counter: 0,
             audio_buffer: VecDeque::new(),
         }
     }
@@ -241,7 +241,7 @@ impl Apu {
 
         self.left_volume = 0;
         self.right_volume = 0;
-        self.counter = 0.0;
+        self.counter = 0;
         self.audio_buffer.clear();
     }
 }

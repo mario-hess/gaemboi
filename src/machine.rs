@@ -14,7 +14,7 @@ use crate::{
         audio::{Audio, SAMPLING_FREQUENCY, SAMPLING_RATE},
         AUDIO_BUFFER_THRESHOLD,
     },
-    clock::Clock,
+    clock::{Clock, CYCLES_PER_FRAME},
     cpu::Cpu,
     event_handler::EventHandler,
     memory_bus::ComponentTick,
@@ -23,7 +23,7 @@ use crate::{
     MachineState,
 };
 
-const FRAME_DURATION_MS: f64 = 16.7;
+const FRAME_DURATION_MS: f64 = 16.67;
 pub const FPS: f32 = 59.7275;
 pub const STATUSBAR_OFFSET: u8 = 8;
 
@@ -69,7 +69,7 @@ impl Machine {
             sdl.window.canvas.clear();
 
             // Component tick
-            while self.clock.cycles_passed <= self.clock.cycles_per_frame {
+            while self.clock.cycles_passed <= CYCLES_PER_FRAME {
                 let m_cycles = self.cpu.step();
                 self.cpu.memory_bus.tick(m_cycles);
 
@@ -88,23 +88,21 @@ impl Machine {
 
             self.clock.reset();
 
-            // Tick at ~59.76 Hz using a spin-lock
-            while frame_start_time.elapsed() < frame_duration {
-                std::hint::spin_loop();
-            }
+            if event_handler.potato_mode {
+                if self.cpu.memory_bus.apu.audio_buffer.len() > AUDIO_BUFFER_THRESHOLD
+                    && frame_start_time.elapsed() < frame_duration
+                {
+                    std::thread::sleep(frame_duration - frame_start_time.elapsed());
+                }
+            } else {
+                while frame_start_time.elapsed() < frame_duration {
+                    std::hint::spin_loop();
+                }
 
-            // Synchronize the audio frequency with the cpu frequency,
-            // effectively clocking the system at ~59.73 Hz
-            while self.cpu.memory_bus.apu.audio_buffer.len() > AUDIO_BUFFER_THRESHOLD {
-                std::hint::spin_loop();
+                while self.cpu.memory_bus.apu.audio_buffer.len() > AUDIO_BUFFER_THRESHOLD {
+                    std::hint::spin_loop();
+                }
             }
-
-            /* This isn't precise enough as thread scheduling is OS-dependent
-            let elapsed_time = frame_start_time.elapsed();
-            if elapsed_time < frame_duration {
-                std::thread::sleep(frame_duration - elapsed_time);
-            }
-            */
 
             self.fps = 1.0 / frame_start_time.elapsed().as_secs_f32();
         }
@@ -147,7 +145,10 @@ impl Machine {
         // Status bar bottom border
         for i in 0..160 {
             window.canvas.set_draw_color(BLACK);
-            window.canvas.draw_point(Point::new(i, STATUSBAR_OFFSET as i32 - 1)).unwrap();
+            window
+                .canvas
+                .draw_point(Point::new(i, STATUSBAR_OFFSET as i32 - 1))
+                .unwrap();
         }
     }
 

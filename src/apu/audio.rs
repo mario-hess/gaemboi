@@ -4,7 +4,6 @@
  * @author  Mario Hess
  * @date    May 25, 2024
  */
-
 use sdl2::audio::AudioCallback;
 
 use std::collections::VecDeque;

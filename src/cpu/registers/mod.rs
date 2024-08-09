@@ -4,9 +4,10 @@
  * @author  Mario Hess
  * @date    May 30, 2024
  */
-mod flags_register;
+mod flags;
+pub mod program_counter;
 
-use crate::{cpu::instruction::Target, registers::flags_register::FlagsRegister};
+use crate::cpu::{instruction::Target, registers::flags::Flags};
 
 pub struct Registers {
     a: u8,
@@ -14,7 +15,7 @@ pub struct Registers {
     c: u8,
     d: u8,
     e: u8,
-    pub flags: FlagsRegister,
+    pub flags: Flags,
     h: u8,
     l: u8,
 }
@@ -30,7 +31,7 @@ impl Registers {
             c: 0x13,
             d: 0x00,
             e: 0xD8,
-            flags: FlagsRegister::new(flags_enable),
+            flags: Flags::new(flags_enable),
             h: 0x01,
             l: 0x4D,
         }

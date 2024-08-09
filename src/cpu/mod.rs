@@ -4,24 +4,16 @@
  * @author  Mario Hess
  * @date    May 26, 2024
  */
-mod arithmetic;
-mod bit_ops;
-mod control;
 pub mod instruction;
-mod jump;
-mod load;
-mod program_counter;
-mod rotate;
-mod shift;
+mod registers;
 
 use crate::{
     cpu::{
-        instruction::{CycleDuration, Instruction, Mnemonic},
-        program_counter::ProgramCounter,
+        instruction::*,
+        registers::{program_counter::ProgramCounter, Registers},
     },
     interrupt::Interrupt,
-    memory_bus::{MemoryBus, MemoryAccess},
-    registers::Registers,
+    memory_bus::{MemoryAccess, MemoryBus},
 };
 
 const HEADER_CHECKSUM_ADDRESS: usize = 0x014D;
@@ -36,7 +28,6 @@ pub struct Cpu {
     ime: bool,
     ime_state: bool,
     halted: bool,
-    instruction: Option<Instruction>,
 }
 
 impl Cpu {
@@ -55,7 +46,6 @@ impl Cpu {
             ime: false,
             ime_state: false,
             halted: false,
-            instruction: None,
         }
     }
 
@@ -87,26 +77,31 @@ impl Cpu {
         self.ime = self.ime_state;
 
         let byte = self.memory_bus.read_byte(self.program_counter.next());
-        self.instruction = Some(Instruction::from_byte(byte));
+        let instruction = Instruction::from_byte(byte);
 
         // Check if mnemonic refers to the prefix table
-        let m_cycles = match self.instruction.unwrap().mnemonic {
+        match instruction.mnemonic {
             Mnemonic::Prefix => self.prefix_step(),
-            _ => self.execute_instruction(self.instruction.unwrap()),
-        };
-
-        // Check if the instruction returned default or optional m_cycles
-        match m_cycles {
-            CycleDuration::Default => self.instruction.unwrap().m_cycles,
-            CycleDuration::Optional => self.instruction.unwrap().opt_m_cycles.unwrap(),
+            _ => {
+                let cycle_duration = self.execute_instruction(instruction);
+                match cycle_duration {
+                    CycleDuration::Default => instruction.m_cycles,
+                    CycleDuration::Optional => instruction.opt_m_cycles.unwrap(),
+                }
+            }
         }
     }
 
     // Handle next instruction from prefix table
-    fn prefix_step(&mut self) -> CycleDuration {
+    fn prefix_step(&mut self) -> u8 {
         let byte = self.memory_bus.read_byte(self.program_counter.next());
-        self.instruction = Some(Instruction::from_prefix_byte(byte));
-        self.execute_prefix(self.instruction.unwrap())
+        let instruction = Instruction::from_prefix_byte(byte);
+        let cycle_duration = self.execute_prefix(instruction);
+
+        match cycle_duration {
+            CycleDuration::Default => instruction.m_cycles,
+            CycleDuration::Optional => instruction.opt_m_cycles.unwrap(),
+        }
     }
 
     // Multi-byte data is handled in little-endian format

@@ -4,6 +4,14 @@
  * @author  Mario Hess
  * @date    September 20, 2023
  */
+pub mod arithmetic;
+pub mod bit_ops;
+pub mod control;
+pub mod jump;
+pub mod load;
+pub mod rotate;
+pub mod shift;
+
 #[allow(clippy::upper_case_acronyms)]
 #[allow(non_camel_case_types)]
 #[derive(Debug, Copy, Clone)]
