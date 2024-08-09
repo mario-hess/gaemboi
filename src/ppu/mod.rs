@@ -43,10 +43,10 @@ const TILE_PALETTE_1: u16 = 0xFF49;
 const WINDOW_Y: u16 = 0xFF4A;
 const WINDOW_X: u16 = 0xFF4B;
 
-pub const BLACK: Color = Color::RGB(0, 0, 0);
-pub const DARK: Color = Color::RGB(96, 96, 96);
-pub const LIGHT: Color = Color::RGB(192, 192, 192);
-pub const WHITE: Color = Color::RGB(255, 255, 255);
+pub const BLACK: Color = Color::RGB(8, 24, 32);
+pub const DARK: Color = Color::RGB(52, 104, 86);
+pub const LIGHT: Color = Color::RGB(136, 192, 112);
+pub const WHITE: Color = Color::RGB(224, 248, 208);
 
 const CYCLES_OAM: u16 = 80;
 const CYCLES_TRANSFER: u16 = 172;

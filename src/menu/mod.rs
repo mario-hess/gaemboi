@@ -20,7 +20,7 @@ use crate::{
 };
 
 pub fn run(event_handler: &mut EventHandler, event_pump: &mut EventPump, window: &mut Window) {
-    let buttons_image = include_bytes!("../../images/buttons.png");
+    let buttons_image = include_bytes!("../../images/buttons2.png");
     let button_texture = window
         .texture_creator
         .load_texture_bytes(buttons_image)

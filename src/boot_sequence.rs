@@ -20,7 +20,7 @@ pub fn run(window: &mut Window, event_handler: &mut EventHandler, event_pump: &m
     let frame_duration = std::time::Duration::from_millis((1000.0 / 30.0) as u64);
 
     // Include logo in binaries.
-    let bytes = include_bytes!("../images/logo.png");
+    let bytes = include_bytes!("../images/logo2.png");
 
     let texture = window.texture_creator.load_texture_bytes(bytes).unwrap();
 
