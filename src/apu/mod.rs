@@ -152,6 +152,10 @@ impl ComponentTick for Apu {
                 &self.ch4.core,
             ]);
 
+            while self.audio_buffer.len() > AUDIO_BUFFER_THRESHOLD {
+                std::thread::sleep(std::time::Duration::from_millis(1));
+            }
+
             self.audio_buffer.push_back(output_left);
             self.audio_buffer.push_back(output_right);
 

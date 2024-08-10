@@ -88,6 +88,7 @@ impl Machine {
 
             self.clock.reset();
 
+            /*
             if event_handler.potato_mode {
                 if self.cpu.memory_bus.apu.audio_buffer.len() > AUDIO_BUFFER_THRESHOLD
                     && frame_start_time.elapsed() < frame_duration
@@ -102,6 +103,11 @@ impl Machine {
                 while self.cpu.memory_bus.apu.audio_buffer.len() > AUDIO_BUFFER_THRESHOLD {
                     std::hint::spin_loop();
                 }
+            }
+            */
+
+            while frame_start_time.elapsed() < frame_duration {
+                std::hint::spin_loop();
             }
 
             self.fps = 1.0 / frame_start_time.elapsed().as_secs_f32();
