@@ -30,7 +30,7 @@ const CPU_CYCLES_PER_SAMPLE: u32 = CPU_CLOCK_SPEED / SAMPLING_FREQUENCY as u32;
 pub const APU_CLOCK_SPEED: u16 = 512;
 pub const LENGTH_TIMER_MAX: u16 = 64;
 
-pub const AUDIO_BUFFER_THRESHOLD: usize = SAMPLING_RATE as usize * 4;
+pub const AUDIO_BUFFER_THRESHOLD: usize = SAMPLING_RATE as usize * 8;
 
 const CH1_START: u16 = 0xFF10;
 const CH1_END: u16 = 0xFF14;
