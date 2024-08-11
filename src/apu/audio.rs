@@ -6,13 +6,13 @@
  */
 use sdl2::audio::AudioCallback;
 
-use std::collections::VecDeque;
+use std::{collections::VecDeque, sync::{Arc, Mutex}};
 
-pub const SAMPLING_RATE: u16 = 1024;
+pub const SAMPLING_RATE: u16 = 512;
 pub const SAMPLING_FREQUENCY: u16 = 48000;
 
 pub struct Audio<'a> {
-    pub audio_buffer: &'a mut VecDeque<u8>,
+    pub audio_buffer: &'a mut Arc<Mutex<VecDeque<u8>>>,
     left_master: &'a u8,
     right_master: &'a u8,
     volume: &'a u8,
@@ -20,7 +20,7 @@ pub struct Audio<'a> {
 
 impl<'a> Audio<'a> {
     pub fn new(
-        audio_buffer: &'a mut VecDeque<u8>,
+        audio_buffer: &'a mut Arc<Mutex<VecDeque<u8>>>,
         left_master: &'a u8,
         right_master: &'a u8,
         volume: &'a u8,
@@ -39,16 +39,18 @@ impl AudioCallback for Audio<'_> {
 
     fn callback(&mut self, out: &mut [f32]) {
         for (i, sample) in out.iter_mut().enumerate() {
-            if !self.audio_buffer.is_empty() {
+            if !self.audio_buffer.lock().unwrap().is_empty() {
                 let master_volume = if i % 2 == 0 {
                     self.left_master
                 } else {
                     self.right_master
                 };
 
-                *sample = self.audio_buffer.pop_front().unwrap() as f32
+                *sample = self.audio_buffer.lock().unwrap().pop_front().unwrap() as f32
                     * (*self.volume as f32 / 10000.0)
                     * *master_volume as f32;
+            } else {
+                println!("EPMTY AT: {:#?}", std::time::Instant::now());
             }
         }
     }

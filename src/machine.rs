@@ -23,7 +23,7 @@ use crate::{
     MachineState,
 };
 
-const FRAME_DURATION_MS: f64 = 16.67;
+const FRAME_DURATION_MS: f64 = 16.7433;
 pub const FPS: f32 = 59.7275;
 pub const STATUSBAR_OFFSET: u8 = 8;
 
@@ -48,8 +48,8 @@ impl Machine {
 
         // Use a frame duration of 16.7ms instead of 16.74ms.
         // This is needed to synchronize the audio frequency with the cpu frequency.
-        let frame_duration_nanos = (FRAME_DURATION_MS * 1_000_000.0) as u64;
-        let frame_duration = std::time::Duration::from_nanos(frame_duration_nanos);
+        let frame_duration_micros = (FRAME_DURATION_MS * 1_000.0) as u64;
+        let frame_duration = std::time::Duration::from_micros(frame_duration_micros);
 
         // Core emulation loop
         while !event_handler.pressed_escape {
@@ -88,26 +88,12 @@ impl Machine {
 
             self.clock.reset();
 
-            /*
-            if event_handler.potato_mode {
-                if self.cpu.memory_bus.apu.audio_buffer.len() > AUDIO_BUFFER_THRESHOLD
-                    && frame_start_time.elapsed() < frame_duration
-                {
-                    std::thread::sleep(frame_duration - frame_start_time.elapsed());
-                }
-            } else {
-                while frame_start_time.elapsed() < frame_duration {
-                    std::hint::spin_loop();
-                }
-
-                while self.cpu.memory_bus.apu.audio_buffer.len() > AUDIO_BUFFER_THRESHOLD {
-                    std::hint::spin_loop();
-                }
-            }
-            */
-
-            while frame_start_time.elapsed() < frame_duration {
-                std::hint::spin_loop();
+            if frame_start_time.elapsed().as_micros() < frame_duration.as_micros()
+                && self.cpu.memory_bus.apu.audio_buffer.lock().unwrap().len() > AUDIO_BUFFER_THRESHOLD
+            {
+                std::thread::sleep(std::time::Duration::from_micros(
+                    (frame_duration.as_micros() - frame_start_time.elapsed().as_micros()) as u64,
+                ));
             }
 
             self.fps = 1.0 / frame_start_time.elapsed().as_secs_f32();

@@ -9,7 +9,7 @@ mod channel;
 mod frame_sequencer;
 mod mixer;
 
-use std::collections::VecDeque;
+use std::{collections::VecDeque, sync::{Arc, Mutex}};
 
 use crate::{
     apu::{
@@ -30,7 +30,7 @@ const CPU_CYCLES_PER_SAMPLE: u32 = CPU_CLOCK_SPEED / SAMPLING_FREQUENCY as u32;
 pub const APU_CLOCK_SPEED: u16 = 512;
 pub const LENGTH_TIMER_MAX: u16 = 64;
 
-pub const AUDIO_BUFFER_THRESHOLD: usize = SAMPLING_RATE as usize * 8;
+pub const AUDIO_BUFFER_THRESHOLD: usize = SAMPLING_RATE as usize * 4;
 
 const CH1_START: u16 = 0xFF10;
 const CH1_END: u16 = 0xFF14;
@@ -67,7 +67,7 @@ pub struct Apu {
     pub left_volume: u8,
     enabled: bool,
     counter: u32,
-    pub audio_buffer: VecDeque<u8>,
+    pub audio_buffer: Arc<Mutex<VecDeque<u8>>> ,
 }
 
 impl MemoryAccess for Apu {
@@ -152,12 +152,8 @@ impl ComponentTick for Apu {
                 &self.ch4.core,
             ]);
 
-            while self.audio_buffer.len() > AUDIO_BUFFER_THRESHOLD {
-                std::thread::sleep(std::time::Duration::from_millis(1));
-            }
-
-            self.audio_buffer.push_back(output_left);
-            self.audio_buffer.push_back(output_right);
+            self.audio_buffer.lock().unwrap().push_back(output_left);
+            self.audio_buffer.lock().unwrap().push_back(output_right);
 
             self.counter -= CPU_CYCLES_PER_SAMPLE;
         }
@@ -177,7 +173,7 @@ impl Apu {
             left_volume: 0,
             enabled: false,
             counter: 0,
-            audio_buffer: VecDeque::new(),
+            audio_buffer: Arc::new(Mutex::new(VecDeque::new())),
         }
     }
 
@@ -246,7 +242,7 @@ impl Apu {
         self.left_volume = 0;
         self.right_volume = 0;
         self.counter = 0;
-        self.audio_buffer.clear();
+        self.audio_buffer.lock().unwrap().clear();
     }
 }
 
