@@ -31,6 +31,8 @@ pub struct Machine {
     pub cpu: Cpu,
     clock: Clock,
     fps: f32,
+    frame_times: Vec<f32>,
+    frame_count: u32,
 }
 
 impl Machine {
@@ -39,17 +41,23 @@ impl Machine {
             cpu: Cpu::new(rom_data),
             clock: Clock::new(),
             fps: 0.0,
+            frame_times: Vec::new(),
+            frame_count: 0,
         }
     }
 
-    pub fn run(&mut self, sdl: &mut SDL, event_handler: &mut EventHandler, game_title: String) {
+    pub fn run(
+        &mut self,
+        sdl: &mut SDL,
+        event_handler: &mut EventHandler,
+        game_title: String,
+    ) {
         let audio_device = self.create_audio_device(sdl, &event_handler.volume);
         audio_device.resume();
 
-        // Use a frame duration of 16.7ms instead of 16.74ms.
-        // This is needed to synchronize the audio frequency with the cpu frequency.
         let frame_duration_micros = (FRAME_DURATION_MS * 1_000.0) as u64;
         let frame_duration = std::time::Duration::from_micros(frame_duration_micros);
+        let mut last_second = std::time::Instant::now();
 
         // Core emulation loop
         while !event_handler.pressed_escape {
@@ -89,14 +97,24 @@ impl Machine {
             self.clock.reset();
 
             if frame_start_time.elapsed().as_micros() < frame_duration.as_micros()
-                && self.cpu.memory_bus.apu.audio_buffer.lock().unwrap().len() > AUDIO_BUFFER_THRESHOLD
+                && self.cpu.memory_bus.apu.audio_buffer.lock().unwrap().len()
+                    > AUDIO_BUFFER_THRESHOLD
             {
                 std::thread::sleep(std::time::Duration::from_micros(
                     (frame_duration.as_micros() - frame_start_time.elapsed().as_micros()) as u64,
                 ));
             }
 
-            self.fps = 1.0 / frame_start_time.elapsed().as_secs_f32();
+            let frame_time = frame_start_time.elapsed().as_secs_f32();
+            self.frame_times.push(frame_time);
+            self.frame_count += 1;
+
+            if last_second.elapsed().as_secs() >= 1 {
+                self.fps = self.frame_count as f32 / self.frame_times.iter().sum::<f32>();
+                self.frame_times.clear();
+                self.frame_count = 0;
+                last_second = std::time::Instant::now();
+            }
         }
 
         event_handler.pressed_escape = false;

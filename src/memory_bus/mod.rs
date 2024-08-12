@@ -126,7 +126,10 @@ impl MemoryAccess for MemoryBus {
             // 0xFFFF (Interrupt Enable Register)
             INTERRUPT_ENABLE => self.interrupt_enabled,
             _ => {
-                eprintln!("Memory Bus Unknown address: {:#X} Can't read byte.", address);
+                eprintln!(
+                    "Memory Bus Unknown address: {:#X} Can't read byte.",
+                    address
+                );
 
                 0xFF
             }
@@ -172,7 +175,7 @@ impl MemoryAccess for MemoryBus {
             // 0xFF4D (Speed Switch)
             SPEED_SWITCH => self.speed_switch = value,
             // 0xFF4F (CGB VRAM Select)
-            CGB_VRAM_SELECT => {},
+            CGB_VRAM_SELECT => {}
             // 0xFF80 - 0xFFFE (High RAM)
             HRAM_START..=HRAM_END => self.hram[address as usize - HRAM_START as usize] = value,
             // 0xFFFF (Interrupt Enable Register)
