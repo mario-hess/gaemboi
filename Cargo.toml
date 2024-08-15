@@ -5,4 +5,7 @@ edition = "2021"
 
 [dependencies]
 rfd = "0.12.1"
-sdl2 = { version = "0.36.0", features = ["image", "ttf"]}
+egui_sdl2_gl = "0.27.1"
+
+#[profile.release]
+#debug = true
