@@ -4,6 +4,7 @@
  * @author  Mario Hess
  * @date    May 23, 2024
  */
+/*
 mod button;
 
 use rfd::FileDialog;
@@ -106,3 +107,4 @@ fn handle_clicked(event_handler: &mut EventHandler, button_type: &ButtonType) {
         }
     }
 }
+*/

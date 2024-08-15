@@ -1,25 +1,26 @@
+/*
 pub mod window;
 
 use crate::{
+    config::Config,
     event_handler::EventHandler,
-    ppu::{VIEWPORT_HEIGHT, VIEWPORT_WIDTH},
+    ppu::{TILETABLE_HEIGHT, TILETABLE_WIDTH, VIEWPORT_HEIGHT, VIEWPORT_WIDTH},
     sdl::window::Window,
 };
-use sdl2::{
-    controller::GameController, ttf::Sdl2TtfContext, AudioSubsystem, EventPump, VideoSubsystem,
-};
+use sdl2::{controller::GameController, AudioSubsystem, EventPump, VideoSubsystem};
 
 #[allow(clippy::upper_case_acronyms)]
-pub struct SDL<'a> {
+pub struct SDL {
     pub video_subsystem: VideoSubsystem,
     pub audio_subsystem: AudioSubsystem,
     pub event_pump: EventPump,
-    pub window: Window<'a>,
+    pub window: Window,
+    pub tiletable: Option<Window>,
     _gamepad: Option<GameController>,
 }
 
-impl<'a> SDL<'a> {
-    pub fn new(event_handler: &EventHandler, ttf_context: &'a Sdl2TtfContext) -> Self {
+impl SDL {
+    pub fn new(event_handler: &EventHandler, config: &Config) -> Self {
         let sdl_context = sdl2::init().unwrap();
         let video_subsystem = sdl_context.video().unwrap();
         let audio_subsystem = sdl_context.audio().unwrap();
@@ -55,19 +56,32 @@ impl<'a> SDL<'a> {
 
         let window = Window::build(
             &video_subsystem,
-            ttf_context,
             "gaemboi",
             VIEWPORT_WIDTH,
             VIEWPORT_HEIGHT,
             event_handler.window_scale as usize,
         );
 
+        let tiletable = if config.tiletable_enable {
+            Some(Window::build(
+                &video_subsystem,
+                "tiletable",
+                TILETABLE_WIDTH,
+                TILETABLE_HEIGHT,
+                event_handler.window_scale as usize,
+            ))
+        } else {
+            None
+        };
+
         Self {
             video_subsystem,
             audio_subsystem,
             event_pump,
             window,
+            tiletable,
             _gamepad,
         }
     }
 }
+*/

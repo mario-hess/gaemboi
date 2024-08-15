@@ -77,7 +77,7 @@ impl ComponentTick for NoiseChannel {
             0x00
         };
 
-        self.core.timer += ((DIVISORS[self.clock_divider as usize] as u16) << self.clock_shift) as i16;
+        self.core.timer = ((DIVISORS[self.clock_divider as usize] as u16) << self.clock_shift) as i16;
     }
 }
 

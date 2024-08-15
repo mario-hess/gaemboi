@@ -8,9 +8,11 @@ mod background;
 mod lcd_control;
 mod lcd_status;
 mod oam;
+mod tile;
 mod window;
 
-use sdl2::pixels::Color;
+use egui_sdl2_gl::sdl2::pixels::Color;
+use tile::Tile;
 
 use crate::{
     interrupt::{LCD_STAT_MASK, VBLANK_MASK},
@@ -28,6 +30,7 @@ pub const VRAM_SIZE: usize = 8 * 1024;
 const OAM_SIZE: usize = 40;
 
 const TILE_DATA_START: u16 = VRAM_START;
+const TILE_DATA_END: u16 = 0x97FF;
 pub const TILEMAP_START_0: u16 = 0x9800;
 pub const TILEMAP_START_1: u16 = 0x9C00;
 
@@ -62,6 +65,10 @@ const TILE_HEIGHT_BIG: u8 = TILE_HEIGHT * 2;
 
 pub const VIEWPORT_WIDTH: usize = 160;
 pub const VIEWPORT_HEIGHT: usize = 144;
+
+pub const TILETABLE_WIDTH: usize = 128 + 17;
+pub const TILETABLE_HEIGHT: usize = 192 + 26;
+const GRID_COLOR: Color = Color::RGB(128, 128, 128);
 
 const FULL_WIDTH: usize = 256;
 
@@ -520,11 +527,58 @@ impl Ppu {
 
     pub fn clear_screen(&mut self) {
         self.overlap_map.fill(false);
-        self.viewport_buffer.fill(WHITE);
+        //self.viewport_buffer.fill(0);
     }
 
     pub fn reset_interrupts(&mut self) {
         self.interrupts = 0;
+    }
+
+    pub fn tile_table(&mut self) -> [Color; TILETABLE_WIDTH * TILETABLE_HEIGHT] {
+        let mut tile_table_buffer = [WHITE; TILETABLE_WIDTH * TILETABLE_HEIGHT];
+
+        // Grid vertical lines
+        for i in 0..=16 {
+            let line_pos = i * 9;
+            for y in 0..TILETABLE_HEIGHT {
+                let index = y * TILETABLE_WIDTH + line_pos;
+                tile_table_buffer[index] = GRID_COLOR;
+            }
+        }
+
+        // Grid horizontal lines
+        for i in 0..=24 {
+            let line_pos = i * 9;
+            for x in 0..TILETABLE_WIDTH {
+                let index = line_pos * TILETABLE_WIDTH + x;
+                tile_table_buffer[index] = GRID_COLOR;
+            }
+        }
+
+        let tiles = (TILE_DATA_START..=TILE_DATA_END)
+            .map(|i| self.read_byte(i))
+            .collect::<Vec<u8>>()
+            .chunks(16)
+            .map(Tile::new)
+            .collect::<Vec<Tile>>();
+
+        let tiles_per_row = 16;
+
+        for (index, tile) in tiles.iter().enumerate() {
+            let x = (index % tiles_per_row) * 9 + 1;
+            let y = (index / tiles_per_row) * 9 + 1;
+
+            for (row_index, row_pixel) in tile.data.iter().enumerate() {
+                let y_offset = y + row_index;
+                for (col_index, color) in row_pixel.iter().enumerate() {
+                    let x_offset = x + col_index;
+                    let buffer_index = y_offset * TILETABLE_WIDTH + x_offset;
+                    tile_table_buffer[buffer_index] = *color;
+                }
+            }
+        }
+
+        tile_table_buffer
     }
 }
 

@@ -1,9 +1,4 @@
-/**
- * @file    boot_sequence.rs
- * @brief   Custom boot sequence.
- * @author  Mario Hess
- * @date    May 23, 2024
- */
+/*
 use sdl2::{
     image::LoadTexture,
     rect::{Point, Rect},
@@ -75,3 +70,4 @@ pub fn run(window: &mut Window, event_handler: &mut EventHandler, event_pump: &m
         }
     }
 }
+*/
