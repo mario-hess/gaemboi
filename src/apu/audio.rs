@@ -6,10 +6,13 @@
  */
 use egui_sdl2_gl::sdl2::audio::AudioCallback;
 
-use std::{collections::VecDeque, sync::{Arc, Mutex}};
+use std::{
+    collections::VecDeque,
+    sync::{Arc, Mutex},
+};
 
 pub const SAMPLING_RATE: u16 = 512;
-pub const SAMPLING_FREQUENCY: u16 = 48000;
+pub const SAMPLING_FREQUENCY: u16 = 41000;
 
 pub struct Audio<'a> {
     pub audio_buffer: &'a mut Arc<Mutex<VecDeque<u8>>>,
@@ -46,7 +49,7 @@ impl AudioCallback for Audio<'_> {
                     self.right_master
                 };
 
-                *sample = self.audio_buffer.lock().unwrap().pop_front().unwrap() as f32
+                *sample =   self.audio_buffer.lock().unwrap().pop_front().unwrap() as f32
                     * (*self.volume as f32 / 10000.0)
                     * *master_volume as f32;
             }

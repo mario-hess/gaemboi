@@ -389,8 +389,8 @@ impl Ppu {
     }
 
     fn render_bg_window_line(&mut self) {
+        let base_offset = self.scan_y as usize * VIEWPORT_WIDTH;
         for scan_x in 0..VIEWPORT_WIDTH as u8 {
-            // Determine the sprite data based on whether it's in the window or background
             let (tile_index_address, x_offset, y_offset) = self.get_bg_window_tile_data(scan_x);
 
             let tile_index = self.read_byte(tile_index_address);
@@ -400,17 +400,12 @@ impl Ppu {
 
             let color_index = color_index(first_byte, second_byte, x_offset);
 
-            // Calculate the offset for the current pixel based on
-            // the background width and update the overlap map
             let overlap_offset = self.scan_y as usize + FULL_WIDTH * scan_x as usize;
-            if color_index == 0 {
-                self.overlap_map[overlap_offset] = true;
-            }
+            self.overlap_map[overlap_offset] = color_index == 0;
 
-            let pixel = pixel_color(self.bg_palette, color_index);
+            let pixel = pixel_color(&self.bg_palette, &color_index);
 
-            // Calculate the offset for the current pixel and update the viewport buffer
-            let offset = scan_x as usize + self.scan_y as usize * VIEWPORT_WIDTH;
+            let offset = scan_x as usize + base_offset;
             self.viewport_buffer[offset] = pixel;
         }
     }
@@ -476,7 +471,7 @@ impl Ppu {
                     self.sprite_palette0
                 };
 
-                let pixel = pixel_color(sprite_palette, color_index);
+                let pixel = pixel_color(&sprite_palette, &color_index);
 
                 // Calculate the offset for the current pixel and update the viewport buffer
                 let offset = x_offset as usize + scan_y as usize * VIEWPORT_WIDTH;
@@ -582,7 +577,7 @@ impl Ppu {
     }
 }
 
-fn pixel_color(palette: u8, color_index: u8) -> Color {
+fn pixel_color(palette: &u8, color_index: &u8) -> Color {
     match (palette >> (color_index << 1)) & 0b11 {
         0b00 => WHITE,
         0b01 => LIGHT,

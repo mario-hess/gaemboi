@@ -77,7 +77,9 @@ impl ComponentTick for NoiseChannel {
             0x00
         };
 
-        self.core.timer = ((DIVISORS[self.clock_divider as usize] as u16) << self.clock_shift) as i16;
+        self.core.timer = self.core.timer.saturating_add(
+            ((DIVISORS[self.clock_divider as usize] as u16) << self.clock_shift) as i16,
+        );
     }
 }
 
@@ -99,7 +101,8 @@ impl NoiseChannel {
             self.core.enabled = true;
         }
 
-        self.core.timer = ((DIVISORS[self.clock_divider as usize] as u16) << self.clock_shift) as i16;
+        self.core.timer =
+            ((DIVISORS[self.clock_divider as usize] as u16) << self.clock_shift) as i16;
         self.lfsr = 0x7FF1;
         self.volume_envelope.counter = 0;
 

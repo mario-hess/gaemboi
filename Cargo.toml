@@ -7,5 +7,5 @@ edition = "2021"
 rfd = "0.12.1"
 egui_sdl2_gl = "0.27.1"
 
-#[profile.release]
-#debug = true
+[profile.release]
+debug = true

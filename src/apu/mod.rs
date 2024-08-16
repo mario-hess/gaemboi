@@ -9,7 +9,10 @@ mod channel;
 mod frame_sequencer;
 mod mixer;
 
-use std::{collections::VecDeque, sync::{Arc, Mutex}};
+use std::{
+    collections::VecDeque,
+    sync::{Arc, Mutex},
+};
 
 use crate::{
     apu::{
@@ -67,7 +70,7 @@ pub struct Apu {
     pub left_volume: u8,
     enabled: bool,
     counter: u32,
-    pub audio_buffer: Arc<Mutex<VecDeque<u8>>> ,
+    pub audio_buffer: Arc<Mutex<VecDeque<u8>>>,
 }
 
 impl MemoryAccess for Apu {

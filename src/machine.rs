@@ -34,11 +34,6 @@ impl Machine {
         while self.clock.cycles_passed <= CYCLES_PER_FRAME {
             let m_cycles = self.cpu.step();
             self.cpu.memory_bus.tick(m_cycles);
-
-            if self.cpu.memory_bus.ppu.should_draw {
-                // DRAW
-            }
-
             self.clock.tick(m_cycles);
         }
 
