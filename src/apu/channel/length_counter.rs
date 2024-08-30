@@ -1,3 +1,5 @@
+use super::square_channel::ChannelType;
+
 /**
  * @file    apu/channel/length_counter.rs
  * @brief   All channels can be individually set to automatically shut themselves down after a certain amount of time.
@@ -31,9 +33,11 @@ impl LengthCounter {
         *channel_enabled = false;
     }
 
-    pub fn reset(&mut self) {
+    pub fn reset(&mut self, channel: ChannelType) {
         self.enabled = false;
-        self.timer = 0;
+        if channel != ChannelType::CH4 {
+            self.timer = 0;
+        }
     }
 }
 

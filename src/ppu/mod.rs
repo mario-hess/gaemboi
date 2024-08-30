@@ -8,9 +8,11 @@ mod background;
 mod lcd_control;
 mod lcd_status;
 mod oam;
+mod tile;
 mod window;
 
-use sdl2::pixels::Color;
+use egui_sdl2_gl::sdl2::pixels::Color;
+use tile::Tile;
 
 use crate::{
     interrupt::{LCD_STAT_MASK, VBLANK_MASK},
@@ -28,6 +30,7 @@ pub const VRAM_SIZE: usize = 8 * 1024;
 const OAM_SIZE: usize = 40;
 
 const TILE_DATA_START: u16 = VRAM_START;
+const TILE_DATA_END: u16 = 0x97FF;
 pub const TILEMAP_START_0: u16 = 0x9800;
 pub const TILEMAP_START_1: u16 = 0x9C00;
 
@@ -62,6 +65,10 @@ const TILE_HEIGHT_BIG: u8 = TILE_HEIGHT * 2;
 
 pub const VIEWPORT_WIDTH: usize = 160;
 pub const VIEWPORT_HEIGHT: usize = 144;
+
+pub const TILETABLE_WIDTH: usize = 128 + 17;
+pub const TILETABLE_HEIGHT: usize = 192 + 26;
+const GRID_COLOR: Color = Color::RGB(128, 128, 128);
 
 const FULL_WIDTH: usize = 256;
 
@@ -382,8 +389,8 @@ impl Ppu {
     }
 
     fn render_bg_window_line(&mut self) {
+        let base_offset = self.scan_y as usize * VIEWPORT_WIDTH;
         for scan_x in 0..VIEWPORT_WIDTH as u8 {
-            // Determine the sprite data based on whether it's in the window or background
             let (tile_index_address, x_offset, y_offset) = self.get_bg_window_tile_data(scan_x);
 
             let tile_index = self.read_byte(tile_index_address);
@@ -393,17 +400,12 @@ impl Ppu {
 
             let color_index = color_index(first_byte, second_byte, x_offset);
 
-            // Calculate the offset for the current pixel based on
-            // the background width and update the overlap map
             let overlap_offset = self.scan_y as usize + FULL_WIDTH * scan_x as usize;
-            if color_index == 0 {
-                self.overlap_map[overlap_offset] = true;
-            }
+            self.overlap_map[overlap_offset] = color_index == 0;
 
-            let pixel = pixel_color(self.bg_palette, color_index);
+            let pixel = pixel_color(&self.bg_palette, &color_index);
 
-            // Calculate the offset for the current pixel and update the viewport buffer
-            let offset = scan_x as usize + self.scan_y as usize * VIEWPORT_WIDTH;
+            let offset = scan_x as usize + base_offset;
             self.viewport_buffer[offset] = pixel;
         }
     }
@@ -469,7 +471,7 @@ impl Ppu {
                     self.sprite_palette0
                 };
 
-                let pixel = pixel_color(sprite_palette, color_index);
+                let pixel = pixel_color(&sprite_palette, &color_index);
 
                 // Calculate the offset for the current pixel and update the viewport buffer
                 let offset = x_offset as usize + scan_y as usize * VIEWPORT_WIDTH;
@@ -520,15 +522,62 @@ impl Ppu {
 
     pub fn clear_screen(&mut self) {
         self.overlap_map.fill(false);
-        self.viewport_buffer.fill(WHITE);
+        //self.viewport_buffer.fill(0);
     }
 
     pub fn reset_interrupts(&mut self) {
         self.interrupts = 0;
     }
+
+    pub fn tile_table(&mut self) -> [Color; TILETABLE_WIDTH * TILETABLE_HEIGHT] {
+        let mut tile_table_buffer = [WHITE; TILETABLE_WIDTH * TILETABLE_HEIGHT];
+
+        // Grid vertical lines
+        for i in 0..=16 {
+            let line_pos = i * 9;
+            for y in 0..TILETABLE_HEIGHT {
+                let index = y * TILETABLE_WIDTH + line_pos;
+                tile_table_buffer[index] = GRID_COLOR;
+            }
+        }
+
+        // Grid horizontal lines
+        for i in 0..=24 {
+            let line_pos = i * 9;
+            for x in 0..TILETABLE_WIDTH {
+                let index = line_pos * TILETABLE_WIDTH + x;
+                tile_table_buffer[index] = GRID_COLOR;
+            }
+        }
+
+        let tiles = (TILE_DATA_START..=TILE_DATA_END)
+            .map(|i| self.read_byte(i))
+            .collect::<Vec<u8>>()
+            .chunks_exact(16)
+            .map(Tile::new)
+            .collect::<Vec<Tile>>();
+
+        let tiles_per_row = 16;
+
+        for (index, tile) in tiles.iter().enumerate() {
+            let x = (index % tiles_per_row) * 9 + 1;
+            let y = (index / tiles_per_row) * 9 + 1;
+
+            for (row_index, row_pixel) in tile.data.iter().enumerate() {
+                let y_offset = y + row_index;
+                for (col_index, color) in row_pixel.iter().enumerate() {
+                    let x_offset = x + col_index;
+                    let buffer_index = y_offset * TILETABLE_WIDTH + x_offset;
+                    tile_table_buffer[buffer_index] = *color;
+                }
+            }
+        }
+
+        tile_table_buffer
+    }
 }
 
-fn pixel_color(palette: u8, color_index: u8) -> Color {
+fn pixel_color(palette: &u8, color_index: &u8) -> Color {
     match (palette >> (color_index << 1)) & 0b11 {
         0b00 => WHITE,
         0b01 => LIGHT,

@@ -4,22 +4,17 @@
  * @author  Mario Hess
  * @date    November 11, 2023
  */
-use sdl2::{
-    controller::Button,
-    event::Event,
-    keyboard::Keycode,
-    render::Canvas,
-    video::{Window as SDL_Window, WindowPos},
-    EventPump,
+use egui_sdl2_gl::{
+    painter::Painter,
+    sdl2::{controller::Button, event::Event, keyboard::Keycode, video::Window, EventPump},
+    EguiStateHandler,
 };
 
-use crate::{
-    machine::STATUSBAR_OFFSET, ppu::{VIEWPORT_HEIGHT, VIEWPORT_WIDTH}, MachineState
-};
+use crate::State;
 
 pub struct EventHandler {
-    pub machine_state: MachineState,
-    pub pressed_escape: bool,
+    pub file_path: Option<String>,
+    pub state: State,
     pub pressed_a: bool,
     pub pressed_b: bool,
     pub pressed_select: bool,
@@ -28,23 +23,27 @@ pub struct EventHandler {
     pub pressed_left: bool,
     pub pressed_down: bool,
     pub pressed_right: bool,
-    pub mouse_x: i32,
-    pub mouse_y: i32,
-    pub mouse_btn_down: bool,
-    pub mouse_btn_up: bool,
-    pub file_path: Option<String>,
     pub window_scale: u32,
+    pub previous_scale: u32,
     pub window_resized: bool,
     pub volume: u8,
+    pub last_volume: u8,
+    pub volume_slider: bool,
+    pub fast_forward: u8,
+    pub last_speed: u8,
+    pub performance_mode: bool,
+    pub show_waveform: bool,
+    pub show_square_waves: bool,
+    pub cpu_status_opened: bool,
+    pub color_scheme_opened: bool,
     pub quit: bool,
-    pub potato_mode: bool,
 }
 
 impl EventHandler {
     pub fn new() -> Self {
         Self {
-            machine_state: MachineState::Menu,
-            pressed_escape: false,
+            file_path: None,
+            state: State::Splash,
             pressed_a: false,
             pressed_b: false,
             pressed_select: false,
@@ -53,41 +52,39 @@ impl EventHandler {
             pressed_left: false,
             pressed_down: false,
             pressed_right: false,
-            mouse_x: 0,
-            mouse_y: 0,
-            mouse_btn_down: false,
-            mouse_btn_up: true,
-            file_path: None,
             window_scale: 4,
+            previous_scale: 4,
             window_resized: false,
             volume: 50,
+            last_volume: 50,
+            volume_slider: true,
+            fast_forward: 1,
+            last_speed: 1,
+            performance_mode: true,
+            show_waveform: false,
+            show_square_waves: false,
+            cpu_status_opened: false,
+            color_scheme_opened: false,
             quit: false,
-            potato_mode: true,
         }
     }
 
-    pub fn poll(&mut self, event_pump: &mut EventPump) {
+    pub fn poll(
+        &mut self,
+        event_pump: &mut EventPump,
+        egui_state: &mut EguiStateHandler,
+        window: &Window,
+        painter: &mut Painter,
+    ) {
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit { .. } => {
                     self.quit = true;
-                    self.pressed_escape = true;
                 }
                 Event::KeyDown {
                     keycode: Some(Keycode::Escape),
                     ..
-                } => self.pressed_escape = true,
-                Event::MouseMotion { x, y, .. } => {
-                    self.mouse_x = x;
-                    self.mouse_y = y;
-                }
-                Event::MouseButtonDown { .. } => {
-                    self.mouse_btn_down = true;
-                    self.mouse_btn_up = false;
-                }
-                Event::MouseButtonUp { .. } => {
-                    self.mouse_btn_up = true;
-                }
+                } => self.quit = true,
                 Event::KeyDown { keycode, .. } => match keycode {
                     Some(Keycode::N) => self.pressed_a = true,
                     Some(Keycode::M) => self.pressed_b = true,
@@ -101,7 +98,6 @@ impl EventHandler {
                     Some(Keycode::Down) => self.decrease_scale(),
                     Some(Keycode::Left) => self.decrease_volume(),
                     Some(Keycode::Right) => self.increase_volume(),
-                    Some(Keycode::P) => self.potato_mode = !self.potato_mode,
                     _ => {}
                 },
                 Event::ControllerButtonDown { button, .. } => match button {
@@ -137,8 +133,10 @@ impl EventHandler {
                     Button::DPadRight => self.pressed_right = false,
                     _ => {}
                 },
-                Event::DropFile { filename, .. } => self.file_path = Some(filename),
-                _ => {}
+                Event::DropFile { filename, .. } => {
+                    self.file_path = Some(filename);
+                }
+                _ => egui_state.process_input(window, event, painter),
             };
         }
     }
@@ -173,30 +171,5 @@ impl EventHandler {
         }
 
         self.volume -= 5;
-    }
-
-    pub fn check_resized(&mut self, canvas: &mut Canvas<SDL_Window>) {
-        if !self.window_resized {
-            return;
-        }
-
-        canvas
-            .window_mut()
-            .set_size(
-                VIEWPORT_WIDTH as u32 * self.window_scale,
-                (VIEWPORT_HEIGHT + STATUSBAR_OFFSET as usize) as u32 * self.window_scale,
-            )
-            .unwrap();
-
-        canvas
-            .window_mut()
-            .set_position(WindowPos::Centered, WindowPos::Centered);
-
-        self.window_resized = false;
-    }
-
-    pub fn reset_mouse_buttons(&mut self) {
-        self.mouse_btn_up = true;
-        self.mouse_btn_down = false;
     }
 }

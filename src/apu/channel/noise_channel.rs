@@ -9,6 +9,8 @@ use crate::apu::{
     ComponentTick, MemoryAccess, CH4_END, CH4_START, LENGTH_TIMER_MAX,
 };
 
+use super::square_channel::ChannelType;
+
 const LENGTH_TIMER: u16 = CH4_START; // NR41
 const VOLUME_ENVELOPE: u16 = 0xFF21; // NR42
 const FREQUENCY_RANDOMNESS: u16 = 0xFF22; // NR43
@@ -56,7 +58,7 @@ impl ComponentTick for NoiseChannel {
 
         let t_cycles = (m_cycles * 4) as u16;
 
-        self.core.timer = self.core.timer.saturating_sub(t_cycles as i16);
+        self.core.timer = self.core.timer.saturating_sub(t_cycles as i32);
         if self.core.timer > 0 {
             return;
         }
@@ -77,7 +79,7 @@ impl ComponentTick for NoiseChannel {
             0x00
         };
 
-        self.core.timer += ((DIVISORS[self.clock_divider as usize] as u16) << self.clock_shift) as i16;
+        self.core.timer += (DIVISORS[self.clock_divider as usize] as i32) << self.clock_shift;
     }
 }
 
@@ -99,7 +101,7 @@ impl NoiseChannel {
             self.core.enabled = true;
         }
 
-        self.core.timer = ((DIVISORS[self.clock_divider as usize] as u16) << self.clock_shift) as i16;
+        self.core.timer = (DIVISORS[self.clock_divider as usize] as i32) << self.clock_shift;
         self.lfsr = 0x7FF1;
         self.volume_envelope.counter = 0;
 
@@ -151,17 +153,16 @@ impl NoiseChannel {
     }
 
     fn set_control(&mut self, value: u8) {
+        self.length_counter.enabled = value & 0x40 != 0;
         let triggered = value & 0x80 != 0;
         if triggered {
             self.trigger();
         }
-
-        self.length_counter.enabled = value & 0x40 != 0;
     }
 
-    pub fn reset(&mut self) {
+    pub fn reset(&mut self, channel: ChannelType) {
         self.core.reset();
-        self.length_counter.reset();
+        self.length_counter.reset(channel);
         self.volume_envelope.reset();
         self.lfsr = 0;
         self.clock_divider = 0;

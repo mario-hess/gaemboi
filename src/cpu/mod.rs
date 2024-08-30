@@ -21,9 +21,9 @@ const STACK_POINTER_START: u16 = 0xFFFE;
 
 pub struct Cpu {
     pub memory_bus: MemoryBus,
-    registers: Registers,
-    program_counter: ProgramCounter,
-    stack_pointer: u16,
+    pub registers: Registers,
+    pub program_counter: ProgramCounter,
+    pub stack_pointer: u16,
     interrupt: Interrupt,
     ime: bool,
     ime_state: bool,
