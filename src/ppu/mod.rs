@@ -553,7 +553,7 @@ impl Ppu {
         let tiles = (TILE_DATA_START..=TILE_DATA_END)
             .map(|i| self.read_byte(i))
             .collect::<Vec<u8>>()
-            .chunks(16)
+            .chunks_exact(16)
             .map(Tile::new)
             .collect::<Vec<Tile>>();
 

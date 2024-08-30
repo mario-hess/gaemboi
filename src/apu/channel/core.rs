@@ -2,7 +2,7 @@ pub struct ChannelCore {
     pub enabled: bool,
     pub dac_enabled: bool,
     pub output: u8,
-    pub timer: i16,
+    pub timer: i32,
     pub triggered: bool,
 }
 

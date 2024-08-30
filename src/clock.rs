@@ -4,7 +4,7 @@
  * @author  Mario Hess
  * @date    August 09, 2024
  */
-use crate::machine::FPS;
+use crate::FPS;
 
 pub const CPU_CLOCK_SPEED: u32 = 4194304;
 pub const CYCLES_PER_FRAME: u32 = (CPU_CLOCK_SPEED as f32 / FPS) as u32;

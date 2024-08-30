@@ -10,8 +10,11 @@ use egui_sdl2_gl::{
     EguiStateHandler,
 };
 
+use crate::State;
+
 pub struct EventHandler {
-    pub pressed_escape: bool,
+    pub file_path: Option<String>,
+    pub state: State,
     pub pressed_a: bool,
     pub pressed_b: bool,
     pub pressed_select: bool,
@@ -20,22 +23,27 @@ pub struct EventHandler {
     pub pressed_left: bool,
     pub pressed_down: bool,
     pub pressed_right: bool,
-    pub mouse_x: i32,
-    pub mouse_y: i32,
-    pub mouse_btn_down: bool,
-    pub mouse_btn_up: bool,
     pub window_scale: u32,
     pub previous_scale: u32,
-    pub fast_forward: u8,
     pub window_resized: bool,
     pub volume: u8,
+    pub last_volume: u8,
+    pub volume_slider: bool,
+    pub fast_forward: u8,
+    pub last_speed: u8,
+    pub performance_mode: bool,
+    pub show_waveform: bool,
+    pub show_square_waves: bool,
+    pub cpu_status_opened: bool,
+    pub color_scheme_opened: bool,
     pub quit: bool,
 }
 
 impl EventHandler {
     pub fn new() -> Self {
         Self {
-            pressed_escape: false,
+            file_path: None,
+            state: State::Splash,
             pressed_a: false,
             pressed_b: false,
             pressed_select: false,
@@ -44,15 +52,19 @@ impl EventHandler {
             pressed_left: false,
             pressed_down: false,
             pressed_right: false,
-            mouse_x: 0,
-            mouse_y: 0,
-            mouse_btn_down: false,
-            mouse_btn_up: true,
             window_scale: 4,
             previous_scale: 4,
-            fast_forward: 1,
             window_resized: false,
             volume: 50,
+            last_volume: 50,
+            volume_slider: true,
+            fast_forward: 1,
+            last_speed: 1,
+            performance_mode: true,
+            show_waveform: false,
+            show_square_waves: false,
+            cpu_status_opened: false,
+            color_scheme_opened: false,
             quit: false,
         }
     }
@@ -121,7 +133,9 @@ impl EventHandler {
                     Button::DPadRight => self.pressed_right = false,
                     _ => {}
                 },
-                Event::DropFile { filename, .. } => {}
+                Event::DropFile { filename, .. } => {
+                    self.file_path = Some(filename);
+                }
                 _ => egui_state.process_input(window, event, painter),
             };
         }

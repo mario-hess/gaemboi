@@ -9,6 +9,8 @@ use crate::apu::{
     ComponentTick, MemoryAccess, CH3_END, CH3_START,
 };
 
+use super::square_channel::ChannelType;
+
 const DAC_ENABLE: u16 = CH3_START; // NR30
 const LENGTH_TIMER: u16 = 0xFF1B; // NR31
 const VOLUME: u16 = 0xFF1C; // NR32
@@ -23,10 +25,10 @@ const LENGTH_TIMER_MAX: u16 = 256;
 pub struct WaveChannel {
     pub core: ChannelCore,
     pub length_counter: LengthCounter,
-    volume: u8,
-    frequency: u16,
-    wave_ram: [u8; 32],
-    wave_ram_position: u8,
+    pub volume: u8,
+    pub frequency: u16,
+    pub wave_ram: [u8; 32],
+    pub wave_ram_position: u8,
 }
 
 impl MemoryAccess for WaveChannel {
@@ -61,7 +63,7 @@ impl ComponentTick for WaveChannel {
 
         let t_cycles = (m_cycles * 4) as u16;
 
-        self.core.timer = self.core.timer.saturating_sub(t_cycles as i16);
+        self.core.timer = self.core.timer.saturating_sub(t_cycles as i32);
         if self.core.timer > 0 {
             return;
         }
@@ -71,7 +73,7 @@ impl ComponentTick for WaveChannel {
 
         self.core.output = output >> self.volume_shift();
 
-        self.core.timer += ((2048 - self.frequency) * 2) as i16;
+        self.core.timer += ((2048 - self.frequency) * 2) as i32;
         self.wave_ram_position = (self.wave_ram_position + 1) & 0x1F;
     }
 }
@@ -93,7 +95,7 @@ impl WaveChannel {
             self.core.enabled = true;
         }
 
-        self.core.timer = ((2048 - self.frequency) * 2) as i16;
+        self.core.timer = ((2048 - self.frequency) * 2) as i32;
         self.wave_ram_position = 0;
 
         if self.length_counter.timer == 0 {
@@ -176,9 +178,9 @@ impl WaveChannel {
         self.wave_ram[index as usize + 1] = value & 0xF;
     }
 
-    pub fn reset(&mut self) {
+    pub fn reset(&mut self, channel: ChannelType) {
         self.core.reset();
-        self.length_counter.reset();
+        self.length_counter.reset(channel);
         self.volume = 0;
         self.wave_ram_position = 0;
         self.frequency = 0;

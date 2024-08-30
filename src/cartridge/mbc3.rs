@@ -53,6 +53,11 @@ impl MemoryBankController for Mbc3 {
                 address, value
             ),
         }
+
+        let max_banks = (self.core.rom_data.len() / self.core.rom_offset).max(1);
+        if self.core.rom_bank as usize >= max_banks {
+            self.core.rom_bank = (self.core.rom_bank as usize % max_banks) as u16;
+        }
     }
 
     fn write_ram(&mut self, address: u16, value: u8) {

@@ -26,16 +26,19 @@ Duty   Waveform    Ratio
 2      10000111    50%
 3      01111110    75%
 */
-const DUTY_TABLE: [[u8; 8]; 4] = [
+pub const DUTY_TABLE: [[u8; 8]; 4] = [
     [0, 0, 0, 0, 0, 0, 0, 1],
     [1, 0, 0, 0, 0, 0, 0, 1],
     [1, 0, 0, 0, 0, 1, 1, 1],
     [0, 1, 1, 1, 1, 1, 1, 0],
 ];
 
+#[derive(PartialEq)]
 pub enum ChannelType {
     CH1,
     CH2,
+    CH3,
+    CH4,
 }
 
 pub struct SquareChannel {
@@ -43,9 +46,9 @@ pub struct SquareChannel {
     pub length_counter: LengthCounter,
     pub volume_envelope: VolumeEnvelope,
     pub sweep: Option<Sweep>,
-    sequence: u8,
+    pub sequence: u8,
     pub frequency: u16,
-    wave_duty: u8,
+    pub wave_duty: u8,
 }
 
 impl MemoryAccess for SquareChannel {
@@ -90,7 +93,8 @@ impl ComponentTick for SquareChannel {
 
         let t_cycles = (m_cycles * 4) as u16;
 
-        self.core.timer = self.core.timer.saturating_sub(t_cycles as i16);
+        self.core.timer = self.core.timer.saturating_sub(t_cycles as i32);
+
         if self.core.timer > 0 {
             return;
         }
@@ -101,7 +105,7 @@ impl ComponentTick for SquareChannel {
             0
         };
 
-        self.core.timer += ((2048 - self.frequency) * 4) as i16;
+        self.core.timer += ((2048 - self.frequency) * 4) as i32;
         self.sequence = (self.sequence + 1) & 0x07;
     }
 }
@@ -111,6 +115,7 @@ impl SquareChannel {
         let sweep_enabled = match channel_type {
             ChannelType::CH1 => true,
             ChannelType::CH2 => false,
+            _ => false,
         };
 
         let sweep = if sweep_enabled {
@@ -141,7 +146,7 @@ impl SquareChannel {
             self.core.enabled = true;
         }
 
-        self.core.timer = ((2048 - self.frequency) * 4) as i16;
+        self.core.timer = ((2048 - self.frequency) * 4) as i32;
         self.volume_envelope.counter = 0;
 
         if let Some(sweep) = &mut self.sweep {
@@ -204,9 +209,9 @@ impl SquareChannel {
         self.frequency = (self.frequency & 0x00FF) | ((value & 0x07) as u16) << 8;
     }
 
-    pub fn reset(&mut self) {
+    pub fn reset(&mut self, channel: ChannelType) {
         self.core.reset();
-        self.length_counter.reset();
+        self.length_counter.reset(channel);
         self.volume_envelope.reset();
         self.sequence = 0;
         self.frequency = 0;

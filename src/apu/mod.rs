@@ -5,7 +5,7 @@
  * @date    June 7, 2024
  */
 pub mod audio;
-mod channel;
+pub mod channel;
 mod frame_sequencer;
 mod mixer;
 
@@ -60,9 +60,9 @@ pub const AUDIO_END: u16 = WAVE_PATTERN_END;
  * https://nightshade256.github.io/2021/03/27/gb-sound-emulation.html
  */
 pub struct Apu {
-    ch1: SquareChannel,
-    ch2: SquareChannel,
-    ch3: WaveChannel,
+    pub ch1: SquareChannel,
+    pub ch2: SquareChannel,
+    pub ch3: WaveChannel,
     ch4: NoiseChannel,
     frame_sequencer: FrameSequencer,
     mixer: Mixer,
@@ -95,6 +95,11 @@ impl MemoryAccess for Apu {
     }
 
     fn write_byte(&mut self, address: u16, value: u8) {
+        if (WAVE_PATTERN_START..=WAVE_PATTERN_END).contains(&address) {
+            self.ch3.write_wave_ram(address, value);
+            return;
+        }
+
         // NR52 (Master Control) is accessible even if the APU is turned off
         if address == MASTER_CONTROL {
             self.set_master_control(value);
@@ -110,19 +115,20 @@ impl MemoryAccess for Apu {
                 let address = calculate_square_address(CH1_START, address);
                 self.ch1.write_byte(address, value);
             }
+            0xFF15 => {}
             CH2_START..=CH2_END => {
                 let address = calculate_square_address(CH2_START, address);
                 self.ch2.write_byte(address, value);
             }
             CH3_START..=CH3_END => self.ch3.write_byte(address, value),
+            0xFF1F => {}
             CH4_START..=CH4_END => self.ch4.write_byte(address, value),
             MASTER_VOLUME => self.set_master_volume(value),
             PANNING => {
                 self.mixer = value.into();
             }
             MASTER_CONTROL => {}
-            WAVE_PATTERN_START..=WAVE_PATTERN_END => self.ch3.write_wave_ram(address, value),
-            _ => unreachable!(),
+            _ => println!("Cant write: {:#X}", address),
         }
     }
 }
@@ -235,10 +241,10 @@ impl Apu {
     }
 
     fn reset(&mut self) {
-        self.ch1.reset();
-        self.ch2.reset();
-        self.ch3.reset();
-        self.ch4.reset();
+        self.ch1.reset(ChannelType::CH1);
+        self.ch2.reset(ChannelType::CH2);
+        self.ch3.reset(ChannelType::CH3);
+        self.ch4.reset(ChannelType::CH4);
         self.frame_sequencer.reset();
         self.mixer.reset();
 
