@@ -110,6 +110,18 @@ impl TopPanel {
                                 {
                                     ui.close_menu();
                                 };
+                                if ui
+                                    .radio_value(current_view, View::Tilemap0, "Tilemap0")
+                                    .clicked()
+                                {
+                                    ui.close_menu();
+                                };
+                                if ui
+                                    .radio_value(current_view, View::Tilemap1, "Tilemap1")
+                                    .clicked()
+                                {
+                                    ui.close_menu();
+                                };
                             });
 
                             ui.menu_button("Audio Visualizer            >", |ui| {
@@ -138,7 +150,8 @@ impl TopPanel {
                                 // Handle Open action
                             }
                             if ui.button("Color Scheme").clicked() {
-                                event_handler.color_scheme_opened = true;
+                                event_handler.color_scheme_opened =
+                                    !event_handler.color_scheme_opened;
                                 ui.close_menu();
                             }
 

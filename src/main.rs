@@ -46,6 +46,8 @@ pub const FPS: f32 = 59.7275;
 pub enum View {
     Viewport,
     Tiletable,
+    Tilemap0,
+    Tilemap1,
 }
 
 pub enum State {
@@ -153,11 +155,11 @@ fn main() -> Result<(), Error> {
                     egui_ctx.begin_frame(egui_state.input.take());
 
                     match ui_manager.current_view {
-                        View::Tiletable => {
-                            ui_manager.current_view = View::Viewport;
+                        View::Viewport => {}
+                        _ => {
                             ui_manager.update_window_size(&mut window, &mut event_handler);
-                        },
-                        View::Viewport => {},
+                            ui_manager.current_view = View::Viewport;
+                        }
                     }
 
                     event_handler.poll(&mut event_pump, &mut egui_state, &window, &mut painter);

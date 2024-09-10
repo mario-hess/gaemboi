@@ -6,7 +6,9 @@ use egui_sdl2_gl::{
 use crate::{
     cpu::Cpu,
     event_handler::EventHandler,
-    ppu::{TILETABLE_HEIGHT, TILETABLE_WIDTH, VIEWPORT_HEIGHT, VIEWPORT_WIDTH, WHITE},
+    ppu::{
+        TILEMAP_END_0, TILEMAP_END_1, TILEMAP_HEIGHT, TILEMAP_START_0, TILEMAP_START_1, TILEMAP_WIDTH, TILETABLE_HEIGHT, TILETABLE_WIDTH, VIEWPORT_HEIGHT, VIEWPORT_WIDTH, WHITE
+    },
     View,
 };
 
@@ -14,6 +16,7 @@ pub struct CentralPanel {
     pub game_background: Vec<Color32>,
     pub game_texture_id: TextureId,
     pub tiletable_texture_id: TextureId,
+    pub tilemap_texture_id: TextureId,
     splash_texture_id: TextureId,
     pub splash_background: Vec<Color32>,
 }
@@ -36,6 +39,12 @@ impl CentralPanel {
             false,
         );
 
+        let tilemap_texture_id = painter.new_user_texture(
+            (TILEMAP_WIDTH, TILEMAP_HEIGHT),
+            &vec![Color32::BLACK; TILEMAP_WIDTH * TILEMAP_HEIGHT],
+            false,
+        );
+
         let img = image::load_from_memory(include_bytes!("../../images/splash.png"))
             .expect("Failed to load image");
 
@@ -55,6 +64,7 @@ impl CentralPanel {
             game_background,
             game_texture_id,
             tiletable_texture_id,
+            tilemap_texture_id,
             splash_texture_id,
             splash_background,
         }
@@ -102,7 +112,7 @@ impl CentralPanel {
                             let tiletable_background: Vec<Color32> = cpu
                                 .memory_bus
                                 .ppu
-                                .tile_table()
+                                .tiletable()
                                 .iter()
                                 .map(|color| Color32::from_rgb(color.r, color.g, color.b))
                                 .collect();
@@ -119,6 +129,50 @@ impl CentralPanel {
                             ))
                             .maintain_aspect_ratio(true);
                             ui.add(tiletable_image);
+                        }
+                        View::Tilemap0 => {
+                            let tilemap_background: Vec<Color32> = cpu
+                                .memory_bus
+                                .ppu
+                                .tilemap(TILEMAP_START_0, TILEMAP_END_0)
+                                .iter()
+                                .map(|color| Color32::from_rgb(color.r, color.g, color.b))
+                                .collect();
+                            painter.update_user_texture_data(
+                                self.tilemap_texture_id,
+                                &tilemap_background,
+                            );
+                            let tilemap_image = Image::new(SizedTexture::new(
+                                self.tilemap_texture_id,
+                                Vec2::new(
+                                    TILEMAP_WIDTH as f32 * event_handler.window_scale as f32,
+                                    TILEMAP_HEIGHT as f32 * event_handler.window_scale as f32,
+                                ),
+                            ))
+                            .maintain_aspect_ratio(true);
+                            ui.add(tilemap_image);
+                        }
+                        View::Tilemap1 => {
+                            let tilemap_background: Vec<Color32> = cpu
+                                .memory_bus
+                                .ppu
+                                .tilemap(TILEMAP_START_1, TILEMAP_END_1)
+                                .iter()
+                                .map(|color| Color32::from_rgb(color.r, color.g, color.b))
+                                .collect();
+                            painter.update_user_texture_data(
+                                self.tilemap_texture_id,
+                                &tilemap_background,
+                            );
+                            let tilemap_image = Image::new(SizedTexture::new(
+                                self.tilemap_texture_id,
+                                Vec2::new(
+                                    TILEMAP_WIDTH as f32 * event_handler.window_scale as f32,
+                                    TILEMAP_HEIGHT as f32 * event_handler.window_scale as f32,
+                                ),
+                            ))
+                            .maintain_aspect_ratio(true);
+                            ui.add(tilemap_image);
                         }
                     }
                 } else {

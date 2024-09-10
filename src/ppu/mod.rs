@@ -29,10 +29,13 @@ use crate::{
 pub const VRAM_SIZE: usize = 8 * 1024;
 const OAM_SIZE: usize = 40;
 
-const TILE_DATA_START: u16 = VRAM_START;
-const TILE_DATA_END: u16 = 0x97FF;
+const TILETABLE_DATA_START: u16 = VRAM_START;
+const TILETABLE_DATA_END: u16 = 0x97FF;
+
 pub const TILEMAP_START_0: u16 = 0x9800;
+pub const TILEMAP_END_0: u16 = 0x9BFF;
 pub const TILEMAP_START_1: u16 = 0x9C00;
+pub const TILEMAP_END_1: u16 = VRAM_END;
 
 const LCD_CONTROL: u16 = 0xFF40;
 const LCD_STATUS: u16 = 0xFF41;
@@ -68,6 +71,9 @@ pub const VIEWPORT_HEIGHT: usize = 144;
 
 pub const TILETABLE_WIDTH: usize = 128 + 17;
 pub const TILETABLE_HEIGHT: usize = 192 + 26;
+pub const TILEMAP_WIDTH: usize = 256;
+pub const TILEMAP_HEIGHT: usize = TILEMAP_WIDTH;
+
 const GRID_COLOR: Color = Color::RGB(128, 128, 128);
 
 const FULL_WIDTH: usize = 256;
@@ -424,7 +430,7 @@ impl Ppu {
             }
 
             // A tile consists of 16 bytes
-            let tile_start_address = TILE_DATA_START + (tile_index as u16 * 16);
+            let tile_start_address = TILETABLE_DATA_START + (tile_index as u16 * 16);
 
             // Calculate line offset based on if the sprite is vertically mirrored
             let line_offset = if oam_entry.y_flip_enabled() {
@@ -529,15 +535,15 @@ impl Ppu {
         self.interrupts = 0;
     }
 
-    pub fn tile_table(&mut self) -> [Color; TILETABLE_WIDTH * TILETABLE_HEIGHT] {
-        let mut tile_table_buffer = [WHITE; TILETABLE_WIDTH * TILETABLE_HEIGHT];
+    pub fn tiletable(&self) -> [Color; TILETABLE_WIDTH * TILETABLE_HEIGHT] {
+        let mut tiletable_buffer = [WHITE; TILETABLE_WIDTH * TILETABLE_HEIGHT];
 
         // Grid vertical lines
         for i in 0..=16 {
             let line_pos = i * 9;
             for y in 0..TILETABLE_HEIGHT {
                 let index = y * TILETABLE_WIDTH + line_pos;
-                tile_table_buffer[index] = GRID_COLOR;
+                tiletable_buffer[index] = GRID_COLOR;
             }
         }
 
@@ -546,11 +552,11 @@ impl Ppu {
             let line_pos = i * 9;
             for x in 0..TILETABLE_WIDTH {
                 let index = line_pos * TILETABLE_WIDTH + x;
-                tile_table_buffer[index] = GRID_COLOR;
+                tiletable_buffer[index] = GRID_COLOR;
             }
         }
 
-        let tiles = (TILE_DATA_START..=TILE_DATA_END)
+        let tiles = (TILETABLE_DATA_START..=TILETABLE_DATA_END)
             .map(|i| self.read_byte(i))
             .collect::<Vec<u8>>()
             .chunks_exact(16)
@@ -568,12 +574,46 @@ impl Ppu {
                 for (col_index, color) in row_pixel.iter().enumerate() {
                     let x_offset = x + col_index;
                     let buffer_index = y_offset * TILETABLE_WIDTH + x_offset;
-                    tile_table_buffer[buffer_index] = *color;
+                    tiletable_buffer[buffer_index] = *color;
                 }
             }
         }
 
-        tile_table_buffer
+        tiletable_buffer
+    }
+
+    pub fn tilemap(
+        &self,
+        start_address: u16,
+        end_address: u16,
+    ) -> [Color; TILEMAP_WIDTH * TILEMAP_HEIGHT] {
+        let mut tilemap_buffer = [WHITE; TILEMAP_WIDTH * TILEMAP_HEIGHT];
+
+        let tiles = (start_address..=end_address)
+            .map(|i| self.lcd_control.get_address(self.read_byte(i)))
+            .flat_map(|address| (0..16).map(move |j| self.read_byte(address + j)))
+            .collect::<Vec<u8>>()
+            .chunks_exact(16)
+            .map(Tile::new)
+            .collect::<Vec<Tile>>();
+
+        let tiles_per_row = TILEMAP_WIDTH / TILE_WIDTH as usize;
+
+        for (index, tile) in tiles.iter().enumerate() {
+            let x = (index % tiles_per_row) * TILE_WIDTH as usize;
+            let y = (index / tiles_per_row) * TILE_WIDTH as usize;
+
+            for (row_index, row_pixel) in tile.data.iter().enumerate() {
+                let y_offset = y + row_index;
+                for (col_index, color) in row_pixel.iter().enumerate() {
+                    let x_offset = x + col_index;
+                    let buffer_index = y_offset * TILEMAP_WIDTH + x_offset;
+                    tilemap_buffer[buffer_index] = *color;
+                }
+            }
+        }
+
+        tilemap_buffer
     }
 }
 

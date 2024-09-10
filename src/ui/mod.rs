@@ -3,7 +3,7 @@ mod top_panel;
 
 use central_panel::CentralPanel;
 use egui_sdl2_gl::{
-    egui::{Color32, Context, FullOutput, Pos2, Rect, Stroke, Vec2},
+    egui::{Align, Color32, Context, FullOutput, Grid, Pos2, Rect, Stroke, Ui, Vec2},
     painter::Painter,
     sdl2::video::Window,
     EguiStateHandler,
@@ -14,7 +14,10 @@ use crate::{
     apu::channel::square_channel::{SquareChannel, DUTY_TABLE},
     cpu::Cpu,
     event_handler::EventHandler,
-    ppu::{TILETABLE_HEIGHT, TILETABLE_WIDTH, VIEWPORT_HEIGHT, VIEWPORT_WIDTH},
+    ppu::{
+        TILEMAP_HEIGHT, TILEMAP_WIDTH, TILETABLE_HEIGHT, TILETABLE_WIDTH, VIEWPORT_HEIGHT,
+        VIEWPORT_WIDTH,
+    },
     State, View,
 };
 
@@ -125,8 +128,31 @@ impl UIManager {
         egui_sdl2_gl::egui::Window::new("Color Scheme")
             .open(&mut event_handler.color_scheme_opened)
             .show(egui_ctx, |ui| {
-                ui.label("Color Scheme...");
+                Grid::new("color_scheme_grid")
+                    .num_columns(2)
+                    .spacing([10.0, 10.0]) // Set horizontal and vertical spacing
+                    .show(ui, |ui| {
+                        color_picker_row(ui, "Black:", &mut event_handler.black);
+                        color_picker_row(ui, "Dark:", &mut event_handler.dark);
+                        color_picker_row(ui, "Light:", &mut event_handler.light);
+                        color_picker_row(ui, "White:", &mut event_handler.white);
+
+                        if ui.button("Reset").clicked() {
+                            // Reset colors
+                        }
+                    });
             });
+
+        fn color_picker_row(ui: &mut Ui, label: &str, color: &mut Color32) {
+            ui.with_layout(
+                egui_sdl2_gl::egui::Layout::left_to_right(Align::Center),
+                |ui| {
+                    ui.label(label);
+                },
+            );
+            ui.color_edit_button_srgba(color);
+            ui.end_row();
+        }
 
         egui_sdl2_gl::egui::Window::new("CPU Status")
             .open(&mut event_handler.cpu_status_opened)
@@ -230,6 +256,15 @@ impl UIManager {
                         )
                         .unwrap();
                 }
+                _ => {
+                    window
+                        .set_size(
+                            TILEMAP_WIDTH as u32 * event_handler.window_scale,
+                            TILEMAP_HEIGHT as u32 * event_handler.window_scale
+                                + self.top_panel.menu_bar_height as u32,
+                        )
+                        .unwrap();
+                }
             }
 
             window.set_position(
@@ -304,9 +339,7 @@ pub fn draw_wave(
     ui.vertical_centered(|ui| {
         ui.horizontal(|ui| {
             // Display channel information
-            ui.label(format!(
-                "Position: {:02}", wave_ram_position
-            ));
+            ui.label(format!("Position: {:02}", wave_ram_position));
             ui.separator();
             ui.label(format!("Frequency: {:04}", frequency));
             ui.separator();
