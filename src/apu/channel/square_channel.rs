@@ -94,7 +94,6 @@ impl ComponentTick for SquareChannel {
         let t_cycles = (m_cycles * 4) as u16;
 
         self.core.timer = self.core.timer.saturating_sub(t_cycles as i32);
-
         if self.core.timer > 0 {
             return;
         }

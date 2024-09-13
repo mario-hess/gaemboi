@@ -181,7 +181,7 @@ impl MemoryAccess for Ppu {
 
 impl ComponentTick for Ppu {
     fn tick(&mut self, m_cycles: u8) {
-        if !self.lcd_control.lcd_enabled {
+        if !self.lcd_control.lcd_enabled() {
             return;
         }
 
@@ -201,7 +201,7 @@ impl ComponentTick for Ppu {
                 let scan_y = self.scan_y as i16;
 
                 // Determine the height of the sprite (8x8 or 8x16)
-                self.tile_height = if self.lcd_control.object_size {
+                self.tile_height = if self.lcd_control.object_size() {
                     TILE_HEIGHT_BIG
                 } else {
                     TILE_HEIGHT
@@ -255,15 +255,15 @@ impl ComponentTick for Ppu {
                 }
 
                 if self.scan_y >= LINES_Y {
-                    self.lcd_status.set_mode(MODE_VBLANK, &mut self.interrupts);
                     // Draw the current frame to the screen
                     self.should_draw = true;
                     self.interrupts |= VBLANK_MASK;
+                    self.lcd_status.set_mode(MODE_VBLANK, &mut self.interrupts);
                 } else {
                     // Increase internal window line counter alongside scan_y if window is visible on
                     // the viewport
                     self.window
-                        .increase_line_counter(self.lcd_control.window_enabled, self.scan_y);
+                        .increase_line_counter(self.lcd_control.window_enabled(), self.scan_y);
 
                     self.set_scan_y(self.scan_y + 1);
                     self.lcd_status.set_mode(MODE_OAM, &mut self.interrupts);
@@ -329,7 +329,7 @@ impl Ppu {
             0 => self.oam[index].y_pos,
             1 => self.oam[index].x_pos,
             2 => self.oam[index].tile_index,
-            3 => self.oam[index].attributes,
+            3 => (&self.oam[index].attributes).into(),
             _ => unreachable!(),
         }
     }
@@ -342,7 +342,7 @@ impl Ppu {
             0 => self.oam[index].y_pos = value,
             1 => self.oam[index].x_pos = value,
             2 => self.oam[index].tile_index = value,
-            3 => self.oam[index].attributes = value,
+            3 => self.oam[index].attributes = value.into(),
             _ => unreachable!(),
         }
     }
@@ -374,7 +374,7 @@ impl Ppu {
     fn set_lcd_control(&mut self, value: u8) {
         self.lcd_control = value.into();
 
-        if !self.lcd_control.lcd_enabled {
+        if !self.lcd_control.lcd_enabled() {
             self.clear_screen();
             self.window.reset_line_counter();
             self.set_scan_y(0);
@@ -385,11 +385,11 @@ impl Ppu {
     }
 
     fn render_scanline(&mut self) {
-        if self.lcd_control.bg_enabled {
+        if self.lcd_control.bg_enabled() {
             self.render_bg_window_line();
         }
 
-        if self.lcd_control.object_enabled {
+        if self.lcd_control.object_enabled() {
             self.render_object_line();
         }
     }
@@ -411,17 +411,20 @@ impl Ppu {
 
             let pixel = pixel_color(&self.bg_palette, &color_index);
 
+            // Calculate the offset for the current pixel and update the viewport buffer
             let offset = scan_x as usize + base_offset;
             self.viewport_buffer[offset] = pixel;
         }
     }
 
     fn render_object_line(&mut self) {
+        let scan_y = self.scan_y as i16;
+        let base_offset = scan_y as usize * VIEWPORT_WIDTH;
+
         for (oam_index, x_offset) in self.oam_buffer.iter() {
             let oam_entry = self.oam[*oam_index];
             let y_offset = oam_entry.y_pos as i16 - 16;
 
-            let scan_y = self.scan_y as i16;
             let mut tile_index = oam_entry.tile_index;
 
             // Ignore last bit for 8x16 sprites
@@ -433,7 +436,7 @@ impl Ppu {
             let tile_start_address = TILETABLE_DATA_START + (tile_index as u16 * 16);
 
             // Calculate line offset based on if the sprite is vertically mirrored
-            let line_offset = if oam_entry.y_flip_enabled() {
+            let line_offset = if oam_entry.attributes.y_flip_enabled() {
                 self.tile_height as i16 - 1 - (scan_y - y_offset)
             } else {
                 self.scan_y as i16 - y_offset
@@ -452,13 +455,13 @@ impl Ppu {
                 }
 
                 // Skip rendering pixel if background overlaps
-                let overlap_offset = self.scan_y as usize + FULL_WIDTH * x_offset as usize;
+                let overlap_offset = scan_y as usize + FULL_WIDTH * x_offset as usize;
                 if self.is_overlapping(&oam_entry, overlap_offset) {
                     continue;
                 }
 
                 // Check if pixel is horizontally mirrored
-                let pixel_index = if oam_entry.x_flip_enabled() {
+                let pixel_index = if oam_entry.attributes.x_flip_enabled() {
                     pixel_index
                 } else {
                     7 - pixel_index
@@ -471,7 +474,7 @@ impl Ppu {
                     continue;
                 }
 
-                let sprite_palette = if oam_entry.palette_enabled() {
+                let sprite_palette = if oam_entry.attributes.dmg_palette_enabled() {
                     self.sprite_palette1
                 } else {
                     self.sprite_palette0
@@ -480,7 +483,7 @@ impl Ppu {
                 let pixel = pixel_color(&sprite_palette, &color_index);
 
                 // Calculate the offset for the current pixel and update the viewport buffer
-                let offset = x_offset as usize + scan_y as usize * VIEWPORT_WIDTH;
+                let offset = x_offset as usize + base_offset;
                 self.viewport_buffer[offset] = pixel;
             }
         }
@@ -489,7 +492,7 @@ impl Ppu {
     fn get_bg_window_tile_data(&self, scan_x: u8) -> (u16, u8, u8) {
         let in_window =
             self.window
-                .is_pixel_in_window(self.lcd_control.window_enabled, scan_x, self.scan_y);
+                .is_pixel_in_window(self.lcd_control.window_enabled(), scan_x, self.scan_y);
 
         if in_window {
             let base_address = self.lcd_control.get_window_address();
@@ -519,7 +522,7 @@ impl Ppu {
     }
 
     fn is_overlapping(&self, oam_entry: &OAM, offset: usize) -> bool {
-        if !oam_entry.priority_enabled() {
+        if !oam_entry.attributes.priority_enabled() {
             return false;
         }
 
@@ -528,7 +531,6 @@ impl Ppu {
 
     pub fn clear_screen(&mut self) {
         self.overlap_map.fill(false);
-        //self.viewport_buffer.fill(0);
     }
 
     pub fn reset_interrupts(&mut self) {

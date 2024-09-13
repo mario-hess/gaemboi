@@ -18,6 +18,7 @@ const CONTROL: u16 = CH4_END; // NR44
 
 const DIVISORS: [u8; 8] = [8, 16, 32, 48, 64, 80, 96, 112];
 
+// https://nightshade256.github.io/2021/03/27/gb-sound-emulation.html
 pub struct NoiseChannel {
     pub core: ChannelCore,
     pub length_counter: LengthCounter,
@@ -63,14 +64,14 @@ impl ComponentTick for NoiseChannel {
             return;
         }
 
-        let result = ((self.lfsr & 0x01) ^ ((self.lfsr >> 1) & 0x01)) != 0;
+        let result = ((self.lfsr & 0b01) ^ ((self.lfsr & 0b10) >> 1)) != 0;
 
         self.lfsr >>= 1;
-        self.lfsr |= if result { 0x01 << 14 } else { 0x00 };
+        self.lfsr |= if result { 0b01 << 14 } else { 0x00 };
 
         if self.lfsr_width {
-            self.lfsr &= 0xBF;
-            self.lfsr |= if result { 0x40 } else { 0x00 };
+            self.lfsr &= !(1 << 6);
+            self.lfsr |= if result { 0b01 << 6 } else { 0x00 };
         }
 
         self.core.output = if result {

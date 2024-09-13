@@ -42,9 +42,9 @@ impl Background {
 
     // Calculate the pixels position within the tile
     pub fn pixel_offsets(&self, x_coord: u8, y_coord: u8) -> (u8, u8) {
-        let x_offset = 7 - (x_coord % TILE_WIDTH as u8);
+        let x_offset = 7 - (x_coord % TILE_WIDTH);
         // Since each line consists of 2 bytes, the offset has to be multiplied by 2
-        let y_offset = (y_coord % TILE_HEIGHT as u8) * 2;
+        let y_offset = (y_coord % TILE_HEIGHT) * 2;
 
         (x_offset, y_offset)
     }

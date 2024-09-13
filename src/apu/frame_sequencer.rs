@@ -50,17 +50,20 @@ impl FrameSequencer {
         if self.clock >= CYCLES_DIV {
             match self.step {
                 0 => self.tick_length_timers(ch1, ch2, ch3, ch4),
+                1 => {},
                 2 => {
                     ch1.tick_sweep();
                     self.tick_length_timers(ch1, ch2, ch3, ch4);
                 }
+                3 => {},
                 4 => self.tick_length_timers(ch1, ch2, ch3, ch4),
+                5 => {},
                 6 => {
                     ch1.tick_sweep();
                     self.tick_length_timers(ch1, ch2, ch3, ch4);
                 }
                 7 => self.tick_envelopes(ch1, ch2, ch4),
-                _ => {}
+                _ => unreachable!()
             }
 
             self.clock -= CYCLES_DIV;

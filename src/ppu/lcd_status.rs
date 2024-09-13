@@ -45,22 +45,17 @@ impl LCD_status {
         self.check_interrupts(interrupts);
     }
 
+    #[rustfmt::skip]
     fn check_interrupts(&mut self, interrupts: &mut u8) {
         match self.mode {
             MODE_HBLANK => {
-                if self.interrupt_hblank {
-                    *interrupts |= LCD_STAT_MASK;
-                }
+                if self.interrupt_hblank { *interrupts |= LCD_STAT_MASK; }
             }
             MODE_VBLANK => {
-                if self.interrupt_vblank {
-                    *interrupts |= LCD_STAT_MASK;
-                }
+                if self.interrupt_vblank { *interrupts |= LCD_STAT_MASK; }
             }
             MODE_OAM => {
-                if self.interrupt_oam {
-                    *interrupts |= LCD_STAT_MASK;
-                }
+                if self.interrupt_oam { *interrupts |= LCD_STAT_MASK; }
             }
             _ => {}
         }
@@ -70,7 +65,7 @@ impl LCD_status {
 #[rustfmt::skip]
 impl std::convert::From<&LCD_status> for u8 {
     fn from(lcd_status: &LCD_status) -> u8 {
-        lcd_status.mode
+        lcd_status.mode & MODE_MASK
             | (if lcd_status.compare_flag { COMPARE_MASK } else { 0 })
             | (if lcd_status.interrupt_hblank { HBLANK_MASK } else { 0 })
             | (if lcd_status.interrupt_vblank { VBLANK_MASK } else { 0 })
@@ -81,20 +76,13 @@ impl std::convert::From<&LCD_status> for u8 {
 
 impl std::convert::From<u8> for LCD_status {
     fn from(byte: u8) -> Self {
-        let mode = byte & MODE_MASK;
-        let compare_flag = (byte & COMPARE_MASK) != 0;
-        let interrupt_hblank = (byte & HBLANK_MASK) != 0;
-        let interrupt_vblank = (byte & VBLANK_MASK) != 0;
-        let interrupt_oam = (byte & OAM_MASK) != 0;
-        let interrupt_stat = (byte & STAT_MASK) != 0;
-
-        LCD_status {
-            mode,
-            compare_flag,
-            interrupt_hblank,
-            interrupt_vblank,
-            interrupt_oam,
-            interrupt_stat,
+        Self {
+            mode: byte & MODE_MASK,
+            compare_flag: (byte & COMPARE_MASK) != 0,
+            interrupt_hblank: (byte & HBLANK_MASK) != 0,
+            interrupt_vblank: (byte & VBLANK_MASK) != 0,
+            interrupt_oam: (byte & OAM_MASK) != 0,
+            interrupt_stat: (byte & STAT_MASK) != 0,
         }
     }
 }

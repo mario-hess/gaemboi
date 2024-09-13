@@ -100,7 +100,7 @@ fn main() -> Result<(), Error> {
 
     let mut window = video_subsystem
         .window(
-            "SDL2 + Egui Example",
+            "gaemboi",
             VIEWPORT_WIDTH as u32 * event_handler.window_scale,
             VIEWPORT_HEIGHT as u32 * event_handler.window_scale + 20.0 as u32,
         )

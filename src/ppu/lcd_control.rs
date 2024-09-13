@@ -1,3 +1,4 @@
+#![cfg_attr(rustfmt, rustfmt::skip)]
 /**
  * @file    ppu/lcd_control.rs
  * @brief   Handles the PPU's LCD Control register.
@@ -25,14 +26,14 @@ const TILE_OFFSET: u16 = 16;
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone)]
 pub struct LCD_control {
-    pub bg_enabled: bool,
-    pub object_enabled: bool,
-    pub object_size: bool,
-    pub bg_tilemap: bool,
-    pub addressing_mode: bool,
-    pub window_enabled: bool,
-    pub window_tilemap: bool,
-    pub lcd_enabled: bool,
+    bg_enabled: bool,
+    object_enabled: bool,
+    object_size: bool,
+    bg_tilemap: bool,
+    addressing_mode: bool,
+    window_enabled: bool,
+    window_tilemap: bool,
+    lcd_enabled: bool,
 }
 
 impl LCD_control {
@@ -48,25 +49,27 @@ impl LCD_control {
             lcd_enabled: true,
         }
     }
+
+    pub fn bg_enabled(&self) -> bool { self.bg_enabled }
+    pub fn object_enabled(&self) -> bool { self.object_enabled }
+    pub fn object_size(&self) -> bool { self.object_size }
+    pub fn bg_tilemap(&self) -> bool { self.bg_tilemap }
+    pub fn addressing_mode(&self) -> bool { self.addressing_mode }
+    pub fn window_enabled(&self) -> bool { self.window_enabled }
+    pub fn window_tilemap(&self) -> bool { self.window_tilemap }
+    pub fn lcd_enabled(&self) -> bool { self.lcd_enabled }
+
     pub fn get_bg_address(self) -> u16 {
-        if !self.bg_tilemap {
-            TILEMAP_START_0
-        } else {
-            TILEMAP_START_1
-        }
+        if !self.bg_tilemap() { TILEMAP_START_0 } else { TILEMAP_START_1 }
     }
 
     pub fn get_window_address(self) -> u16 {
-        if !self.window_tilemap {
-            TILEMAP_START_0
-        } else {
-            TILEMAP_START_1
-        }
+        if !self.window_tilemap() { TILEMAP_START_0 } else { TILEMAP_START_1 }
     }
 
     // https://gbdev.io/pandocs/Tile_Data.html#vram-tile-data
     pub fn get_address(self, tile_index: u8) -> u16 {
-        if self.addressing_mode {
+        if self.addressing_mode() {
             TILE_BLOCK_0 + (tile_index as u16 * TILE_OFFSET)
         } else if tile_index < 128 {
             TILE_BLOCK_2 + (tile_index as u16 * TILE_OFFSET)
@@ -76,7 +79,6 @@ impl LCD_control {
     }
 }
 
-#[rustfmt::skip]
 impl std::convert::From<&LCD_control> for u8 {
     fn from(lcd_control: &LCD_control) -> u8 {
         (if lcd_control.bg_enabled { BG_ENABLED_MASK } else { 0 })
@@ -92,24 +94,15 @@ impl std::convert::From<&LCD_control> for u8 {
 
 impl std::convert::From<u8> for LCD_control {
     fn from(byte: u8) -> Self {
-        let bg_enabled = (byte & BG_ENABLED_MASK) != 0;
-        let object_enabled = (byte & OBJECT_ENABLED_MASK) != 0;
-        let object_size = (byte & OBJECT_SIZE_MASK) != 0;
-        let bg_tilemap = (byte & BG_TILEMAP_MASK) != 0;
-        let addressing_mode = (byte & ADDRESSING_MODE_MASK) != 0;
-        let window_enabled = (byte & WINDOW_ENABLED_MASK) != 0;
-        let window_tilemap = (byte & WINDOW_TILEMAP_MASK) != 0;
-        let lcd_enabled = (byte & LCD_ENABLED_MASK) != 0;
-
-        LCD_control {
-            bg_enabled,
-            object_enabled,
-            object_size,
-            bg_tilemap,
-            addressing_mode,
-            window_enabled,
-            window_tilemap,
-            lcd_enabled,
+        Self {
+            bg_enabled: (byte & BG_ENABLED_MASK) != 0,
+            object_enabled: (byte & OBJECT_ENABLED_MASK) != 0,
+            object_size: (byte & OBJECT_SIZE_MASK) != 0,
+            bg_tilemap: (byte & BG_TILEMAP_MASK) != 0,
+            addressing_mode: (byte & ADDRESSING_MODE_MASK) != 0,
+            window_enabled: (byte & WINDOW_ENABLED_MASK) != 0,
+            window_tilemap: (byte & WINDOW_TILEMAP_MASK) != 0,
+            lcd_enabled: (byte & LCD_ENABLED_MASK) != 0,
         }
     }
 }
