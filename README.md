@@ -15,7 +15,7 @@ This is a Nintendo Game Boy emulator written in Rust. It aims to accurately emul
 - [x] CPU (Sharp LR35902)
 - [x] Timing based on instruction cycles and timing registers 
 - [x] Support for (most common) Game Boy ROMs
-- [x] Memory, registers, and interrupts
+- [x] Memory, registers and interrupts
 - [x] Graphics
 - [x] VRAM viewer
 - [x] Audio
@@ -45,7 +45,6 @@ Clone the repository:
 git clone https://github.com/mario-hess/gaemboi
 ```
 
-* Fork the repository
 * Create a new branch
 * Make your changes
 * Submit a pull request
