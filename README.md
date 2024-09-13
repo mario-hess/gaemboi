@@ -12,15 +12,18 @@ This is a Nintendo Game Boy emulator written in Rust. It aims to accurately emul
 
 ## Features
 
-- [x] Emulation of Game Boy CPU (Sharp LR35902)
-- [x] Precise timing based on instruction cycles and timing registers 
+- [x] CPU (Sharp LR35902)
+- [x] Timing based on instruction cycles and timing registers 
 - [x] Support for (most common) Game Boy ROMs
-- [x] Accurate emulation of memory, registers, and interrupts
-- [x] Basic graphics
-- [x] Audio emulation
+- [x] Memory, registers, and interrupts
+- [x] Graphics
+- [x] VRAM viewer
+- [x] Audio
+- [x] Audio channel visualizer
 - [x] Save/Load game progress
 - [x] Input handling
 - [x] Gamepad support
+- [x] Fast forward (Up to 4x)
 
 ## Screenshots
 
@@ -42,25 +45,10 @@ Clone the repository:
 git clone https://github.com/mario-hess/gaemboi
 ```
 
-Install dependencies:
-
-#### Arch
-
-```
-sudo pacman -S sdl2 sdl2_image sdl2_ttf
-```
-
-#### Ubuntu
-
-```
-sudo apt-get install libsdl2-dev libsdl-image1.2 libsdl-image1.2-dev libsdl-ttf2.0-0 libsdl-ttf2.0-dev
-```
-
-#### Fedora
-
-```
-sudo dnf install SDL2-devel SDL2_image SDL2_image-devel SDL2_ttf SDL2_ttf-devel
-```
+* Fork the repository
+* Create a new branch
+* Make your changes
+* Submit a pull request
 
 ### Usage
 
