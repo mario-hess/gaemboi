@@ -1,9 +1,10 @@
-/**
+/*
  * @file    apu/channel/square_channel.rs
  * @brief   Implementation of the square channels (Channel 1 & 2).
  * @author  Mario Hess
  * @date    May 27, 2024
  */
+
 use crate::apu::{
     channel::{
         core::ChannelCore, length_counter::LengthCounter, sweep::Sweep,

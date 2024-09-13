@@ -1,9 +1,10 @@
-/**
+/*
  * @file    apu/channel/noise_channel.rs
  * @brief   Implementation of the noise channel (Channel 4).
  * @author  Mario Hess
  * @date    May 28, 2024
  */
+
 use crate::apu::{
     channel::{core::ChannelCore, length_counter::LengthCounter, volume_envelope::VolumeEnvelope},
     ComponentTick, MemoryAccess, CH4_END, CH4_START, LENGTH_TIMER_MAX,

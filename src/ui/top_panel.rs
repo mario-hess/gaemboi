@@ -1,3 +1,10 @@
+/*
+ * @file    ui/top_panel.rs
+ * @brief   Top panel of the user interface.
+ * @author  Mario Hess
+ * @date    September 13, 2024
+ */
+
 use egui_sdl2_gl::egui::{menu, Context, TopBottomPanel, Ui};
 use rfd::FileDialog;
 

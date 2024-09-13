@@ -1,3 +1,10 @@
+/*
+ * @file    ppu/tile.rs
+ * @brief   Constructs a tile from 16 bytes tile data.
+ * @author  Mario Hess
+ * @date    September 13, 2024
+ */
+
 use egui_sdl2_gl::sdl2::pixels::Color;
 
 use crate::ppu::{BLACK, DARK, LIGHT, WHITE};

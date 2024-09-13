@@ -1,11 +1,15 @@
-/**
+/*
  * @file    event_handler.rs
  * @brief   Manages keyboard input and key states.
  * @author  Mario Hess
  * @date    November 11, 2023
  */
+
 use egui_sdl2_gl::{
-    egui::Color32, painter::Painter, sdl2::{controller::Button, event::Event, keyboard::Keycode, video::Window, EventPump}, EguiStateHandler
+    egui::Color32,
+    painter::Painter,
+    sdl2::{controller::Button, event::Event, keyboard::Keycode, video::Window, EventPump},
+    EguiStateHandler,
 };
 
 use crate::State;

@@ -1,3 +1,10 @@
+/*
+ * @file    ui/mod.rs
+ * @brief   User Interface utilizing the egui library.
+ * @author  Mario Hess
+ * @date    September 13, 2024
+ */
+
 mod central_panel;
 mod top_panel;
 

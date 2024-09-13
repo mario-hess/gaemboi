@@ -1,9 +1,10 @@
-/**
+/*
  * @file    clock.rs
  * @brief   Master Clock; responsible for keeping track of passed tick cycles.
  * @author  Mario Hess
  * @date    August 09, 2024
  */
+
 use crate::FPS;
 
 pub const CPU_CLOCK_SPEED: u32 = 4194304;

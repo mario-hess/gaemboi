@@ -1,9 +1,10 @@
-/**
+/*
  * @file    cpu/program_counter.rs
  * @brief   Controls the CPU's program counter.
  * @author  Mario Hess
  * @date    November 11, 2023
  */
+
 const BOOT_ROM_END: u16 = 0x100;
 
 pub struct ProgramCounter {

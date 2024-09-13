@@ -1,4 +1,4 @@
-/**
+/*
  * @file    config.rs
  * @brief   Handles configuration settings.
  * @author  Mario Hess

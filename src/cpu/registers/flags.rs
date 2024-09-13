@@ -1,10 +1,11 @@
 #![cfg_attr(rustfmt, rustfmt::skip)]
-/**
+/*
  * @file    registers/flags_register.rs
  * @brief   Handles CPU flag registers.
  * @author  Mario Hess
  * @date    May 30, 2024
  */
+
 use crate::cpu::instruction::Flag;
 
 const ZERO_MASK: u8 = 0x80;

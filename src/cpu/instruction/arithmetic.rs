@@ -1,18 +1,18 @@
-/**
+/*
  * @file    cpu/arithmetic.rs
  * @brief   Implementation of arithmetic instructions.
  * @author  Mario Hess
  * @date    May 26, 2024
  */
+
 use crate::cpu::{
     instruction::{CycleDuration, Target},
     Cpu, MemoryAccess,
 };
 
+// Adds to the 8-bit A register, the 8-bit register r,
+// and stores the result back into the A register
 pub fn add_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
-    // Adds to the 8-bit A register, the 8-bit register r,
-    // and stores the result back into the A register
-
     let r = cpu.registers.get_register(&target);
     let a = cpu.registers.get_a();
 
@@ -29,10 +29,9 @@ pub fn add_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
     CycleDuration::Default
 }
 
+// Adds to the 8-bit A register, the immediate data n,
+// and stores the result back into the A register
 pub fn add_n(cpu: &mut Cpu) -> CycleDuration {
-    // Adds to the 8-bit A register, the immediate data n,
-    // and stores the result back into the A register
-
     let n = cpu.memory_bus.read_byte(cpu.program_counter.next());
     let a = cpu.registers.get_a();
 
@@ -49,11 +48,10 @@ pub fn add_n(cpu: &mut Cpu) -> CycleDuration {
     CycleDuration::Default
 }
 
+// Adds to the 8-bit A register, data from the absolute
+// address specified by the 16-bit register HL, and stores
+// the result back into the A register
 pub fn add_a_hl(cpu: &mut Cpu) -> CycleDuration {
-    // Adds to the 8-bit A register, data from the absolute
-    // address specified by the 16-bit register HL, and stores
-    // the result back into the A register
-
     let a = cpu.registers.get_a();
     let hl = cpu.registers.get_hl();
     let data = cpu.memory_bus.read_byte(hl);
@@ -73,9 +71,8 @@ pub fn add_a_hl(cpu: &mut Cpu) -> CycleDuration {
     CycleDuration::Default
 }
 
+// Add the value in r16 to HL
 pub fn add_hl_rr(cpu: &mut Cpu, target: Target) -> CycleDuration {
-    // Add the value in r16 to HL
-
     let rr = cpu.registers.get_pair(&target);
     let hl = cpu.registers.get_hl();
 
@@ -91,9 +88,8 @@ pub fn add_hl_rr(cpu: &mut Cpu, target: Target) -> CycleDuration {
     CycleDuration::Default
 }
 
+// Add the value in SP to HL
 pub fn add_hl_sp(cpu: &mut Cpu) -> CycleDuration {
-    // Add the value in SP to HL
-
     let hl = cpu.registers.get_hl();
     let result = hl.wrapping_add(cpu.stack_pointer);
 
@@ -108,9 +104,8 @@ pub fn add_hl_sp(cpu: &mut Cpu) -> CycleDuration {
     CycleDuration::Default
 }
 
+// Add the signed immediate value to SP
 pub fn add_sp_n(cpu: &mut Cpu) -> CycleDuration {
-    // Add the signed immediate value to SP
-
     let n = cpu.memory_bus.read_byte(cpu.program_counter.next()) as i8;
     let sp = cpu.stack_pointer as i32;
     let result = sp.wrapping_add(n as i32) as u16;
@@ -128,11 +123,10 @@ pub fn add_sp_n(cpu: &mut Cpu) -> CycleDuration {
     CycleDuration::Default
 }
 
+// Adds to the 8-bit A register, the carry flag
+// and the 8-bit register r, and stores the result
+// back into the A register
 pub fn adc_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
-    // Adds to the 8-bit A register, the carry flag
-    // and the 8-bit register r, and stores the result
-    // back into the A register
-
     let r = cpu.registers.get_register(&target);
     let a = cpu.registers.get_a();
 
@@ -151,11 +145,10 @@ pub fn adc_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
     CycleDuration::Default
 }
 
+// Adds to the 8-bit A register, the carry flag and
+// the immediate data n, and stores the result back
+// into the A register
 pub fn adc_n(cpu: &mut Cpu) -> CycleDuration {
-    // Adds to the 8-bit A register, the carry flag and
-    // the immediate data n, and stores the result back
-    // into the A register
-
     let n = cpu.memory_bus.read_byte(cpu.program_counter.next());
     let a = cpu.registers.get_a();
 
@@ -174,11 +167,10 @@ pub fn adc_n(cpu: &mut Cpu) -> CycleDuration {
     CycleDuration::Default
 }
 
+// Adds to the 8-bit A register, the carry flag and data
+// from the absolute address specified by the 16-bit
+// register HL, and stores the result back into the A register
 pub fn adc_hl(cpu: &mut Cpu) -> CycleDuration {
-    // Adds to the 8-bit A register, the carry flag and data
-    // from the absolute address specified by the 16-bit
-    // register HL, and stores the result back into the A register
-
     let a = cpu.registers.get_a();
 
     let hl = cpu.registers.get_hl();
@@ -199,11 +191,10 @@ pub fn adc_hl(cpu: &mut Cpu) -> CycleDuration {
     CycleDuration::Default
 }
 
+// Subtracts from the 8-bit A register, the
+// 8-bit register r, and stores the result
+// back into the A register
 pub fn sub_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
-    // Subtracts from the 8-bit A register, the
-    // 8-bit register r, and stores the result
-    // back into the A register
-
     let a = cpu.registers.get_a();
     let r = cpu.registers.get_register(&target);
 
@@ -218,11 +209,10 @@ pub fn sub_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
     CycleDuration::Default
 }
 
+// Subtracts from the 8-bit A register, the
+// immediate data n, and stores the result
+// back into the A register
 pub fn sub_n(cpu: &mut Cpu) -> CycleDuration {
-    // Subtracts from the 8-bit A register, the
-    // immediate data n, and stores the result
-    // back into the A register
-
     let n = cpu.memory_bus.read_byte(cpu.program_counter.next());
     let a = cpu.registers.get_a();
 
@@ -237,12 +227,11 @@ pub fn sub_n(cpu: &mut Cpu) -> CycleDuration {
     CycleDuration::Default
 }
 
+// Subtracts from the 8-bit A register, data from
+// the absolute address specified by the 16-bit
+// register HL, and stores the result back into
+// the A register
 pub fn sub_hl(cpu: &mut Cpu) -> CycleDuration {
-    // Subtracts from the 8-bit A register, data from
-    // the absolute address specified by the 16-bit
-    // register HL, and stores the result back into
-    // the A register
-
     let a = cpu.registers.get_a();
     let hl = cpu.registers.get_hl();
     let value = cpu.memory_bus.read_byte(hl);
@@ -259,11 +248,10 @@ pub fn sub_hl(cpu: &mut Cpu) -> CycleDuration {
     CycleDuration::Default
 }
 
+// Subtracts from the 8-bit A register, the
+// carry flag and the 8-bit register r, and
+// stores the result back into the A register
 pub fn sbc_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
-    // Subtracts from the 8-bit A register, the
-    // carry flag and the 8-bit register r, and
-    // stores the result back into the A register
-
     let a = cpu.registers.get_a();
     let r = cpu.registers.get_register(&target);
 
@@ -283,11 +271,10 @@ pub fn sbc_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
     CycleDuration::Default
 }
 
+// Subtracts from the 8-bit A register, the
+// carry flag and the immediate data n, and
+// stores the result back into the A register
 pub fn sbc_n(cpu: &mut Cpu) -> CycleDuration {
-    // Subtracts from the 8-bit A register, the
-    // carry flag and the immediate data n, and
-    // stores the result back into the A register
-
     let a = cpu.registers.get_a();
     let n = cpu.memory_bus.read_byte(cpu.program_counter.next());
 
@@ -307,12 +294,11 @@ pub fn sbc_n(cpu: &mut Cpu) -> CycleDuration {
     CycleDuration::Default
 }
 
+// Subtracts from the 8-bit A register, the
+// carry flag and data from the absolute
+// address specified by the 16-bit register HL,
+// and stores the result back into the A register
 pub fn sbc_hl(cpu: &mut Cpu) -> CycleDuration {
-    // Subtracts from the 8-bit A register, the
-    // carry flag and data from the absolute
-    // address specified by the 16-bit register HL,
-    // and stores the result back into the A register
-
     let a = cpu.registers.get_a();
     let carry: u8 = cpu.registers.flags.get_carry().into();
     let hl = cpu.registers.get_hl();
@@ -331,11 +317,10 @@ pub fn sbc_hl(cpu: &mut Cpu) -> CycleDuration {
     CycleDuration::Default
 }
 
+// Performs a bitwise AND operation between the
+// 8-bit A register and the 8-bit register r,
+// and stores the result back into the A register
 pub fn and_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
-    // Performs a bitwise AND operation between the
-    // 8-bit A register and the 8-bit register r,
-    // and stores the result back into the A register
-
     let a = cpu.registers.get_a();
     let r = cpu.registers.get_register(&target);
 
@@ -350,11 +335,10 @@ pub fn and_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
     CycleDuration::Default
 }
 
+// Performs a bitwise AND operation between the
+// 8-bit A register and immediate data n, and
+// stores the result back into the A register
 pub fn and_n(cpu: &mut Cpu) -> CycleDuration {
-    // Performs a bitwise AND operation between the
-    // 8-bit A register and immediate data n, and
-    // stores the result back into the A register
-
     let n = cpu.memory_bus.read_byte(cpu.program_counter.next());
     let a = cpu.registers.get_a();
     let result = a & n;
@@ -368,12 +352,11 @@ pub fn and_n(cpu: &mut Cpu) -> CycleDuration {
     CycleDuration::Default
 }
 
+// Performs a bitwise AND operation between the
+// 8-bit A register and data from the absolute
+// address specified by the 16-bit register HL,
+// and stores the result back into the A register
 pub fn and_hl(cpu: &mut Cpu) -> CycleDuration {
-    // Performs a bitwise AND operation between the
-    // 8-bit A register and data from the absolute
-    // address specified by the 16-bit register HL,
-    // and stores the result back into the A register
-
     let a = cpu.registers.get_a();
     let hl = cpu.registers.get_hl();
     let data = cpu.memory_bus.read_byte(hl);
@@ -389,9 +372,8 @@ pub fn and_hl(cpu: &mut Cpu) -> CycleDuration {
     CycleDuration::Default
 }
 
+// Increments data in the 8-bit target register
 pub fn inc_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
-    // Increments data in the 8-bit target register
-
     let reg = cpu.registers.get_register(&target);
     let half_carry = (reg & 0x0F).wrapping_add(1) > 0x0F;
 
@@ -405,19 +387,17 @@ pub fn inc_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
     CycleDuration::Default
 }
 
+// Increments data in the 16-bit target register by 1
 pub fn inc_rr(cpu: &mut Cpu, target: Target) -> CycleDuration {
-    // Increments data in the 16-bit target register by 1
-
     let value = cpu.registers.get_pair(&target);
     cpu.registers.set_pair(target, value.wrapping_add(1));
 
     CycleDuration::Default
 }
 
+// Increments data at the absolute address specified
+// by the 16-bit register HL
 pub fn inc_hl(cpu: &mut Cpu) -> CycleDuration {
-    // Increments data at the absolute address specified
-    // by the 16-bit register HL
-
     let hl = cpu.registers.get_hl();
     let data = cpu.memory_bus.read_byte(hl);
     let half_carry = (data & 0x0F).wrapping_add(1) > 0x0F;
@@ -432,17 +412,15 @@ pub fn inc_hl(cpu: &mut Cpu) -> CycleDuration {
     CycleDuration::Default
 }
 
+// Increment SP by 1
 pub fn inc_sp(cpu: &mut Cpu) -> CycleDuration {
-    // Increment SP by 1
-
     cpu.stack_pointer = cpu.stack_pointer.wrapping_add(1);
 
     CycleDuration::Default
 }
 
+// Decrements data in the 8-bit target register
 pub fn dec_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
-    // Decrements data in the 8-bit target register
-
     let r = cpu.registers.get_register(&target);
     let half_carry = (r & 0x0F).wrapping_sub(1) & 0x10 != 0;
 
@@ -456,9 +434,8 @@ pub fn dec_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
     CycleDuration::Default
 }
 
+// Decrements data in the 16-bit target register
 pub fn dec_rr(cpu: &mut Cpu, target: Target) -> CycleDuration {
-    // Decrements data in the 16-bit target register
-
     let reg = cpu.registers.get_pair(&target);
 
     let result = reg.wrapping_sub(1);
@@ -467,18 +444,16 @@ pub fn dec_rr(cpu: &mut Cpu, target: Target) -> CycleDuration {
     CycleDuration::Default
 }
 
+// Decrement SP by 1
 pub fn dec_sp(cpu: &mut Cpu) -> CycleDuration {
-    // Decrement SP by 1
-
     cpu.stack_pointer = cpu.stack_pointer.wrapping_sub(1);
 
     CycleDuration::Default
 }
 
+// Decrements data at the absolute address
+// specified by the 16-bit register HL
 pub fn dec_hl(cpu: &mut Cpu) -> CycleDuration {
-    // Decrements data at the absolute address
-    // specified by the 16-bit register HL
-
     let hl = cpu.registers.get_hl();
     let value = cpu.memory_bus.read_byte(hl);
     let result = value.wrapping_sub(1);
@@ -492,12 +467,10 @@ pub fn dec_hl(cpu: &mut Cpu) -> CycleDuration {
     CycleDuration::Default
 }
 
-// --- OR / XOR instructions ---
+// Performs a bitwise OR operation between the 8-bit
+// A register and the 8-bit register r, and stores
+// the result back into the A register
 pub fn or_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
-    // Performs a bitwise OR operation between the 8-bit
-    // A register and the 8-bit register r, and stores
-    // the result back into the A register
-
     let r = cpu.registers.get_register(&target);
     let a = cpu.registers.get_a();
 
@@ -513,11 +486,10 @@ pub fn or_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
     CycleDuration::Default
 }
 
+// Performs a bitwise OR operation between the 8-bit
+// A register and immediate data n, and stores the
+// result back into the A register
 pub fn or_n(cpu: &mut Cpu) -> CycleDuration {
-    // Performs a bitwise OR operation between the 8-bit
-    // A register and immediate data n, and stores the
-    // result back into the A register
-
     let a = cpu.registers.get_a();
     let n = cpu.memory_bus.read_byte(cpu.program_counter.next());
 
@@ -533,12 +505,11 @@ pub fn or_n(cpu: &mut Cpu) -> CycleDuration {
     CycleDuration::Default
 }
 
+// Performs a bitwise OR operation between the 8-bit
+// A register and data from the absolute address
+// specified by the 16-bit register HL, and stores
+// the result back into the A register
 pub fn or_hl(cpu: &mut Cpu) -> CycleDuration {
-    // Performs a bitwise OR operation between the 8-bit
-    // A register and data from the absolute address
-    // specified by the 16-bit register HL, and stores
-    // the result back into the A register
-
     let a = cpu.registers.get_a();
     let hl = cpu.registers.get_hl();
     let value = cpu.memory_bus.read_byte(hl);
@@ -554,11 +525,10 @@ pub fn or_hl(cpu: &mut Cpu) -> CycleDuration {
     CycleDuration::Default
 }
 
+// Performs a bitwise XOR operation between the
+// 8-bit A register and the 8-bit target register,
+// and stores the result back into the A register
 pub fn xor_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
-    // Performs a bitwise XOR operation between the
-    // 8-bit A register and the 8-bit target register,
-    // and stores the result back into the A register
-
     let a = cpu.registers.get_a();
     let value = cpu.registers.get_register(&target);
 
@@ -574,11 +544,10 @@ pub fn xor_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
     CycleDuration::Default
 }
 
+// Performs a bitwise XOR operation between the 8-bit
+// A register and immediate data n, and stores the
+// result back into the A register
 pub fn xor_n(cpu: &mut Cpu) -> CycleDuration {
-    // Performs a bitwise XOR operation between the 8-bit
-    // A register and immediate data n, and stores the
-    // result back into the A register
-
     let a = cpu.registers.get_a();
     let n = cpu.memory_bus.read_byte(cpu.program_counter.next());
 
@@ -593,12 +562,11 @@ pub fn xor_n(cpu: &mut Cpu) -> CycleDuration {
     CycleDuration::Default
 }
 
+// Performs a bitwise XOR operation between the
+// 8-bit A register and data from the absolute
+// address specified by the 16-bit register HL,
+// and stores the result back into the A register
 pub fn xor_hl(cpu: &mut Cpu) -> CycleDuration {
-    // Performs a bitwise XOR operation between the
-    // 8-bit A register and data from the absolute
-    // address specified by the 16-bit register HL,
-    // and stores the result back into the A register
-
     let a = cpu.registers.get_a();
     let hl = cpu.registers.get_hl();
     let data = cpu.memory_bus.read_byte(hl);
@@ -614,12 +582,11 @@ pub fn xor_hl(cpu: &mut Cpu) -> CycleDuration {
     CycleDuration::Default
 }
 
+// Subtracts from the 8-bit A register, the immediate
+// data n, and updates flags based on the result.
+// This instructions basically identical to SUB n,
+// but does not update the A register
 pub fn cp_n(cpu: &mut Cpu) -> CycleDuration {
-    // Subtracts from the 8-bit A register, the immediate
-    // data n, and updates flags based on the result.
-    // This instructions basically identical to SUB n,
-    // but does not update the A register
-
     let byte = cpu.memory_bus.read_byte(cpu.program_counter.next());
     let a = cpu.registers.get_a();
 
@@ -635,12 +602,11 @@ pub fn cp_n(cpu: &mut Cpu) -> CycleDuration {
     CycleDuration::Default
 }
 
+// Subtracts from the 8-bit A register, the 8-bit
+// register r, and updates flags based on the result.
+// This instruction is basically identical to SUB r,
+// but does not update the A register
 pub fn cp_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
-    // Subtracts from the 8-bit A register, the 8-bit
-    // register r, and updates flags based on the result.
-    // This instruction is basically identical to SUB r,
-    // but does not update the A register
-
     let a = cpu.registers.get_a();
     let r = cpu.registers.get_register(&target);
 
@@ -657,13 +623,12 @@ pub fn cp_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
     CycleDuration::Default
 }
 
+// Subtracts from the 8-bit A register, data from the
+// absolute address specified by the 16-bit register
+// HL, and updates flags based on the result. This
+// instruction is basically identical to SUB (HL), but
+// does not update the A register
 pub fn cp_hl(cpu: &mut Cpu) -> CycleDuration {
-    // Subtracts from the 8-bit A register, data from the
-    // absolute address specified by the 16-bit register
-    // HL, and updates flags based on the result. This
-    // instruction is basically identical to SUB (HL), but
-    // does not update the A register
-
     let a = cpu.registers.get_a();
     let hl = cpu.registers.get_hl();
     let data = cpu.memory_bus.read_byte(hl);

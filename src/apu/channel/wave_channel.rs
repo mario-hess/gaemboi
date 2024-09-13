@@ -1,9 +1,10 @@
-/**
+/*
  * @file    apu/channel/wave_channel.rs
  * @brief   Implementation of the wave channel (Channel 3).
  * @author  Mario Hess
  * @date    May 28, 2024
  */
+
 use crate::apu::{
     channel::{core::ChannelCore, length_counter::LengthCounter},
     ComponentTick, MemoryAccess, CH3_END, CH3_START,

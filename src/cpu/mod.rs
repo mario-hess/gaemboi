@@ -1,9 +1,10 @@
-/**
+/*
  * @file    cpu/mod.rs
  * @brief   Overarching construct, facilitates instruction execution coordination.
  * @author  Mario Hess
  * @date    May 26, 2024
  */
+
 pub mod instruction;
 mod registers;
 

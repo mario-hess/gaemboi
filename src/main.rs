@@ -1,15 +1,18 @@
-/**
+/*
  * @file    main.rs
  * @brief   Initializes the emulator by loading the ROM and delegating control to the core emulation loop.
  * @author  Mario Hess
  * @date    May 23, 2024
  *
  * Dependencies:
- * - SDL2: Audio, input, and display handling.
- *      (https://docs.rs/sdl2/latest/sdl2/)
+ * - egui_sdl2_gl: UI, Rendering, Audio and Input handling.
+ *      (https://docs.rs/egui_sdl2_gl/latest/egui_sdl2_gl/)
  * - rfd: File dialog
  *      (https://docs.rs/rfd/latest/rfd/)
+ * - image: Image decoding
+ *      (https://docs.rs/image/latest/image/)
  */
+
 mod apu;
 mod cartridge;
 mod clock;

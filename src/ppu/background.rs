@@ -1,3 +1,11 @@
+#![cfg_attr(rustfmt, rustfmt::skip)]
+/*
+ * @file    ppu/background.rs
+ * @brief   Implementation of the Background layer.
+ * @author  Mario Hess
+ * @date    September 13, 2024
+ */
+
 use super::{TILE_HEIGHT, TILE_WIDTH};
 
 // The background can be made to scroll as a whole, writing to two registers.
@@ -16,21 +24,11 @@ impl Background {
         }
     }
 
-    pub fn get_x_scroll(&self) -> u8 {
-        self.x_scroll
-    }
+    pub fn get_x_scroll(&self) -> u8 { self.x_scroll }
+    pub fn set_x_scroll(&mut self, value: u8) { self.x_scroll = value; }
 
-    pub fn set_x_scroll(&mut self, value: u8) {
-        self.x_scroll = value;
-    }
-
-    pub fn get_y_scroll(&self) -> u8 {
-        self.y_scroll
-    }
-
-    pub fn set_y_scroll(&mut self, value: u8) {
-        self.y_scroll = value;
-    }
+    pub fn get_y_scroll(&self) -> u8 { self.y_scroll }
+    pub fn set_y_scroll(&mut self, value: u8) { self.y_scroll = value; }
 
     // Calculate the pixels position within the tilemap
     pub fn tilemap_coordinates(&self, scan_x: u8, scan_y: u8) -> (u8, u8) {

@@ -1,9 +1,10 @@
-/**
+/*
  * @file    ppu/mod.rs
  * @brief   Handles the Picture Processing Unit for graphics rendering.
  * @author  Mario Hess
  * @date    June 19, 2024
  */
+
 mod background;
 mod lcd_control;
 mod lcd_status;

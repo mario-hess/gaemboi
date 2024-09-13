@@ -1,9 +1,10 @@
-/**
+/*
  * @file    apu/mixer.rs
  * @brief   Responsible for mixing the channels outputs.
  * @author  Mario Hess
  * @date    June 7, 2024
  */
+
 use crate::apu::channel::core::ChannelCore;
 
 const CH1_RIGHT_MASK: u8 = 0x01;

@@ -1,9 +1,10 @@
-/**
+/*
  * @file    cartridge/mod.rs
  * @brief   Module for constructing cartridges with memory bank controllers.
  * @author  Mario Hess
  * @date    June 8, 2024
  */
+
 mod core;
 mod mbc0;
 mod mbc1;

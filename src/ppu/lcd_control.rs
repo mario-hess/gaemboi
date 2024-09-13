@@ -1,10 +1,11 @@
 #![cfg_attr(rustfmt, rustfmt::skip)]
-/**
+/*
  * @file    ppu/lcd_control.rs
  * @brief   Handles the PPU's LCD Control register.
  * @author  Mario Hess
  * @date    May 30, 2024
  */
+
 use crate::ppu::{TILEMAP_START_0, TILEMAP_START_1};
 
 const BG_ENABLED_MASK: u8 = 0x01;

@@ -1,9 +1,10 @@
-/**
+/*
  * @file    apu/audio.rs
  * @brief   Implementation of the audio callback.
  * @author  Mario Hess
  * @date    May 25, 2024
  */
+
 use egui_sdl2_gl::sdl2::audio::AudioCallback;
 
 use std::{

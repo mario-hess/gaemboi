@@ -1,9 +1,10 @@
-/**
+/*
  * @file    instruction.rs
  * @brief   Defines instructions and their attributes.
  * @author  Mario Hess
  * @date    September 20, 2023
  */
+
 pub mod arithmetic;
 pub mod bit_ops;
 pub mod control;

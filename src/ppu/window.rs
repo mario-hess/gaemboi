@@ -1,3 +1,11 @@
+#![cfg_attr(rustfmt, rustfmt::skip)]
+/*
+ * @file    ppu/window.rs
+ * @brief   Implementation of the Window layer.
+ * @author  Mario Hess
+ * @date    September 13, 2024
+ */
+
 use super::{TILE_HEIGHT, TILE_WIDTH, VIEWPORT_HEIGHT, VIEWPORT_WIDTH};
 
 /*
@@ -23,30 +31,20 @@ impl Window {
         }
     }
 
-    pub fn get_x_coord(&self) -> u8 {
-        self.x_coord
-    }
-
+    pub fn get_x_coord(&self) -> u8 { self.x_coord }
     pub fn set_x_coord(&mut self, value: u8) {
         // Values lower than 7 cause strange edge cases to occur
         if value < 7 {
             return;
         }
 
-        self.x_coord = value
+        self.x_coord = value;
     }
 
-    pub fn get_y_coord(&self) -> u8 {
-        self.y_coord
-    }
+    pub fn get_y_coord(&self) -> u8 { self.y_coord }
+    pub fn set_y_coord(&mut self, value: u8) { self.y_coord = value; }
 
-    pub fn set_y_coord(&mut self, value: u8) {
-        self.y_coord = value
-    }
-
-    pub fn reset_line_counter(&mut self) {
-        self.line_counter = 0;
-    }
+    pub fn reset_line_counter(&mut self) { self.line_counter = 0; }
 
     pub fn is_pixel_in_window(&self, enabled: bool, scan_x:u8, scan_y: u8) -> bool {
         // Determine if the current pixel is within the range of the window's

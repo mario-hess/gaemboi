@@ -1,9 +1,10 @@
-/**
+/*
  * @file    ppu/oam.rs
  * @brief   Handles the Object Attribute Memory
  * @author  Mario Hess
  * @date    May 23, 2024
  */
+
 mod attributes;
 use attributes::Attributes;
 

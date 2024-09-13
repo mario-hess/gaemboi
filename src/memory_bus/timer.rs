@@ -1,9 +1,10 @@
-/**
- * @file    timer.rs
+/*
+ * @file    memory_bus/timer.rs
  * @brief   Handles the timer and divider registers.
  * @author  Mario Hess
  * @date    May 27, 2024
  */
+
 use crate::{
     clock::CPU_CLOCK_SPEED,
     interrupt::TIMER_MASK,

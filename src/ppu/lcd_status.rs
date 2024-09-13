@@ -1,9 +1,10 @@
-/**
-* @file    ppu/lcd_status.rs
-* @brief   Handles the PPU's LCD Status register.
-* @author  Mario Hess
-* @date    May 30, 2024
-*/
+/*
+ * @file    ppu/lcd_status.rs
+ * @brief   Handles the PPU's LCD Status register.
+ * @author  Mario Hess
+ * @date    May 30, 2024
+ */
+
 use crate::ppu::LCD_STAT_MASK;
 
 pub const MODE_HBLANK: u8 = 0x00;

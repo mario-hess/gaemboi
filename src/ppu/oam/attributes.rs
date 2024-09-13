@@ -1,4 +1,10 @@
 #![cfg_attr(rustfmt, rustfmt::skip)]
+/*
+ * @file    ppu/oam/attributes.rs
+ * @brief   OAM Attributes register
+ * @author  Mario Hess
+ * @date    September 13, 2024
+ */
 
 const CGB_PALETTE_MASK: u8 = 0x07;
 const CGB_BANK_MASK: u8 = 0x08;

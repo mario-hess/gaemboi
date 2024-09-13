@@ -1,9 +1,10 @@
-/**
+/*
  * @file    cartridge/mbc5.rs
  * @brief   MBC5 Memory Bank Controller implementation.
  * @author  Mario Hess
  * @date    August 09, 2024
  */
+
 use crate::cartridge::{core::CartridgeCore, MemoryBankController, MASK_MSB, RAM_ADDRESS};
 
 pub struct Mbc5 {

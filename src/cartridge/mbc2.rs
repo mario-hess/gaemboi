@@ -1,9 +1,10 @@
-/**
+/*
  * @file    cartridge/mbc2.rs
  * @brief   MBC2 Memory Bank Controller implementation.
  * @author  Mario Hess
  * @date    June 8, 2024
  */
+
 use crate::cartridge::{core::CartridgeCore, MemoryBankController, MASK_MSB, RAM_ADDRESS};
 
 pub struct Mbc2 {

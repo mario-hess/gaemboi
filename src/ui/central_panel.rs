@@ -1,3 +1,10 @@
+/*
+ * @file    ui/central_panel.rs
+ * @brief   Main panel responsible for displaying the viewport and UI elements.
+ * @author  Mario Hess
+ * @date    September 13, 2024
+ */
+
 use egui_sdl2_gl::{
     egui::{load::SizedTexture, Color32, Image, TextureId, Vec2},
     painter::Painter,

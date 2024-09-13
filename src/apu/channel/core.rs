@@ -1,3 +1,10 @@
+/*
+ * @file    apu/channel/core.rs
+ * @brief   Core functionality of each audio channel.
+ * @author  Mario Hess
+ * @date    September 13, 2024
+ */
+
 pub struct ChannelCore {
     pub enabled: bool,
     pub dac_enabled: bool,

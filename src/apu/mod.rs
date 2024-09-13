@@ -1,9 +1,10 @@
-/**
+/*
  * @file    apu/mod.rs
  * @brief   Implementation of the Audio Processing Unit (APU).
  * @author  Mario Hess
  * @date    June 7, 2024
  */
+
 pub mod audio;
 pub mod channel;
 mod frame_sequencer;

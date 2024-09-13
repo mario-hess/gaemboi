@@ -1,5 +1,5 @@
-/**
-     * @file    apu/channel/volume_envelope.rs
+/*
+ * @file    apu/channel/volume_envelope.rs
  * @brief   An envelope can be configured for Channel 1, 2 and 4 which allows automatically adjusting the volume over time.
  * @author  Mario Hess
  * @date    May 25, 2024

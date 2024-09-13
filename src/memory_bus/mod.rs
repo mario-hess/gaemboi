@@ -1,9 +1,10 @@
-/**
+/*
  * @file    memory_bus.rs
  * @brief   Manages memory access and address decoding.
  * @author  Mario Hess
  * @date    May 28, 2024
  */
+
 mod joypad;
 mod timer;
 

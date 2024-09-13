@@ -1,9 +1,10 @@
-/**
- * @file    joypad.rs
+/*
+ * @file    memory_bus/joypad.rs
  * @brief   Handles user input.
  * @author  Mario Hess
  * @date    May 27, 2024
  */
+
 use crate::event_handler::EventHandler;
 
 const A_RIGHT_POS: u8 = 0x00;

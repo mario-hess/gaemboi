@@ -1,11 +1,11 @@
-use super::square_channel::ChannelType;
-
-/**
+/*
  * @file    apu/channel/length_counter.rs
  * @brief   All channels can be individually set to automatically shut themselves down after a certain amount of time.
  * @author  Mario Hess
  * @date    May 25, 2024
  */
+
+use super::square_channel::ChannelType;
 
 pub struct LengthCounter {
     pub enabled: bool,

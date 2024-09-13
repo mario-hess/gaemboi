@@ -1,9 +1,10 @@
-/**
+/*
  * @file    apu/frame_sequencer.rs
  * @brief   Implementation of the APU frame sequencer.
  * @author  Mario Hess
  * @date    May 25, 2024
  */
+
 use crate::{
     apu::{NoiseChannel, SquareChannel, WaveChannel, APU_CLOCK_SPEED},
     clock::CPU_CLOCK_SPEED,
