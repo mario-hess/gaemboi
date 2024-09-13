@@ -5,6 +5,7 @@
  * @date    May 26, 2024
  */
 
+pub mod clock;
 pub mod instruction;
 mod registers;
 

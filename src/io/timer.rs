@@ -6,7 +6,7 @@
  */
 
 use crate::{
-    clock::CPU_CLOCK_SPEED,
+    cpu::clock::CPU_CLOCK_SPEED,
     interrupt::TIMER_MASK,
     memory_bus::{ComponentTick, MemoryAccess},
 };

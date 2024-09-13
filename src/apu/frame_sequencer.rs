@@ -7,7 +7,7 @@
 
 use crate::{
     apu::{NoiseChannel, SquareChannel, WaveChannel, APU_CLOCK_SPEED},
-    clock::CPU_CLOCK_SPEED,
+    cpu::clock::CPU_CLOCK_SPEED,
 };
 
 const CYCLES_DIV: u16 = (CPU_CLOCK_SPEED / APU_CLOCK_SPEED as u32) as u16;

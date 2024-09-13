@@ -15,18 +15,18 @@
 
 mod apu;
 mod cartridge;
-mod clock;
 mod config;
 mod cpu;
 mod event_handler;
 mod interrupt;
+mod io;
 mod memory_bus;
 mod ppu;
 mod ui;
 
 use apu::audio::{Audio, SAMPLING_FREQUENCY, SAMPLING_RATE};
 use apu::AUDIO_BUFFER_THRESHOLD;
-use clock::CYCLES_PER_FRAME;
+use cpu::clock::{Clock, CYCLES_PER_FRAME};
 use egui_sdl2_gl::egui::{Context, FontFamily, FontId, TextStyle};
 use memory_bus::ComponentTick;
 
@@ -211,7 +211,7 @@ fn main() -> Result<(), Error> {
                 );
                 audio_device.resume();
 
-                let mut clock = clock::Clock::new();
+                let mut clock = Clock::new();
 
                 // ---------------- LOOP ------------------------
                 while !event_handler.quit {

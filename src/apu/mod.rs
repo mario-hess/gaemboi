@@ -26,7 +26,7 @@ use crate::{
         frame_sequencer::FrameSequencer,
         mixer::Mixer,
     },
-    clock::CPU_CLOCK_SPEED,
+    cpu::clock::CPU_CLOCK_SPEED,
     memory_bus::{ComponentTick, MemoryAccess},
 };
 

@@ -5,13 +5,10 @@
  * @date    May 28, 2024
  */
 
-mod joypad;
-mod timer;
-
 use crate::{
     apu::{Apu, AUDIO_END, AUDIO_START},
     cartridge::Cartridge,
-    memory_bus::{joypad::Joypad, timer::Timer},
+    io::{joypad::Joypad, timer::Timer},
     ppu::Ppu,
 };
 

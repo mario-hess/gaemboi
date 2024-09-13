@@ -13,7 +13,6 @@ mod tile;
 mod window;
 
 use egui_sdl2_gl::sdl2::pixels::Color;
-use tile::Tile;
 
 use crate::{
     interrupt::{LCD_STAT_MASK, VBLANK_MASK},
@@ -23,6 +22,7 @@ use crate::{
         lcd_control::LCD_control,
         lcd_status::{LCD_status, MODE_HBLANK, MODE_OAM, MODE_TRANSFER, MODE_VBLANK},
         oam::OAM,
+        tile::Tile,
         window::Window,
     },
 };
@@ -212,10 +212,10 @@ impl ComponentTick for Ppu {
                     let oam_entry = self.oam[i];
                     // First byte in OAM (oam_entry.y_pos) is the
                     // object’s vertical position on the screen + 16
-                    let object_y = oam_entry.y_pos as i16 - 16;
+                    let object_y = oam_entry.get_y_pos() as i16 - 16;
                     // Second byte in OAM (oam_entry.x_pos) is the
                     // object’s horizontal position on the screen + 8
-                    let object_x = oam_entry.x_pos as i16 - 8;
+                    let object_x = oam_entry.get_x_pos() as i16 - 8;
 
                     // Determine if the current scanline intersects with the vertical span of the object
                     if scan_y >= object_y && scan_y < object_y + self.tile_height as i16 {
@@ -327,10 +327,10 @@ impl Ppu {
         let offset = (address % 4) as usize;
 
         match offset {
-            0 => self.oam[index].y_pos,
-            1 => self.oam[index].x_pos,
-            2 => self.oam[index].tile_index,
-            3 => (&self.oam[index].attributes).into(),
+            0 => self.oam[index].get_y_pos(),
+            1 => self.oam[index].get_x_pos(),
+            2 => self.oam[index].get_tile_index(),
+            3 => self.oam[index].get_attributes(),
             _ => unreachable!(),
         }
     }
@@ -340,10 +340,10 @@ impl Ppu {
         let offset = (address % 4) as usize;
 
         match offset {
-            0 => self.oam[index].y_pos = value,
-            1 => self.oam[index].x_pos = value,
-            2 => self.oam[index].tile_index = value,
-            3 => self.oam[index].attributes = value.into(),
+            0 => self.oam[index].set_y_pos(value),
+            1 => self.oam[index].set_x_pos(value),
+            2 => self.oam[index].set_tile_index(value),
+            3 => self.oam[index].set_attributes(value),
             _ => unreachable!(),
         }
     }
@@ -408,7 +408,7 @@ impl Ppu {
             let color_index = color_index(first_byte, second_byte, x_offset);
 
             let overlap_offset = self.scan_y as usize + FULL_WIDTH * scan_x as usize;
-            self.overlap_map[overlap_offset] = color_index == 0;
+            self.overlap_map[overlap_offset] = color_index != 0;
 
             let pixel = pixel_color(&self.bg_palette, &color_index);
 
@@ -424,9 +424,9 @@ impl Ppu {
 
         for (oam_index, x_offset) in self.oam_buffer.iter() {
             let oam_entry = self.oam[*oam_index];
-            let y_offset = oam_entry.y_pos as i16 - 16;
+            let y_offset = oam_entry.get_y_pos() as i16 - 16;
 
-            let mut tile_index = oam_entry.tile_index;
+            let mut tile_index = oam_entry.get_tile_index();
 
             // Ignore last bit for 8x16 sprites
             if self.tile_height == TILE_HEIGHT_BIG {
@@ -527,7 +527,7 @@ impl Ppu {
             return false;
         }
 
-        !self.overlap_map[offset]
+        self.overlap_map[offset]
     }
 
     pub fn clear_screen(&mut self) {
