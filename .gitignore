@@ -1,8 +1,6 @@
 debug/
 target/
 roms/
-log/
-dissertation/
 
 Cargo.lock
 
