@@ -8,7 +8,7 @@
 use crate::{
     cpu::clock::CPU_CLOCK_SPEED,
     interrupt::TIMER_MASK,
-    memory_bus::{ComponentTick, MemoryAccess},
+    memory_bus::MemoryAccess,
 };
 
 const DIV: u16 = 0xFF04;
@@ -64,8 +64,23 @@ impl MemoryAccess for Timer {
     }
 }
 
-impl ComponentTick for Timer {
-    fn tick(&mut self, m_cycles: u8) {
+impl Timer {
+    pub fn new() -> Self {
+        Self {
+            div: 0xAB,
+            tima: 0,
+            tma: 0,
+            tac: 0xF8,
+            div_counter: 0,
+            tima_counter: 0,
+            tima_overflowed: false,
+            tac_cycles: CYCLES_TAC_0,
+            enabled: false,
+            interrupt: 0,
+        }
+    }
+
+    pub fn tick(&mut self, m_cycles: u8) {
         let t_cycles = (m_cycles * 4) as u16;
         self.div_counter += t_cycles;
 
@@ -101,23 +116,6 @@ impl ComponentTick for Timer {
 
             self.tima = self.tima.wrapping_add(1);
             self.tima_counter -= self.tac_cycles;
-        }
-    }
-}
-
-impl Timer {
-    pub fn new() -> Self {
-        Self {
-            div: 0xAB,
-            tima: 0,
-            tma: 0,
-            tac: 0xF8,
-            div_counter: 0,
-            tima_counter: 0,
-            tima_overflowed: false,
-            tac_cycles: CYCLES_TAC_0,
-            enabled: false,
-            interrupt: 0,
         }
     }
 

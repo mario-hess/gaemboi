@@ -177,6 +177,30 @@ impl MemoryAccess for Ppu {
 }
 
 impl Ppu {
+    pub fn new() -> Self {
+        Self {
+            enabled: true,
+            interrupts: 0,
+            video_ram: [0; VRAM_SIZE],
+            oam: [OAM::new(); OAM_SIZE],
+            oam_buffer: Vec::new(),
+            lcd_control: LCD_control::default(),
+            lcd_status: LCD_status::default(),
+            window: Window::new(),
+            background: Background::new(),
+            scan_y: 0,
+            scan_y_compare: 0,
+            bg_palette: 0,
+            sprite_palette0: 0,
+            sprite_palette1: 0,
+            tile_height: TILE_HEIGHT,
+            counter: 0,
+            overlap_map: [false; OVERLAP_MAP_SIZE],
+            viewport_buffer: [Color32::from_rgb(224, 248, 208); BUFFER_SIZE],
+            should_draw: false,
+        }
+    }
+
     pub fn tick(&mut self, m_cycles: u8, event_handler: &EventHandler) {
         if !self.lcd_control.lcd_enabled() {
             return;
@@ -289,32 +313,6 @@ impl Ppu {
                 self.counter -= CYCLES_VBLANK;
             }
             _ => unreachable!(),
-        }
-    }
-}
-
-impl Ppu {
-    pub fn new() -> Self {
-        Self {
-            enabled: true,
-            interrupts: 0,
-            video_ram: [0; VRAM_SIZE],
-            oam: [OAM::new(); OAM_SIZE],
-            oam_buffer: Vec::new(),
-            lcd_control: LCD_control::default(),
-            lcd_status: LCD_status::default(),
-            window: Window::new(),
-            background: Background::new(),
-            scan_y: 0,
-            scan_y_compare: 0,
-            bg_palette: 0,
-            sprite_palette0: 0,
-            sprite_palette1: 0,
-            tile_height: TILE_HEIGHT,
-            counter: 0,
-            overlap_map: [false; OVERLAP_MAP_SIZE],
-            viewport_buffer: [Color32::from_rgb(224, 248, 208); BUFFER_SIZE],
-            should_draw: false,
         }
     }
 

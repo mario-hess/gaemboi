@@ -10,7 +10,7 @@ use crate::apu::{
         core::ChannelCore, length_counter::LengthCounter, sweep::Sweep,
         volume_envelope::VolumeEnvelope,
     },
-    ComponentTick, MemoryAccess, LENGTH_TIMER_MAX,
+    MemoryAccess, LENGTH_TIMER_MAX,
 };
 
 const SWEEP: u16 = 0;
@@ -86,30 +86,6 @@ impl MemoryAccess for SquareChannel {
     }
 }
 
-impl ComponentTick for SquareChannel {
-    fn tick(&mut self, m_cycles: u8) {
-        if !self.core.enabled || !self.core.dac_enabled {
-            return;
-        }
-
-        let t_cycles = (m_cycles * 4) as u16;
-
-        self.core.timer = self.core.timer.saturating_sub(t_cycles as i32);
-        if self.core.timer > 0 {
-            return;
-        }
-
-        self.core.output = if DUTY_TABLE[self.wave_duty as usize][self.sequence as usize] == 1 {
-            self.volume_envelope.volume
-        } else {
-            0
-        };
-
-        self.core.timer += ((2048 - self.frequency) * 4) as i32;
-        self.sequence = (self.sequence + 1) & 0x07;
-    }
-}
-
 impl SquareChannel {
     pub fn new(channel_type: ChannelType) -> Self {
         let sweep_enabled = match channel_type {
@@ -133,6 +109,28 @@ impl SquareChannel {
             frequency: 0,
             wave_duty: 0,
         }
+    }
+
+    pub fn tick(&mut self, m_cycles: u8) {
+        if !self.core.enabled || !self.core.dac_enabled {
+            return;
+        }
+
+        let t_cycles = (m_cycles * 4) as u16;
+
+        self.core.timer = self.core.timer.saturating_sub(t_cycles as i32);
+        if self.core.timer > 0 {
+            return;
+        }
+
+        self.core.output = if DUTY_TABLE[self.wave_duty as usize][self.sequence as usize] == 1 {
+            self.volume_envelope.volume
+        } else {
+            0
+        };
+
+        self.core.timer += ((2048 - self.frequency) * 4) as i32;
+        self.sequence = (self.sequence + 1) & 0x07;
     }
 
     pub fn tick_sweep(&mut self) {

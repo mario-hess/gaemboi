@@ -58,10 +58,6 @@ pub trait MemoryAccess {
     fn write_byte(&mut self, address: u16, value: u8);
 }
 
-pub trait ComponentTick {
-    fn tick(&mut self, m_cycles: u8);
-}
-
 pub struct MemoryBus {
     cartridge: Cartridge,
     pub ppu: Ppu,
@@ -184,20 +180,6 @@ impl MemoryAccess for MemoryBus {
 }
 
 impl MemoryBus {
-    pub fn tick(&mut self, m_cycles: u8, event_handler: &EventHandler) {
-        self.timer.tick(m_cycles);
-        self.interrupt_flag |= self.timer.interrupt;
-        self.timer.reset_interrupt();
-
-        self.ppu.tick(m_cycles, event_handler);
-        self.interrupt_flag |= self.ppu.interrupts;
-        self.ppu.reset_interrupts();
-
-        self.apu.tick(m_cycles);
-    }
-}
-
-impl MemoryBus {
     pub fn new(rom_data: Vec<u8>) -> Self {
         let cartridge = Cartridge::build(rom_data);
 
@@ -215,6 +197,18 @@ impl MemoryBus {
             timer: Timer::new(),
             speed_switch: 0x00,
         }
+    }
+
+    pub fn tick(&mut self, m_cycles: u8, event_handler: &EventHandler) {
+        self.timer.tick(m_cycles);
+        self.interrupt_flag |= self.timer.interrupt;
+        self.timer.reset_interrupt();
+
+        self.ppu.tick(m_cycles, event_handler);
+        self.interrupt_flag |= self.ppu.interrupts;
+        self.ppu.reset_interrupts();
+
+        self.apu.tick(m_cycles);
     }
 
     pub fn get_interrupt_flag(&mut self) -> u8 {

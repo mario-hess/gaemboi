@@ -7,7 +7,7 @@
 
 use crate::apu::{
     channel::{core::ChannelCore, length_counter::LengthCounter},
-    ComponentTick, MemoryAccess, CH3_END, CH3_START,
+    MemoryAccess, CH3_END, CH3_START,
 };
 
 use super::square_channel::ChannelType;
@@ -56,8 +56,19 @@ impl MemoryAccess for WaveChannel {
     }
 }
 
-impl ComponentTick for WaveChannel {
-    fn tick(&mut self, m_cycles: u8) {
+impl WaveChannel {
+    pub fn new() -> Self {
+        Self {
+            core: ChannelCore::default(),
+            length_counter: LengthCounter::default(),
+            volume: 0,
+            frequency: 0,
+            wave_ram: [0; 32],
+            wave_ram_position: 0,
+        }
+    }
+
+    pub fn tick(&mut self, m_cycles: u8) {
         if !self.core.enabled || !self.core.dac_enabled {
             return;
         }
@@ -76,19 +87,6 @@ impl ComponentTick for WaveChannel {
 
         self.core.timer += ((2048 - self.frequency) * 2) as i32;
         self.wave_ram_position = (self.wave_ram_position + 1) & 0x1F;
-    }
-}
-
-impl WaveChannel {
-    pub fn new() -> Self {
-        Self {
-            core: ChannelCore::default(),
-            length_counter: LengthCounter::default(),
-            volume: 0,
-            frequency: 0,
-            wave_ram: [0; 32],
-            wave_ram_position: 0,
-        }
     }
 
     pub fn trigger(&mut self) {
