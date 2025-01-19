@@ -69,7 +69,7 @@ pub struct Apu {
     mixer: Mixer,
     pub right_volume: u8,
     pub left_volume: u8,
-    enabled: bool,
+    pub enabled: bool,
     counter: u32,
     pub audio_buffer: Arc<Mutex<VecDeque<u8>>>,
 }
@@ -137,6 +137,8 @@ impl MemoryAccess for Apu {
 impl ComponentTick for Apu {
     fn tick(&mut self, m_cycles: u8) {
         if !self.enabled {
+            //self.audio_buffer.lock().unwrap().push_back(0);
+            //self.audio_buffer.lock().unwrap().push_back(0);
             return;
         }
 

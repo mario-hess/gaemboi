@@ -248,22 +248,35 @@ fn main() -> Result<(), Error> {
                     clock.reset();
 
                     if event_handler.performance_mode {
-                        if should_delay(
-                            frame_start_time,
-                            &cpu.memory_bus.apu.audio_buffer,
-                            &event_handler.fast_forward,
-                        ) {
+                        if cpu.memory_bus.apu.enabled {
+                            if should_delay(
+                                frame_start_time,
+                                &cpu.memory_bus.apu.audio_buffer,
+                                &event_handler.fast_forward,
+                            ) {
+                                std::thread::sleep(std::time::Duration::from_micros(
+                                    FRAME_DURATION_MICROS / event_handler.fast_forward as u64
+                                        - frame_start_time.elapsed().as_micros() as u64,
+                                ));
+                            }
+                        } else {
                             std::thread::sleep(std::time::Duration::from_micros(
                                 FRAME_DURATION_MICROS / event_handler.fast_forward as u64
                                     - frame_start_time.elapsed().as_micros() as u64,
                             ));
                         }
-                    } else {
+                    } else if cpu.memory_bus.apu.enabled {
                         while should_delay(
                             frame_start_time,
                             &cpu.memory_bus.apu.audio_buffer,
                             &event_handler.fast_forward,
                         ) {
+                            std::hint::spin_loop();
+                        }
+                    } else {
+                        while frame_start_time.elapsed().as_micros()
+                            < FRAME_DURATION.as_micros() / event_handler.fast_forward as u128
+                        {
                             std::hint::spin_loop();
                         }
                     }

@@ -22,11 +22,11 @@ const STAT_MASK: u8 = 0x40;
 #[allow(non_camel_case_types)]
 pub struct LCD_status {
     pub mode: u8,
-    pub compare_flag: bool,
-    pub interrupt_hblank: bool,
-    pub interrupt_vblank: bool,
-    pub interrupt_oam: bool,
-    pub interrupt_stat: bool,
+    compare_flag: bool,
+    interrupt_hblank: bool,
+    interrupt_vblank: bool,
+    interrupt_oam: bool,
+    interrupt_stat: bool,
 }
 
 impl LCD_status {
@@ -41,10 +41,26 @@ impl LCD_status {
         }
     }
 
+    pub fn get_mode(&self) -> u8 { self.mode & MODE_MASK }
     pub fn set_mode(&mut self, value: u8, interrupts: &mut u8) {
         self.mode = value & MODE_MASK;
         self.check_interrupts(interrupts);
     }
+
+    pub fn get_compare_flag(&self) -> bool { self.compare_flag }
+    pub fn set_compare_flag(&mut self, value: bool) { self.compare_flag = value; }
+
+    pub fn get_interrupt_hblank(&self) -> bool { self.interrupt_hblank }
+    pub fn set_interrupt_hblank(&mut self, value: bool) { self.interrupt_hblank = value; }
+
+    pub fn get_interrupt_vblank(&self) -> bool { self.interrupt_vblank }
+    pub fn set_interrupt_vblank(&mut self, value: bool) { self.interrupt_vblank = value; }
+
+    pub fn get_interrupt_oam(&self) -> bool { self.interrupt_oam }
+    pub fn set_interrupt_oam(&mut self, value: bool) { self.interrupt_oam = value; }
+
+    pub fn get_interrupt_stat(&self) -> bool { self.interrupt_stat }
+    pub fn set_interrupt_stat(&mut self, value: bool) { self.interrupt_stat = value; }
 
     #[rustfmt::skip]
     fn check_interrupts(&mut self, interrupts: &mut u8) {

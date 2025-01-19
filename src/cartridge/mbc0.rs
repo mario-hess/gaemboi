@@ -5,25 +5,27 @@
  * @date    June 8, 2024
  */
 
+use std::{cell::RefCell, rc::Rc};
+
 use crate::cartridge::{core::CartridgeCore, MemoryBankController, MASK_MSB, RAM_ADDRESS};
 
 pub struct Mbc0 {
-    core: CartridgeCore,
+    core: Rc<RefCell<CartridgeCore>>,
 }
 
 impl Mbc0 {
-    pub fn new(rom_data: Vec<u8>) -> Self {
-        Self {
-            core: CartridgeCore::new(&rom_data),
-        }
+    pub fn new(core: Rc<RefCell<CartridgeCore>>) -> Self {
+        Self { core }
     }
 }
 
 impl MemoryBankController for Mbc0 {
     fn read_rom(&self, address: u16) -> u8 {
+        let core = self.core.borrow();
+
         match (address & MASK_MSB) >> 12 {
             // 0x0000 - 0x7FFF (Bank 00)
-            0x0..=0x7 => self.core.rom_data[address as usize],
+            0x0..=0x7 => core.rom_data[address as usize],
             _ => {
                 eprintln!("Unknown address: {:#X}. Can't read byte.", address);
 
@@ -34,25 +36,21 @@ impl MemoryBankController for Mbc0 {
 
     fn write_rom(&mut self, _address: u16, _value: u8) {}
 
-    fn write_ram(&mut self, address: u16, value: u8) {
-        if let Some(ref mut ram_data) = self.core.ram_data {
-            ram_data[address as usize - RAM_ADDRESS] = value;
-        }
-    }
-
     fn read_ram(&self, address: u16) -> u8 {
-        if let Some(ref ram_data) = self.core.ram_data {
+        let core = self.core.borrow();
+
+        if let Some(ref ram_data) = core.ram_data {
             return ram_data[address as usize - RAM_ADDRESS];
         }
 
         0xFF
     }
 
-    fn get_core(&self) -> &CartridgeCore {
-        &self.core
-    }
+    fn write_ram(&mut self, address: u16, value: u8) {
+        let mut core = self.core.borrow_mut();
 
-    fn get_core_mut(&mut self) -> &mut CartridgeCore {
-        &mut self.core
+        if let Some(ref mut ram_data) = core.ram_data {
+            ram_data[address as usize - RAM_ADDRESS] = value;
+        }
     }
 }

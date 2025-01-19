@@ -70,7 +70,7 @@ impl Cpu {
 
         if self.ime {
             self.halted = false;
-            if let Some(m_cycles) = self.interrupt.handle_interrupts(self) {
+            if let Some(m_cycles) = self.handle_interrupts() {
                 return m_cycles;
             }
         }
@@ -125,9 +125,9 @@ impl Cpu {
         (high_byte << 8) | low_byte
     }
 
-    pub fn push_stack(&mut self, value: u16) {
-        let high_byte = (value >> 8) as u8;
-        let low_byte = value as u8;
+    pub fn push_stack(&mut self, address: u16) {
+        let high_byte = (address >> 8) as u8;
+        let low_byte = address as u8;
 
         self.stack_pointer = self.stack_pointer.wrapping_sub(1);
         self.memory_bus.write_byte(self.stack_pointer, high_byte);
@@ -137,6 +137,21 @@ impl Cpu {
     }
 
     // https://gbdev.io/pandocs/Interrupts.html#interrupt-handling
+    pub fn handle_interrupts(&mut self) -> Option<u8> {
+        for (interrupt, isr_address) in self.interrupt.get_interrupts() {
+            if self.interrupt.handle_interrupt(
+                self.memory_bus.interrupt_enabled,
+                self.memory_bus.interrupt_flag,
+                interrupt,
+            ) {
+                self.interrupt_service_routine(isr_address, interrupt);
+                return Some(5);
+            }
+        }
+
+        None
+    }
+
     pub fn interrupt_service_routine(&mut self, isr_address: u16, value: u8) {
         self.ime = false;
         self.push_stack(self.program_counter.get());

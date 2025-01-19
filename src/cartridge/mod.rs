@@ -13,8 +13,10 @@ mod mbc3;
 mod mbc5;
 
 use std::{
+    cell::RefCell,
     fs::File,
     io::{Error, Write},
+    rc::Rc,
 };
 
 use mbc5::Mbc5;
@@ -38,12 +40,11 @@ pub trait MemoryBankController {
     fn write_rom(&mut self, address: u16, value: u8);
     fn read_ram(&self, address: u16) -> u8;
     fn write_ram(&mut self, address: u16, value: u8);
-    fn get_core(&self) -> &CartridgeCore;
-    fn get_core_mut(&mut self) -> &mut CartridgeCore;
 }
 
 pub struct Cartridge {
     pub mbc: Box<dyn MemoryBankController>,
+    pub core: Rc<RefCell<CartridgeCore>>,
 }
 
 impl MemoryAccess for Cartridge {
@@ -73,42 +74,27 @@ impl MemoryAccess for Cartridge {
 
 impl Cartridge {
     pub fn build(rom_data: Vec<u8>) -> Self {
+        let core = Rc::new(RefCell::new(CartridgeCore::new(&rom_data)));
+
         let mbc: Box<dyn MemoryBankController> = match rom_data[CARTRIDGE_TYPE_ADDRESS] {
-            0x0 => {
-                println!("MBC0");
-                Box::new(Mbc0::new(rom_data))
-            },
-            0x01..=0x03 => {
-                println!("MBC1");
-                Box::new(Mbc1::new(rom_data))
-            },
-            0x05 | 0x06 => {
-                println!("MBC3");
-                Box::new(Mbc2::new(rom_data))
-            },
-            0x0F..=0x13 => {
-                println!("MBC3");
-                Box::new(Mbc3::new(rom_data))
-            },
-            0x19..= 0x1E => {
-                println!("MBC5");
-                Box::new(Mbc5::new(rom_data))
-            },
+            0x0 => Box::new(Mbc0::new(core.clone())),
+            0x01..=0x03 => Box::new(Mbc1::new(core.clone())),
+            0x05 | 0x06 => Box::new(Mbc2::new(core.clone())),
+            0x0F..=0x13 => Box::new(Mbc3::new(core.clone())),
+            0x19..=0x1E => Box::new(Mbc5::new(core.clone())),
             _ => panic!("Error: Cartridge type not supported"),
         };
 
-        Self { mbc }
+        Self { mbc, core }
     }
 
     pub fn load_game(&mut self, ram_data: Vec<u8>) {
-        let core = self.mbc.get_core_mut();
-        core.ram_data = Some(ram_data);
+        self.core.borrow_mut().ram_data = Some(ram_data);
         println!("Game loaded.")
     }
 
     pub fn save_game(&self, save_path: &str) -> Result<(), Error> {
-        let core = self.mbc.get_core();
-        if let Some(ram_data) = &core.ram_data {
+        if let Some(ram_data) = &self.core.borrow().ram_data {
             let mut file = File::create(save_path)?;
             file.write_all(ram_data)?;
         }

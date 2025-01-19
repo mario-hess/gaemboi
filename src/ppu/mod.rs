@@ -190,7 +190,7 @@ impl ComponentTick for Ppu {
         self.counter += t_cycles;
 
         // https://gbdev.io/pandocs/Rendering.html
-        match self.lcd_status.mode {
+        match self.lcd_status.get_mode() {
             // During this mode the PPU searches OAM memory for sprites that should
             // be rendered on the current scanline and stores them in a buffer.
             MODE_OAM => {
@@ -359,15 +359,15 @@ impl Ppu {
     }
 
     fn compare_line(&mut self) {
-        self.lcd_status.compare_flag = false;
+        self.lcd_status.set_compare_flag(false);
 
         if self.scan_y_compare != self.scan_y {
             return;
         }
 
-        self.lcd_status.compare_flag = true;
+        self.lcd_status.set_compare_flag(true);
 
-        if self.lcd_status.interrupt_stat {
+        if self.lcd_status.get_interrupt_stat() {
             self.interrupts |= LCD_STAT_MASK;
         }
     }

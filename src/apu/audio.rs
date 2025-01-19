@@ -50,9 +50,11 @@ impl AudioCallback for Audio<'_> {
                     self.right_master
                 };
 
-                *sample =   self.audio_buffer.lock().unwrap().pop_front().unwrap() as f32
+                *sample = self.audio_buffer.lock().unwrap().pop_front().unwrap() as f32
                     * (*self.volume as f32 / 10000.0)
                     * *master_volume as f32;
+            } else {
+                *sample = 0.0
             }
         }
     }
