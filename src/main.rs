@@ -28,7 +28,6 @@ use apu::audio::{Audio, SAMPLING_FREQUENCY, SAMPLING_RATE};
 use apu::AUDIO_BUFFER_THRESHOLD;
 use cpu::clock::{Clock, CYCLES_PER_FRAME};
 use egui_sdl2_gl::egui::{Context, FontFamily, FontId, TextStyle};
-use memory_bus::ComponentTick;
 
 use egui_sdl2_gl::sdl2::audio::{AudioDevice, AudioSpecDesired};
 use egui_sdl2_gl::sdl2::video::GLProfile;
@@ -144,8 +143,8 @@ fn main() -> Result<(), Error> {
     let mut frame_count = 0;
     let mut last_second = std::time::Instant::now();
     let mut fps = 0.0;
-
-    let mut ui_manager = UIManager::new(&mut painter);
+    
+    let mut ui_manager = UIManager::new(&mut painter, &event_handler.black, &event_handler.white);
     let start_time = std::time::Instant::now();
 
     while !event_handler.quit {
@@ -225,7 +224,7 @@ fn main() -> Result<(), Error> {
 
                     while clock.cycles_passed <= CYCLES_PER_FRAME {
                         let m_cycles = cpu.step();
-                        cpu.memory_bus.tick(m_cycles);
+                        cpu.memory_bus.tick(m_cycles, &event_handler);
 
                         if cpu.memory_bus.ppu.should_draw {
                             ui_manager.draw(

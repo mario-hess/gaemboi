@@ -6,10 +6,7 @@
  */
 
 use crate::{
-    apu::{Apu, AUDIO_END, AUDIO_START},
-    cartridge::Cartridge,
-    io::{joypad::Joypad, timer::Timer},
-    ppu::Ppu,
+    apu::{Apu, AUDIO_END, AUDIO_START}, cartridge::Cartridge, event_handler::EventHandler, io::{joypad::Joypad, timer::Timer}, ppu::Ppu
 };
 
 pub const CARTRIDGE_ROM_START: u16 = 0x0000;
@@ -186,13 +183,13 @@ impl MemoryAccess for MemoryBus {
     }
 }
 
-impl ComponentTick for MemoryBus {
-    fn tick(&mut self, m_cycles: u8) {
+impl MemoryBus {
+    pub fn tick(&mut self, m_cycles: u8, event_handler: &EventHandler) {
         self.timer.tick(m_cycles);
         self.interrupt_flag |= self.timer.interrupt;
         self.timer.reset_interrupt();
 
-        self.ppu.tick(m_cycles);
+        self.ppu.tick(m_cycles, event_handler);
         self.interrupt_flag |= self.ppu.interrupts;
         self.ppu.reset_interrupts();
 

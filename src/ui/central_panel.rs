@@ -14,7 +14,7 @@ use crate::{
     cpu::Cpu,
     event_handler::EventHandler,
     ppu::{
-        TILEMAP_END_0, TILEMAP_END_1, TILEMAP_HEIGHT, TILEMAP_START_0, TILEMAP_START_1, TILEMAP_WIDTH, TILETABLE_HEIGHT, TILETABLE_WIDTH, VIEWPORT_HEIGHT, VIEWPORT_WIDTH, WHITE
+        TILEMAP_END_0, TILEMAP_END_1, TILEMAP_HEIGHT, TILEMAP_START_0, TILEMAP_START_1, TILEMAP_WIDTH, TILETABLE_HEIGHT, TILETABLE_WIDTH, VIEWPORT_HEIGHT, VIEWPORT_WIDTH
     },
     View,
 };
@@ -29,26 +29,26 @@ pub struct CentralPanel {
 }
 
 impl CentralPanel {
-    pub fn new(painter: &mut Painter) -> Self {
+    pub fn new(painter: &mut Painter, black: &Color32, white: &Color32) -> Self {
         let mut game_background: Vec<Color32> =
             Vec::with_capacity(VIEWPORT_WIDTH * VIEWPORT_HEIGHT);
-        game_background.fill(Color32::from_rgb(WHITE.r, WHITE.g, WHITE.b));
+        game_background.fill(Color32::from_rgb(white.r(), white.g(), white.b()));
 
         let game_texture_id = painter.new_user_texture(
             (VIEWPORT_WIDTH, VIEWPORT_HEIGHT),
-            &vec![Color32::BLACK; VIEWPORT_WIDTH * VIEWPORT_HEIGHT],
+            &vec![*black; VIEWPORT_WIDTH * VIEWPORT_HEIGHT],
             false,
         );
 
         let tiletable_texture_id = painter.new_user_texture(
             (TILETABLE_WIDTH, TILETABLE_HEIGHT),
-            &vec![Color32::BLACK; TILETABLE_WIDTH * TILETABLE_HEIGHT],
+            &vec![*black; TILETABLE_WIDTH * TILETABLE_HEIGHT],
             false,
         );
 
         let tilemap_texture_id = painter.new_user_texture(
             (TILEMAP_WIDTH, TILEMAP_HEIGHT),
-            &vec![Color32::BLACK; TILEMAP_WIDTH * TILEMAP_HEIGHT],
+            &vec![*black; TILEMAP_WIDTH * TILEMAP_HEIGHT],
             false,
         );
 
@@ -63,7 +63,7 @@ impl CentralPanel {
 
         let splash_texture_id = painter.new_user_texture(
             (VIEWPORT_WIDTH, VIEWPORT_HEIGHT),
-            &vec![Color32::BLACK; VIEWPORT_WIDTH * VIEWPORT_HEIGHT],
+            &vec![*black; VIEWPORT_WIDTH * VIEWPORT_HEIGHT],
             false,
         );
 
@@ -96,7 +96,7 @@ impl CentralPanel {
                                 .ppu
                                 .viewport_buffer
                                 .iter()
-                                .map(|color| Color32::from_rgb(color.r, color.g, color.b))
+                                .map(|color| Color32::from_rgb(color.r(), color.g(), color.b()))
                                 .collect();
 
                             painter.update_user_texture_data(
@@ -119,9 +119,9 @@ impl CentralPanel {
                             let tiletable_background: Vec<Color32> = cpu
                                 .memory_bus
                                 .ppu
-                                .tiletable()
+                                .tiletable(event_handler)
                                 .iter()
-                                .map(|color| Color32::from_rgb(color.r, color.g, color.b))
+                                .map(|color| Color32::from_rgb(color.r(), color.g(), color.b()))
                                 .collect();
                             painter.update_user_texture_data(
                                 self.tiletable_texture_id,
@@ -141,9 +141,9 @@ impl CentralPanel {
                             let tilemap_background: Vec<Color32> = cpu
                                 .memory_bus
                                 .ppu
-                                .tilemap(TILEMAP_START_0, TILEMAP_END_0)
+                                .tilemap(TILEMAP_START_0, TILEMAP_END_0, event_handler)
                                 .iter()
-                                .map(|color| Color32::from_rgb(color.r, color.g, color.b))
+                                .map(|color| Color32::from_rgb(color.r(), color.g(), color.b()))
                                 .collect();
                             painter.update_user_texture_data(
                                 self.tilemap_texture_id,
@@ -163,9 +163,9 @@ impl CentralPanel {
                             let tilemap_background: Vec<Color32> = cpu
                                 .memory_bus
                                 .ppu
-                                .tilemap(TILEMAP_START_1, TILEMAP_END_1)
+                                .tilemap(TILEMAP_START_1, TILEMAP_END_1, event_handler)
                                 .iter()
-                                .map(|color| Color32::from_rgb(color.r, color.g, color.b))
+                                .map(|color| Color32::from_rgb(color.r(), color.g(), color.b()))
                                 .collect();
                             painter.update_user_texture_data(
                                 self.tilemap_texture_id,

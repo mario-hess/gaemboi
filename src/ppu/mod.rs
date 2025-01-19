@@ -12,11 +12,12 @@ mod oam;
 mod tile;
 mod window;
 
-use egui_sdl2_gl::sdl2::pixels::Color;
+use egui_sdl2_gl::egui::Color32;
 
 use crate::{
+    event_handler::EventHandler,
     interrupt::{LCD_STAT_MASK, VBLANK_MASK},
-    memory_bus::{ComponentTick, MemoryAccess, OAM_END, OAM_START, VRAM_END, VRAM_START},
+    memory_bus::{MemoryAccess, OAM_END, OAM_START, VRAM_END, VRAM_START},
     ppu::{
         background::Background,
         lcd_control::LCD_control,
@@ -50,11 +51,6 @@ const TILE_PALETTE_1: u16 = 0xFF49;
 const WINDOW_Y: u16 = 0xFF4A;
 const WINDOW_X: u16 = 0xFF4B;
 
-pub const BLACK: Color = Color::RGB(8, 24, 32);
-pub const DARK: Color = Color::RGB(52, 104, 86);
-pub const LIGHT: Color = Color::RGB(136, 192, 112);
-pub const WHITE: Color = Color::RGB(224, 248, 208);
-
 const CYCLES_OAM: u16 = 80;
 const CYCLES_TRANSFER: u16 = 172;
 const CYCLES_HBLANK: u16 = 204;
@@ -75,7 +71,7 @@ pub const TILETABLE_HEIGHT: usize = 192 + 26;
 pub const TILEMAP_WIDTH: usize = 256;
 pub const TILEMAP_HEIGHT: usize = TILEMAP_WIDTH;
 
-const GRID_COLOR: Color = Color::RGB(128, 128, 128);
+const GRID_COLOR: Color32 = Color32::from_rgb(128, 128, 128);
 
 const FULL_WIDTH: usize = 256;
 
@@ -110,7 +106,7 @@ pub struct Ppu {
     tile_height: u8,
     counter: u16,
     pub overlap_map: [bool; OVERLAP_MAP_SIZE],
-    pub viewport_buffer: [Color; BUFFER_SIZE],
+    pub viewport_buffer: [Color32; BUFFER_SIZE],
     pub should_draw: bool,
 }
 
@@ -180,8 +176,8 @@ impl MemoryAccess for Ppu {
     }
 }
 
-impl ComponentTick for Ppu {
-    fn tick(&mut self, m_cycles: u8) {
+impl Ppu {
+    pub fn tick(&mut self, m_cycles: u8, event_handler: &EventHandler) {
         if !self.lcd_control.lcd_enabled() {
             return;
         }
@@ -242,7 +238,7 @@ impl ComponentTick for Ppu {
                     return;
                 }
 
-                self.render_scanline();
+                self.render_scanline(event_handler);
                 self.lcd_status.set_mode(MODE_HBLANK, &mut self.interrupts);
 
                 self.counter -= CYCLES_TRANSFER;
@@ -317,7 +313,7 @@ impl Ppu {
             tile_height: TILE_HEIGHT,
             counter: 0,
             overlap_map: [false; OVERLAP_MAP_SIZE],
-            viewport_buffer: [WHITE; BUFFER_SIZE],
+            viewport_buffer: [Color32::from_rgb(224, 248, 208); BUFFER_SIZE],
             should_draw: false,
         }
     }
@@ -385,17 +381,17 @@ impl Ppu {
         }
     }
 
-    fn render_scanline(&mut self) {
+    fn render_scanline(&mut self, event_handler: &EventHandler) {
         if self.lcd_control.bg_enabled() {
-            self.render_bg_window_line();
+            self.render_bg_window_line(event_handler);
         }
 
         if self.lcd_control.object_enabled() {
-            self.render_object_line();
+            self.render_object_line(event_handler);
         }
     }
 
-    fn render_bg_window_line(&mut self) {
+    fn render_bg_window_line(&mut self, event_handler: &EventHandler) {
         let base_offset = self.scan_y as usize * VIEWPORT_WIDTH;
         for scan_x in 0..VIEWPORT_WIDTH as u8 {
             let (tile_index_address, x_offset, y_offset) = self.get_bg_window_tile_data(scan_x);
@@ -410,7 +406,7 @@ impl Ppu {
             let overlap_offset = self.scan_y as usize + FULL_WIDTH * scan_x as usize;
             self.overlap_map[overlap_offset] = color_index != 0;
 
-            let pixel = pixel_color(&self.bg_palette, &color_index);
+            let pixel = self.pixel_color(&self.bg_palette, &color_index, event_handler);
 
             // Calculate the offset for the current pixel and update the viewport buffer
             let offset = scan_x as usize + base_offset;
@@ -418,7 +414,7 @@ impl Ppu {
         }
     }
 
-    fn render_object_line(&mut self) {
+    fn render_object_line(&mut self, event_handler: &EventHandler) {
         let scan_y = self.scan_y as i16;
         let base_offset = scan_y as usize * VIEWPORT_WIDTH;
 
@@ -481,7 +477,7 @@ impl Ppu {
                     self.sprite_palette0
                 };
 
-                let pixel = pixel_color(&sprite_palette, &color_index);
+                let pixel = self.pixel_color(&sprite_palette, &color_index, event_handler);
 
                 // Calculate the offset for the current pixel and update the viewport buffer
                 let offset = x_offset as usize + base_offset;
@@ -538,8 +534,21 @@ impl Ppu {
         self.interrupts = 0;
     }
 
-    pub fn tiletable(&self) -> [Color; TILETABLE_WIDTH * TILETABLE_HEIGHT] {
-        let mut tiletable_buffer = [WHITE; TILETABLE_WIDTH * TILETABLE_HEIGHT];
+    fn pixel_color(&self, palette: &u8, color_index: &u8, event_handler: &EventHandler) -> Color32 {
+        match (palette >> (color_index << 1)) & 0b11 {
+            0b00 => event_handler.white,
+            0b01 => event_handler.light,
+            0b10 => event_handler.dark,
+            0b11 => event_handler.black,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn tiletable(
+        &self,
+        event_handler: &EventHandler,
+    ) -> [Color32; TILETABLE_WIDTH * TILETABLE_HEIGHT] {
+        let mut tiletable_buffer = [event_handler.white; TILETABLE_WIDTH * TILETABLE_HEIGHT];
 
         // Grid vertical lines
         for i in 0..=16 {
@@ -563,7 +572,7 @@ impl Ppu {
             .map(|i| self.read_byte(i))
             .collect::<Vec<u8>>()
             .chunks_exact(16)
-            .map(Tile::new)
+            .map(|chunk| Tile::new(chunk, event_handler.black, event_handler.dark, event_handler.light, event_handler.white))
             .collect::<Vec<Tile>>();
 
         let tiles_per_row = 16;
@@ -589,15 +598,24 @@ impl Ppu {
         &self,
         start_address: u16,
         end_address: u16,
-    ) -> [Color; TILEMAP_WIDTH * TILEMAP_HEIGHT] {
-        let mut tilemap_buffer = [WHITE; TILEMAP_WIDTH * TILEMAP_HEIGHT];
+        event_handler: &EventHandler,
+    ) -> [Color32; TILEMAP_WIDTH * TILEMAP_HEIGHT] {
+        let mut tilemap_buffer = [event_handler.white; TILEMAP_WIDTH * TILEMAP_HEIGHT];
 
         let tiles = (start_address..=end_address)
             .map(|i| self.lcd_control.get_address(self.read_byte(i)))
             .flat_map(|address| (0..16).map(move |j| self.read_byte(address + j)))
             .collect::<Vec<u8>>()
             .chunks_exact(16)
-            .map(Tile::new)
+            .map(|chunk| {
+                Tile::new(
+                    chunk,
+                    event_handler.black,
+                    event_handler.dark,
+                    event_handler.light,
+                    event_handler.white,
+                )
+            })
             .collect::<Vec<Tile>>();
 
         let tiles_per_row = TILEMAP_WIDTH / TILE_WIDTH as usize;
@@ -617,16 +635,6 @@ impl Ppu {
         }
 
         tilemap_buffer
-    }
-}
-
-fn pixel_color(palette: &u8, color_index: &u8) -> Color {
-    match (palette >> (color_index << 1)) & 0b11 {
-        0b00 => WHITE,
-        0b01 => LIGHT,
-        0b10 => DARK,
-        0b11 => BLACK,
-        _ => unreachable!(),
     }
 }
 

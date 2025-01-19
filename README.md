@@ -24,6 +24,8 @@ This is a Nintendo Game Boy emulator written in Rust. It aims to accurately emul
 - [x] Input handling
 - [x] Gamepad support
 - [x] Fast forward (Up to 4x)
+- [x] Custom Color Scheme
+- [x] Custom Keybinds
 
 ## Screenshots
 

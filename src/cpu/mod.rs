@@ -13,9 +13,7 @@ use crate::{
     cpu::{
         instruction::*,
         registers::{program_counter::ProgramCounter, Registers},
-    },
-    interrupt::Interrupt,
-    memory_bus::{MemoryAccess, MemoryBus},
+    }, interrupt::Interrupt, memory_bus::{MemoryAccess, MemoryBus}
 };
 
 const HEADER_CHECKSUM_ADDRESS: usize = 0x014D;

@@ -17,13 +17,21 @@ use crate::State;
 pub struct EventHandler {
     pub file_path: Option<String>,
     pub state: State,
+    pub a: Option<Keycode>,
     pub pressed_a: bool,
+    pub b: Option<Keycode>,
     pub pressed_b: bool,
+    pub select: Option<Keycode>,
     pub pressed_select: bool,
+    pub start: Option<Keycode>,
     pub pressed_start: bool,
+    pub up: Option<Keycode>,
     pub pressed_up: bool,
+    pub left: Option<Keycode>,
     pub pressed_left: bool,
+    pub down: Option<Keycode>,
     pub pressed_down: bool,
+    pub right: Option<Keycode>,
     pub pressed_right: bool,
     pub window_scale: u32,
     pub previous_scale: u32,
@@ -37,12 +45,14 @@ pub struct EventHandler {
     pub show_waveform: bool,
     pub show_square_waves: bool,
     pub cpu_status_opened: bool,
+    pub keybindings_opened: bool,
     pub color_scheme_opened: bool,
     pub black: Color32,
     pub dark: Color32,
     pub light: Color32,
     pub white: Color32,
     pub quit: bool,
+    pub rebinding_key: Option<&'static str>,
 }
 
 impl EventHandler {
@@ -50,13 +60,21 @@ impl EventHandler {
         Self {
             file_path: None,
             state: State::Splash,
+            a: Some(Keycode::N),
             pressed_a: false,
+            b: Some(Keycode::M),
             pressed_b: false,
+            select: Some(Keycode::Backspace),
             pressed_select: false,
+            start: Some(Keycode::Return),
             pressed_start: false,
+            up: Some(Keycode::W),
             pressed_up: false,
+            left: Some(Keycode::A),
             pressed_left: false,
+            down: Some(Keycode::S),
             pressed_down: false,
+            right: Some(Keycode::D),
             pressed_right: false,
             window_scale: 4,
             previous_scale: 4,
@@ -70,12 +88,14 @@ impl EventHandler {
             show_waveform: false,
             show_square_waves: false,
             cpu_status_opened: false,
+            keybindings_opened: false,
             color_scheme_opened: false,
             black: Color32::from_rgb(8, 24, 32),
             dark: Color32::from_rgb(52, 104, 86),
             light: Color32::from_rgb(136, 192, 112),
             white: Color32::from_rgb(224, 248, 208),
             quit: false,
+            rebinding_key: None,
         }
     }
 
@@ -95,21 +115,33 @@ impl EventHandler {
                     keycode: Some(Keycode::Escape),
                     ..
                 } => self.quit = true,
-                Event::KeyDown { keycode, .. } => match keycode {
-                    Some(Keycode::N) => self.pressed_a = true,
-                    Some(Keycode::M) => self.pressed_b = true,
-                    Some(Keycode::Backspace) => self.pressed_select = true,
-                    Some(Keycode::Return) => self.pressed_start = true,
-                    Some(Keycode::W) => self.pressed_up = true,
-                    Some(Keycode::A) => self.pressed_left = true,
-                    Some(Keycode::S) => self.pressed_down = true,
-                    Some(Keycode::D) => self.pressed_right = true,
-                    Some(Keycode::Up) => self.increase_scale(),
-                    Some(Keycode::Down) => self.decrease_scale(),
-                    Some(Keycode::Left) => self.decrease_volume(),
-                    Some(Keycode::Right) => self.increase_volume(),
-                    _ => {}
-                },
+
+                Event::KeyDown { keycode, .. } => {
+                    // Handle key rebinding
+                    if let Some(key_to_rebind) = self.rebinding_key {
+                        if let Some(new_key) = keycode {
+                            self.rebind_key(key_to_rebind, new_key);
+                            self.rebinding_key = None; // Finish rebinding
+                        }
+                    } else {
+                        // Normal key handling
+                        match keycode {
+                            Some(key) if Some(key) == self.a => self.pressed_a = true,
+                            Some(key) if Some(key) == self.b => self.pressed_b = true,
+                            Some(key) if Some(key) == self.select => self.pressed_select = true,
+                            Some(key) if Some(key) == self.start => self.pressed_start = true,
+                            Some(key) if Some(key) == self.up => self.pressed_up = true,
+                            Some(key) if Some(key) == self.left => self.pressed_left = true,
+                            Some(key) if Some(key) == self.down => self.pressed_down = true,
+                            Some(key) if Some(key) == self.right => self.pressed_right = true,
+                            Some(Keycode::Up) => self.increase_scale(),
+                            Some(Keycode::Down) => self.decrease_scale(),
+                            Some(Keycode::Left) => self.decrease_volume(),
+                            Some(Keycode::Right) => self.increase_volume(),
+                            _ => {}
+                        }
+                    }
+                }
                 Event::ControllerButtonDown { button, .. } => match button {
                     Button::A => self.pressed_a = true,
                     Button::B => self.pressed_b = true,
@@ -122,14 +154,14 @@ impl EventHandler {
                     _ => {}
                 },
                 Event::KeyUp { keycode, .. } => match keycode {
-                    Some(Keycode::N) => self.pressed_a = false,
-                    Some(Keycode::M) => self.pressed_b = false,
-                    Some(Keycode::Backspace) => self.pressed_select = false,
-                    Some(Keycode::Return) => self.pressed_start = false,
-                    Some(Keycode::W) => self.pressed_up = false,
-                    Some(Keycode::A) => self.pressed_left = false,
-                    Some(Keycode::S) => self.pressed_down = false,
-                    Some(Keycode::D) => self.pressed_right = false,
+                    Some(key) if Some(key) == self.a => self.pressed_a = false,
+                    Some(key) if Some(key) == self.b => self.pressed_b = false,
+                    Some(key) if Some(key) == self.select => self.pressed_select = false,
+                    Some(key) if Some(key) == self.start => self.pressed_start = false,
+                    Some(key) if Some(key) == self.up => self.pressed_up = false,
+                    Some(key) if Some(key) == self.left => self.pressed_left = false,
+                    Some(key) if Some(key) == self.down => self.pressed_down = false,
+                    Some(key) if Some(key) == self.right => self.pressed_right = false,
                     _ => {}
                 },
                 Event::ControllerButtonUp { button, .. } => match button {
@@ -181,5 +213,38 @@ impl EventHandler {
         }
 
         self.volume -= 5;
+    }
+
+    pub fn rebind_key(&mut self, key: &'static str, new_keycode: Keycode) {
+        let new_keycode = Some(new_keycode);
+
+        for binding in [
+            &mut self.a,
+            &mut self.b,
+            &mut self.select,
+            &mut self.start,
+            &mut self.up,
+            &mut self.down,
+            &mut self.left,
+            &mut self.right,
+        ]
+        .iter_mut()
+        {
+            if **binding == new_keycode {
+                **binding = None;
+            }
+        }
+
+        match key {
+            "A" => self.a = new_keycode,
+            "B" => self.b = new_keycode,
+            "Select" => self.select = new_keycode,
+            "Start" => self.start = new_keycode,
+            "Up" => self.up = new_keycode,
+            "Down" => self.down = new_keycode,
+            "Left" => self.left = new_keycode,
+            "Right" => self.right = new_keycode,
+            _ => {}
+        }
     }
 }

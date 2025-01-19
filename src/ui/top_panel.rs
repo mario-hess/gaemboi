@@ -154,7 +154,9 @@ impl TopPanel {
 
                         ui.menu_button("Settings", |ui| {
                             if ui.button("Keybindings").clicked() {
-                                // Handle Open action
+                                event_handler.keybindings_opened =
+                                    !event_handler.keybindings_opened;
+                                ui.close_menu();
                             }
                             if ui.button("Color Scheme").clicked() {
                                 event_handler.color_scheme_opened =

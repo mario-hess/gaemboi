@@ -36,10 +36,10 @@ pub struct UIManager {
 }
 
 impl UIManager {
-    pub fn new(painter: &mut Painter) -> Self {
+    pub fn new(painter: &mut Painter, black: &Color32, white: &Color32) -> Self {
         Self {
             top_panel: TopPanel::new(),
-            central_panel: CentralPanel::new(painter),
+            central_panel: CentralPanel::new(painter, black, white),
             current_view: View::Viewport,
             previous_view: View::Viewport,
         }
@@ -132,6 +132,44 @@ impl UIManager {
                 );
             });
 
+        egui_sdl2_gl::egui::Window::new("Keybindings")
+            .open(&mut event_handler.keybindings_opened)
+            .show(egui_ctx, |ui| {
+                ui.vertical(|ui| {
+                    let mut keybindings = [
+                        ("A", &mut event_handler.a),
+                        ("B", &mut event_handler.b),
+                        ("Select", &mut event_handler.select),
+                        ("Start", &mut event_handler.start),
+                        ("Up", &mut event_handler.up),
+                        ("Down", &mut event_handler.down),
+                        ("Left", &mut event_handler.left),
+                        ("Right", &mut event_handler.right),
+                    ];
+
+                    ui.set_max_width(150.0);
+
+                    for (label, keybind) in keybindings.iter_mut() {
+                        ui.horizontal(|ui| {
+                            ui.label(*label);
+                            ui.with_layout(
+                                egui_sdl2_gl::egui::Layout::right_to_left(egui_sdl2_gl::egui::Align::Center),
+                                |ui| {
+                                    let button_label = match keybind {
+                                        Some(key) => format!("{:?}", key),
+                                        None => "Unbound".to_string(),
+                                    };
+
+                                    if ui.button(button_label).clicked() {
+                                        event_handler.rebinding_key = Some(label);
+                                    }
+                                },
+                            );
+                        });
+                    }
+                });
+            });
+
         egui_sdl2_gl::egui::Window::new("Color Scheme")
             .open(&mut event_handler.color_scheme_opened)
             .show(egui_ctx, |ui| {
@@ -145,7 +183,10 @@ impl UIManager {
                         color_picker_row(ui, "White:", &mut event_handler.white);
 
                         if ui.button("Reset").clicked() {
-                            // Reset colors
+                            event_handler.black = Color32::from_rgb(8, 24, 32);
+                            event_handler.dark = Color32::from_rgb(52, 104, 86);
+                            event_handler.light = Color32::from_rgb(136, 192, 112);
+                            event_handler.white = Color32::from_rgb(224, 248, 208);
                         }
                     });
             });
@@ -228,18 +269,6 @@ impl UIManager {
         window.gl_swap_window();
     }
 
-    /*
-    fn draw_menu_button(&self, ui: &mut Ui, label: &str, items: Vec<MenuItem>) {
-        ui.menu_button(label, |ui| {
-            for item in items {
-                if ui.button(item.label).clicked() {
-                    item.action();
-                    ui.close_menu();
-                }
-            }
-        });
-    }
-    */
     pub fn update_window_size(&mut self, window: &mut Window, event_handler: &mut EventHandler) {
         if self.current_view != self.previous_view
             || event_handler.window_scale != event_handler.previous_scale
