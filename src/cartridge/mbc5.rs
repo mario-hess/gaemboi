@@ -5,29 +5,25 @@
  * @date    August 09, 2024
  */
 
-use std::{cell::RefCell, rc::Rc};
-
 use crate::cartridge::{core::CartridgeCore, MemoryBankController, MASK_MSB, RAM_ADDRESS};
 
 pub struct Mbc5 {
-    core: Rc<RefCell<CartridgeCore>>,
+    core: CartridgeCore,
 }
 
 impl Mbc5 {
-    pub fn new(core: Rc<RefCell<CartridgeCore>>) -> Self {
+    pub fn new(core: CartridgeCore) -> Self {
         Self { core }
     }
 }
 
 impl MemoryBankController for Mbc5 {
     fn read_rom(&self, address: u16) -> u8 {
-        let core = self.core.borrow();
-
         match (address & MASK_MSB) >> 12 {
-            0x0..=0x3 => core.rom_data[address as usize],
+            0x0..=0x3 => self.core.rom_data[address as usize],
             0x4..=0x7 => {
-                let offset = core.rom_offset * core.rom_bank as usize;
-                core.rom_data[(address as usize - core.rom_offset) + offset]
+                let offset = self.core.rom_offset * self.core.rom_bank as usize;
+                self.core.rom_data[(address as usize - self.core.rom_offset) + offset]
             }
             _ => {
                 eprintln!("Unknown address: {:#X}. Can't read byte.", address);
@@ -37,13 +33,11 @@ impl MemoryBankController for Mbc5 {
     }
 
     fn write_rom(&mut self, address: u16, value: u8) {
-        let mut core = self.core.borrow_mut();
-
         match (address & MASK_MSB) >> 12 {
-            0x0 | 0x1 => core.ram_enabled = (value & 0x0F) == 0x0A,
-            0x2 => core.rom_bank = (core.rom_bank & 0x100) | (value as u16),
-            0x3 => core.rom_bank = (core.rom_bank & 0xFF) | ((value as u16 & 0x01) << 8),
-            0x4 | 0x5 => core.ram_bank = value & 0x0F,
+            0x0 | 0x1 => self.core.ram_enabled = (value & 0x0F) == 0x0A,
+            0x2 => self.core.rom_bank = (self.core.rom_bank & 0x100) | (value as u16),
+            0x3 => self.core.rom_bank = (self.core.rom_bank & 0xFF) | ((value as u16 & 0x01) << 8),
+            0x4 | 0x5 => self.core.ram_bank = value & 0x0F,
             0x6 | 0x7 => {}
             _ => eprintln!(
                 "Unknown address: {:#X}. Can't write byte: {:#X}.",
@@ -51,21 +45,19 @@ impl MemoryBankController for Mbc5 {
             ),
         }
 
-        let max_banks = (core.rom_data.len() / core.rom_offset).max(1);
-        if core.rom_bank as usize >= max_banks {
-            core.rom_bank = (core.rom_bank as usize % max_banks) as u16;
+        let max_banks = (self.core.rom_data.len() / self.core.rom_offset).max(1);
+        if self.core.rom_bank as usize >= max_banks {
+            self.core.rom_bank = (self.core.rom_bank as usize % max_banks) as u16;
         }
     }
 
     fn read_ram(&self, address: u16) -> u8 {
-        let core = self.core.borrow();
-
-        if !core.ram_enabled {
+        if !self.core.ram_enabled {
             return 0xFF;
         }
 
-        if let Some(ref ram_data) = core.ram_data {
-            let offset = core.ram_offset * core.ram_bank as usize;
+        if let Some(ref ram_data) = self.core.ram_data {
+            let offset = self.core.ram_offset * self.core.ram_bank as usize;
             return ram_data[(address as usize - RAM_ADDRESS) + offset];
         }
 
@@ -73,18 +65,24 @@ impl MemoryBankController for Mbc5 {
     }
 
     fn write_ram(&mut self, address: u16, value: u8) {
-        let mut core = self.core.borrow_mut();
-
-        if !core.ram_enabled {
+        if !self.core.ram_enabled {
             return;
         }
 
-        let ram_offset = core.ram_offset;
-        let ram_bank = core.ram_bank;
+        let ram_offset = self.core.ram_offset;
+        let ram_bank = self.core.ram_bank;
 
-        if let Some(ref mut ram_data) = core.ram_data {
+        if let Some(ref mut ram_data) = self.core.ram_data {
             let offset = ram_offset * ram_bank as usize;
             ram_data[(address as usize - RAM_ADDRESS) + offset] = value;
         }
+    }
+
+    fn load_ram(&mut self, ram_data: Vec<u8>) {
+        self.core.ram_data = Some(ram_data);
+    }
+
+    fn save_ram(&self) -> Option<Vec<u8>> {
+        self.core.ram_data.clone()
     }
 }
