@@ -81,6 +81,7 @@ impl std::convert::From<u8> for Mixer {
             mixer.panning[i] = value & right_mask != 0;
             mixer.panning[i + 4] = value & left_mask != 0;
         }
+
         mixer
     }
 }
