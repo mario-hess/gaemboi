@@ -239,7 +239,7 @@ fn main() -> Result<(), Error> {
                     clock.reset();
 
                     // Please don't judge, this is the worst part in here
-                    // If you wasted time on improving this, please increase the counter
+                    // If you wasted time on trying to improve this, please increase the counter
                     // Hours wasted: 17
                     if event_handler.performance_mode {
                         if cpu.memory_bus.apu.enabled {
