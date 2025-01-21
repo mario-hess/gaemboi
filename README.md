@@ -27,6 +27,13 @@ This is a Nintendo Game Boy emulator written in Rust. It aims to accurately emul
 - [x] Custom Color Scheme
 - [x] Custom Keybinds
 
+## Screenshots
+
+<div>
+<img src="https://i.imgur.com/W8PJx8G.gif" alt="Pokemon Intro" width="320">
+<img src="https://i.imgur.com/87n0Ovh.gif" alt="Pokemon Idle" width="320">
+</div>
+
 ## Tested Games
 | Status | Game Title |
 | ------ | --------------- |
@@ -43,17 +50,10 @@ This is a Nintendo Game Boy emulator written in Rust. It aims to accurately emul
 | :heavy_check_mark: | Kirby's Dram Land 2 |
 | :heavy_check_mark: | Megaman V |
 | :heavy_check_mark: | Tamagotchi |
-| ![failure image](images/dmg_acid2/1_nose_missing.png) | Final Fantasy Adventure |
-| ![failure image](images/dmg_acid2/1_nose_missing.png) | Street Fighter II |
-| ![failure image](images/dmg_acid2/1_nose_missing.png) | Metroid II - Return of Samus |
-| ![failure image](images/dmg_acid2/1_nose_missing.png) | Super Mario Land 2 |
-
-## Screenshots
-
-<div>
-<img src="https://i.imgur.com/W8PJx8G.gif" alt="Pokemon Intro" width="320">
-<img src="https://i.imgur.com/87n0Ovh.gif" alt="Pokemon Idle" width="320">
-</div>
+| :x: | Final Fantasy Adventure |
+| :x: | Street Fighter II |
+| :x: | Metroid II - Return of Samus |
+| :x: | Super Mario Land 2 |
 
 ## Getting Started
 
