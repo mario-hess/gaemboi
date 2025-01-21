@@ -238,39 +238,23 @@ fn main() -> Result<(), Error> {
 
                     clock.reset();
 
-                    // Please don't judge, this is the worst part in here
-                    // If you wasted time on trying to improve this, please increase the counter
-                    // Hours wasted: 17
                     if event_handler.performance_mode {
-                        if cpu.memory_bus.apu.enabled {
-                            if should_delay(
-                                frame_start_time,
-                                &cpu.memory_bus.apu.audio_buffer,
-                                &event_handler.fast_forward,
-                            ) {
-                                std::thread::sleep(std::time::Duration::from_micros(
-                                    FRAME_DURATION_MICROS / event_handler.fast_forward as u64
-                                        - frame_start_time.elapsed().as_micros() as u64,
-                                ));
-                            }
-                        } else {
+                        if should_delay(
+                            frame_start_time,
+                            &cpu.memory_bus.apu.audio_buffer,
+                            &event_handler.fast_forward,
+                        ) {
                             std::thread::sleep(std::time::Duration::from_micros(
                                 FRAME_DURATION_MICROS / event_handler.fast_forward as u64
                                     - frame_start_time.elapsed().as_micros() as u64,
                             ));
                         }
-                    } else if cpu.memory_bus.apu.enabled {
+                    } else {
                         while should_delay(
                             frame_start_time,
                             &cpu.memory_bus.apu.audio_buffer,
                             &event_handler.fast_forward,
                         ) {
-                            std::hint::spin_loop();
-                        }
-                    } else {
-                        while frame_start_time.elapsed().as_micros()
-                            < FRAME_DURATION.as_micros() / event_handler.fast_forward as u128
-                        {
                             std::hint::spin_loop();
                         }
                     }
