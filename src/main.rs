@@ -240,25 +240,32 @@ fn main() -> Result<(), Error> {
 
                     let fast_forward = *event_handler.fast_forward.borrow();
 
-                    if event_handler.performance_mode {
-                        if should_delay(
-                            frame_start_time,
-                            &cpu.memory_bus.apu.audio_buffer,
-                            fast_forward,
-                        ) {
-                            std::thread::sleep(std::time::Duration::from_micros(
-                                FRAME_DURATION_MICROS / fast_forward as u64
-                                    - frame_start_time.elapsed().as_micros() as u64,
-                            ));
+                    if cpu.memory_bus.apu.enabled {
+                        if event_handler.performance_mode {
+                            if should_delay(
+                                frame_start_time,
+                                &cpu.memory_bus.apu.audio_buffer,
+                                fast_forward,
+                            ) {
+                                std::thread::sleep(std::time::Duration::from_micros(
+                                    FRAME_DURATION_MICROS / fast_forward as u64
+                                        - frame_start_time.elapsed().as_micros() as u64,
+                                ));
+                            }
+                        } else {
+                            while should_delay(
+                                frame_start_time,
+                                &cpu.memory_bus.apu.audio_buffer,
+                                fast_forward,
+                            ) {
+                                std::hint::spin_loop();
+                            }
                         }
                     } else {
-                        while should_delay(
-                            frame_start_time,
-                            &cpu.memory_bus.apu.audio_buffer,
-                            fast_forward,
-                        ) {
-                            std::hint::spin_loop();
-                        }
+                        std::thread::sleep(std::time::Duration::from_micros(
+                            FRAME_DURATION_MICROS / fast_forward as u64
+                                - frame_start_time.elapsed().as_micros() as u64,
+                        ));
                     }
 
                     let frame_time = frame_start_time.elapsed().as_secs_f32();

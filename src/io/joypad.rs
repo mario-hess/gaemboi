@@ -50,7 +50,8 @@ impl Joypad {
         }
 
         // Return default value to not boot in multiplayer mode
-        0xCF
+        //0xCF
+        0xFF
     }
 
     pub fn handle_input(&mut self, event_handler: &EventHandler) {
