@@ -28,11 +28,12 @@ use apu::audio::{Audio, SAMPLING_FREQUENCY, SAMPLING_RATE};
 use apu::AUDIO_BUFFER_THRESHOLD;
 use cpu::clock::{Clock, CYCLES_PER_FRAME};
 use egui_sdl2_gl::egui::{Context, FontFamily, FontId, TextStyle};
+use egui_sdl2_gl::sdl2::controller::GameController;
 use memory_bus::ComponentTick;
 
 use egui_sdl2_gl::sdl2::audio::{AudioDevice, AudioSpecDesired};
 use egui_sdl2_gl::sdl2::video::GLProfile;
-use egui_sdl2_gl::sdl2::AudioSubsystem;
+use egui_sdl2_gl::sdl2::{AudioSubsystem, GameControllerSubsystem, Sdl};
 use egui_sdl2_gl::{DpiScaling, ShaderVersion};
 use ppu::colors::Colors;
 use ppu::{VIEWPORT_HEIGHT, VIEWPORT_WIDTH};
@@ -65,46 +66,32 @@ fn main() -> Result<(), Error> {
     let args: Vec<String> = std::env::args().collect();
     let config = config::Config::build(&args);
 
+    // Initialize SDL2
     let sdl_context = egui_sdl2_gl::sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
+    let audio_subsystem = sdl_context.audio().unwrap();
+    let controller_subsystem = sdl_context.game_controller().unwrap();
+    let _gamepad = initialize_gamepad(controller_subsystem);
+
+    // Initialize GL
     let gl_attr = video_subsystem.gl_attr();
     gl_attr.set_context_profile(GLProfile::Core);
     gl_attr.set_context_version(3, 2);
     gl_attr.set_double_buffer(true);
     gl_attr.set_multisample_samples(4);
     gl_attr.set_framebuffer_srgb_compatible(true);
-    let audio_subsystem = sdl_context.audio().unwrap();
-    let controller_subsystem = sdl_context.game_controller().unwrap();
+    unsafe {
+        egui_sdl2_gl::sdl2::sys::SDL_GL_SetSwapInterval(0);
+    }
 
-    // Initialize gamepad
-    let available = controller_subsystem
-        .num_joysticks()
-        .map_err(|e| format!("can't enumerate joysticks: {}", e))
-        .unwrap();
-
-    let _gamepad = (0..available).find_map(|id| {
-        if !controller_subsystem.is_game_controller(id) {
-            println!("{} is not a gamepad", id);
-            return None;
-        }
-
-        println!("Attempting to open gamepad {}", id);
-
-        match controller_subsystem.open(id) {
-            Ok(gamepad) => {
-                println!("Success: opened \"{}\"", gamepad.name());
-                Some(gamepad)
-            }
-            Err(e) => {
-                println!("failed: {:?}", e);
-                None
-            }
-        }
-    });
-
+    // Initialze EventSystem
     let mut event_handler = event_handler::EventHandler::new();
+    let mut event_pump: egui_sdl2_gl::sdl2::EventPump = sdl_context.event_pump().unwrap();
+
+    // Global colors
     let colors = Rc::new(RefCell::new(Colors::new()));
 
+    // Build window
     let mut window = video_subsystem
         .window(
             "gaemboi",
@@ -115,15 +102,13 @@ fn main() -> Result<(), Error> {
         .build()
         .unwrap();
 
+    // Setup egui config
     let _ctx = window.gl_create_context().unwrap();
     let (mut painter, mut egui_state) =
         egui_sdl2_gl::with_sdl2(&window, ShaderVersion::Default, DpiScaling::Default);
     let egui_ctx = Context::default();
-    let mut event_pump: egui_sdl2_gl::sdl2::EventPump = sdl_context.event_pump().unwrap();
-
     let mut style = (*egui_ctx.style()).clone();
     let font_id = FontId::new(14.0, FontFamily::Proportional);
-
     style.text_styles = [
         (TextStyle::Small, font_id.clone()),
         (TextStyle::Body, font_id.clone()),
@@ -132,26 +117,26 @@ fn main() -> Result<(), Error> {
         (TextStyle::Monospace, font_id.clone()),
     ]
     .into();
-
     egui_ctx.set_style(style);
 
-    unsafe {
-        egui_sdl2_gl::sdl2::sys::SDL_GL_SetSwapInterval(0);
-    }
-
+    // Check if path is passed through environment variable
     if let Some(path) = config.file_path {
         event_handler.file_path = Some(path);
         event_handler.state = State::Play;
     }
 
+    // Setup FPS coounter
     let mut frame_times = Vec::new();
     let mut frame_count = 0;
     let mut last_second = std::time::Instant::now();
     let mut fps = 0.0;
 
+    // Setup UI
     let mut ui_manager = UIManager::new(&mut painter, colors.clone());
+
     let start_time = std::time::Instant::now();
 
+    // State Logic
     while !event_handler.quit {
         match event_handler.state {
             State::Splash => {
@@ -187,6 +172,7 @@ fn main() -> Result<(), Error> {
                         event_handler.state = State::Play;
                         break;
                     }
+
                     if frame_start_time.elapsed().as_micros() < FRAME_DURATION.as_micros() {
                         std::thread::sleep(std::time::Duration::from_micros(
                             FRAME_DURATION_MICROS - frame_start_time.elapsed().as_micros() as u64,
@@ -217,7 +203,7 @@ fn main() -> Result<(), Error> {
 
                 let mut clock = Clock::new();
 
-                // ---------------- LOOP ------------------------
+                // ---------------- EMULATION LOOP ------------------------
                 while !event_handler.quit {
                     let frame_start_time = std::time::Instant::now();
                     let time = start_time.elapsed().as_secs_f64();
@@ -252,8 +238,9 @@ fn main() -> Result<(), Error> {
 
                     clock.reset();
 
-                    // Please don't judge
-                    // this is the worst part in here
+                    // Please don't judge, this is the worst part in here
+                    // If you wasted time on improving this, please increase the counter
+                    // Hours wasted: 17
                     if event_handler.performance_mode {
                         if cpu.memory_bus.apu.enabled {
                             if should_delay(
@@ -313,6 +300,32 @@ fn main() -> Result<(), Error> {
     }
 
     Ok(())
+}
+
+fn initialize_gamepad(controller_subsystem: GameControllerSubsystem) -> Option<GameController> {
+    let available = controller_subsystem
+        .num_joysticks()
+        .map_err(|e| format!("can't enumerate joysticks: {}", e))
+        .unwrap();
+    (0..available).find_map(|id| {
+        if !controller_subsystem.is_game_controller(id) {
+            println!("{} is not a gamepad", id);
+            return None;
+        }
+
+        println!("Attempting to open gamepad {}", id);
+
+        match controller_subsystem.open(id) {
+            Ok(gamepad) => {
+                println!("Success: opened \"{}\"", gamepad.name());
+                Some(gamepad)
+            }
+            Err(e) => {
+                println!("failed: {:?}", e);
+                None
+            }
+        }
+    })
 }
 
 fn read_file(file_path: &String) -> Result<Vec<u8>, Error> {
