@@ -7,7 +7,7 @@
 
 use crate::apu::{
     channel::{core::ChannelCore, length_counter::LengthCounter, volume_envelope::VolumeEnvelope},
-    MemoryAccess, CH4_END, CH4_START, LENGTH_TIMER_MAX,
+    ComponentTick, MemoryAccess, CH4_END, CH4_START, LENGTH_TIMER_MAX,
 };
 
 use super::square_channel::ChannelType;
@@ -52,20 +52,8 @@ impl MemoryAccess for NoiseChannel {
     }
 }
 
-impl NoiseChannel {
-    pub fn new() -> Self {
-        Self {
-            core: ChannelCore::default(),
-            length_counter: LengthCounter::default(),
-            volume_envelope: VolumeEnvelope::default(),
-            lfsr: 0,
-            clock_divider: 0,
-            lfsr_width: false,
-            clock_shift: 0,
-        }
-    }
-
-    pub fn tick(&mut self, m_cycles: u8) {
+impl ComponentTick for NoiseChannel {
+    fn tick(&mut self, m_cycles: u8) {
         if !self.core.enabled || !self.core.dac_enabled {
             return;
         }
@@ -94,6 +82,20 @@ impl NoiseChannel {
         };
 
         self.core.timer += (DIVISORS[self.clock_divider as usize] as i32) << self.clock_shift;
+    }
+}
+
+impl NoiseChannel {
+    pub fn new() -> Self {
+        Self {
+            core: ChannelCore::default(),
+            length_counter: LengthCounter::default(),
+            volume_envelope: VolumeEnvelope::default(),
+            lfsr: 0,
+            clock_divider: 0,
+            lfsr_width: false,
+            clock_shift: 0,
+        }
     }
 
     pub fn trigger(&mut self) {

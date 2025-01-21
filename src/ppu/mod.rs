@@ -20,7 +20,7 @@ use egui_sdl2_gl::egui::Color32;
 
 use crate::{
     interrupt::{LCD_STAT_MASK, VBLANK_MASK},
-    memory_bus::{MemoryAccess, OAM_END, OAM_START, VRAM_END, VRAM_START},
+    memory_bus::{ComponentTick, MemoryAccess, OAM_END, OAM_START, VRAM_END, VRAM_START},
     ppu::{
         background::Background,
         lcd_control::LCD_control,
@@ -180,33 +180,8 @@ impl MemoryAccess for Ppu {
     }
 }
 
-impl Ppu {
-    pub fn new(colors: Rc<RefCell<Colors>>) -> Self {
-        Self {
-            enabled: true,
-            interrupts: 0,
-            video_ram: [0; VRAM_SIZE],
-            oam: [OAM::new(); OAM_SIZE],
-            oam_buffer: Vec::new(),
-            lcd_control: LCD_control::default(),
-            lcd_status: LCD_status::default(),
-            window: Window::new(),
-            background: Background::new(),
-            scan_y: 0,
-            scan_y_compare: 0,
-            bg_palette: 0,
-            sprite_palette0: 0,
-            sprite_palette1: 0,
-            tile_height: TILE_HEIGHT,
-            counter: 0,
-            overlap_map: [false; OVERLAP_MAP_SIZE],
-            viewport_buffer: [Color32::from_rgb(224, 248, 208); BUFFER_SIZE],
-            should_draw: false,
-            colors,
-        }
-    }
-
-    pub fn tick(&mut self, m_cycles: u8) {
+impl ComponentTick for Ppu {
+    fn tick(&mut self, m_cycles: u8) {
         if !self.lcd_control.lcd_enabled() {
             return;
         }
@@ -318,6 +293,33 @@ impl Ppu {
                 self.counter -= CYCLES_VBLANK;
             }
             _ => unreachable!(),
+        }
+    }
+}
+
+impl Ppu {
+    pub fn new(colors: Rc<RefCell<Colors>>) -> Self {
+        Self {
+            enabled: true,
+            interrupts: 0,
+            video_ram: [0; VRAM_SIZE],
+            oam: [OAM::new(); OAM_SIZE],
+            oam_buffer: Vec::new(),
+            lcd_control: LCD_control::default(),
+            lcd_status: LCD_status::default(),
+            window: Window::new(),
+            background: Background::new(),
+            scan_y: 0,
+            scan_y_compare: 0,
+            bg_palette: 0,
+            sprite_palette0: 0,
+            sprite_palette1: 0,
+            tile_height: TILE_HEIGHT,
+            counter: 0,
+            overlap_map: [false; OVERLAP_MAP_SIZE],
+            viewport_buffer: [Color32::from_rgb(224, 248, 208); BUFFER_SIZE],
+            should_draw: false,
+            colors,
         }
     }
 
@@ -550,7 +552,8 @@ impl Ppu {
     }
 
     pub fn tiletable(&self) -> [Color32; TILETABLE_WIDTH * TILETABLE_HEIGHT] {
-        let mut tiletable_buffer = [self.colors.as_ref().borrow().white; TILETABLE_WIDTH * TILETABLE_HEIGHT];
+        let mut tiletable_buffer =
+            [self.colors.as_ref().borrow().white; TILETABLE_WIDTH * TILETABLE_HEIGHT];
 
         // Grid vertical lines
         for i in 0..=16 {
@@ -601,7 +604,8 @@ impl Ppu {
         start_address: u16,
         end_address: u16,
     ) -> [Color32; TILEMAP_WIDTH * TILEMAP_HEIGHT] {
-        let mut tilemap_buffer = [self.colors.as_ref().borrow().white; TILEMAP_WIDTH * TILEMAP_HEIGHT];
+        let mut tilemap_buffer =
+            [self.colors.as_ref().borrow().white; TILEMAP_WIDTH * TILEMAP_HEIGHT];
 
         let tiles = (start_address..=end_address)
             .map(|i| self.lcd_control.get_address(self.read_byte(i)))

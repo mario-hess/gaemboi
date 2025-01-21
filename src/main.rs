@@ -28,6 +28,7 @@ use apu::audio::{Audio, SAMPLING_FREQUENCY, SAMPLING_RATE};
 use apu::AUDIO_BUFFER_THRESHOLD;
 use cpu::clock::{Clock, CYCLES_PER_FRAME};
 use egui_sdl2_gl::egui::{Context, FontFamily, FontId, TextStyle};
+use memory_bus::ComponentTick;
 
 use egui_sdl2_gl::sdl2::audio::{AudioDevice, AudioSpecDesired};
 use egui_sdl2_gl::sdl2::video::GLProfile;

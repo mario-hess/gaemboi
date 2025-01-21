@@ -28,6 +28,7 @@ use crate::{
     },
     cpu::clock::CPU_CLOCK_SPEED,
     memory_bus::MemoryAccess,
+    ComponentTick,
 };
 
 const CPU_CYCLES_PER_SAMPLE: u32 = CPU_CLOCK_SPEED / SAMPLING_FREQUENCY as u32;
@@ -134,24 +135,8 @@ impl MemoryAccess for Apu {
     }
 }
 
-impl Apu {
-    pub fn new() -> Self {
-        Self {
-            ch1: SquareChannel::new(ChannelType::CH1),
-            ch2: SquareChannel::new(ChannelType::CH2),
-            ch3: WaveChannel::new(),
-            ch4: NoiseChannel::new(),
-            frame_sequencer: FrameSequencer::new(),
-            mixer: Mixer::default(),
-            right_volume: 0,
-            left_volume: 0,
-            enabled: false,
-            counter: 0,
-            audio_buffer: Arc::new(Mutex::new(VecDeque::new())),
-        }
-    }
-
-    pub fn tick(&mut self, m_cycles: u8) {
+impl ComponentTick for Apu {
+    fn tick(&mut self, m_cycles: u8) {
         if !self.enabled {
             //self.audio_buffer.lock().unwrap().push_back(0);
             //self.audio_buffer.lock().unwrap().push_back(0);
@@ -184,6 +169,24 @@ impl Apu {
             self.audio_buffer.lock().unwrap().push_back(output_right);
 
             self.counter -= CPU_CYCLES_PER_SAMPLE;
+        }
+    }
+}
+
+impl Apu {
+    pub fn new() -> Self {
+        Self {
+            ch1: SquareChannel::new(ChannelType::CH1),
+            ch2: SquareChannel::new(ChannelType::CH2),
+            ch3: WaveChannel::new(),
+            ch4: NoiseChannel::new(),
+            frame_sequencer: FrameSequencer::new(),
+            mixer: Mixer::default(),
+            right_volume: 0,
+            left_volume: 0,
+            enabled: false,
+            counter: 0,
+            audio_buffer: Arc::new(Mutex::new(VecDeque::new())),
         }
     }
 
