@@ -27,6 +27,27 @@ This is a Nintendo Game Boy emulator written in Rust. It aims to accurately emul
 - [x] Custom Color Scheme
 - [x] Custom Keybinds
 
+## Tested Games
+| Status | Game Title |
+| ------ | --------------- |
+| :heavy_check_mark: | Tetris |
+| :heavy_check_mark: | Pokemon Blue/Red/Yellow |
+| :heavy_check_mark: | Dr. Mario (World) |
+| :heavy_check_mark: | Super Mario Land (World) |
+| :heavy_check_mark: | Mario & Yoshi |
+| :heavy_check_mark: | Wario Land - Super Mario Land 3 (World) |
+| :heavy_check_mark: | Legend of Zelda, The - Link's Awakening |
+| :heavy_check_mark: | Castlevania Legends |
+| :heavy_check_mark: | Donkey Kong |
+| :heavy_check_mark: | Kirby's Dream Land |
+| :heavy_check_mark: | Kirby's Dram Land 2 |
+| :heavy_check_mark: | Megaman V |
+| :heavy_check_mark: | Tamagotchi |
+| ![failure image](images/dmg_acid2/1_nose_missing.png) | Final Fantasy Adventure |
+| ![failure image](images/dmg_acid2/1_nose_missing.png) | Street Fighter II |
+| ![failure image](images/dmg_acid2/1_nose_missing.png) | Metroid II - Return of Samus |
+| ![failure image](images/dmg_acid2/1_nose_missing.png) | Super Mario Land 2 |
+
 ## Screenshots
 
 <div>
