@@ -33,7 +33,7 @@ use memory_bus::ComponentTick;
 
 use egui_sdl2_gl::sdl2::audio::{AudioDevice, AudioSpecDesired};
 use egui_sdl2_gl::sdl2::video::GLProfile;
-use egui_sdl2_gl::sdl2::{AudioSubsystem, GameControllerSubsystem, Sdl};
+use egui_sdl2_gl::sdl2::{AudioSubsystem, GameControllerSubsystem};
 use egui_sdl2_gl::{DpiScaling, ShaderVersion};
 use ppu::colors::Colors;
 use ppu::{VIEWPORT_HEIGHT, VIEWPORT_WIDTH};
