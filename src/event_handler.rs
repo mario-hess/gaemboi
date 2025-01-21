@@ -5,6 +5,8 @@
  * @date    November 11, 2023
  */
 
+use std::{cell::RefCell, rc::Rc};
+
 use egui_sdl2_gl::{
     painter::Painter,
     sdl2::{controller::Button, event::Event, keyboard::Keycode, video::Window, EventPump},
@@ -38,8 +40,7 @@ pub struct EventHandler {
     pub volume: u8,
     pub last_volume: u8,
     pub volume_slider: bool,
-    pub fast_forward: u8,
-    pub last_speed: u8,
+    pub fast_forward: Rc<RefCell<u32>>,
     pub performance_mode: bool,
     pub show_waveform: bool,
     pub show_square_waves: bool,
@@ -79,8 +80,7 @@ impl EventHandler {
             volume: 50,
             last_volume: 50,
             volume_slider: true,
-            fast_forward: 1,
-            last_speed: 1,
+            fast_forward: Rc::new(RefCell::new(1)),
             performance_mode: true,
             show_waveform: false,
             show_square_waves: false,

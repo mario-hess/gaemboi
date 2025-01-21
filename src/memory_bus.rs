@@ -203,13 +203,13 @@ impl ComponentTick for MemoryBus {
 }
 
 impl MemoryBus {
-    pub fn new(rom_data: Vec<u8>, colors: Rc<RefCell<Colors>>) -> Self {
+    pub fn new(rom_data: Vec<u8>, colors: Rc<RefCell<Colors>>, fast_forward: Rc<RefCell<u32>>) -> Self {
         let cartridge = Cartridge::build(rom_data);
 
         Self {
             cartridge,
             ppu: Ppu::new(colors),
-            apu: Apu::new(),
+            apu: Apu::new(fast_forward),
             wram: [0; 8192],
             hram: [0; 128],
             interrupt_enabled: 0x00,

@@ -8,7 +8,7 @@
 use egui_sdl2_gl::egui::{menu, Context, TopBottomPanel, Ui};
 use rfd::FileDialog;
 
-use crate::{cpu::Cpu, event_handler::EventHandler, State, View};
+use crate::{event_handler::EventHandler, State, View};
 
 pub struct TopPanel {
     pub menu_bar_height: f32,
@@ -26,7 +26,6 @@ impl TopPanel {
         egui_ctx: &Context,
         event_handler: &mut EventHandler,
         fps: &f32,
-        cpu: Option<&mut Cpu>,
         current_view: &mut View,
         current_state: State,
     ) {
@@ -170,29 +169,25 @@ impl TopPanel {
                                 ui.close_menu();
                             }
 
-                            ui.add_enabled(event_handler.fast_forward == 1, |ui: &mut Ui| {
-                                ui.checkbox(&mut event_handler.performance_mode, "Performance Mode")
-                            });
+                            ui.add_enabled(
+                                *event_handler.fast_forward.borrow() == 1,
+                                |ui: &mut Ui| {
+                                    ui.checkbox(
+                                        &mut event_handler.performance_mode,
+                                        "Performance Mode",
+                                    )
+                                },
+                            );
 
                             ui.menu_button("Fast Forward                   >", |ui| {
                                 ui.add(
                                     egui_sdl2_gl::egui::Slider::new(
-                                        &mut event_handler.fast_forward,
+                                        &mut *event_handler.fast_forward.as_ref().borrow_mut(),
                                         1..=4,
                                     )
                                     .prefix("Speed: ")
                                     .suffix("x"),
-                                );
-
-                                if let Some(cpu) = cpu {
-                                    if event_handler.fast_forward == 1
-                                        && event_handler.last_speed > 1
-                                    {
-                                        cpu.memory_bus.apu.audio_buffer.lock().unwrap().clear();
-                                    }
-                                }
-
-                                event_handler.last_speed = event_handler.fast_forward;
+                                )
                             });
                         });
                         ui.menu_button("Help", |ui| {

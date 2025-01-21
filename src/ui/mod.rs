@@ -60,7 +60,6 @@ impl UIManager {
             egui_ctx,
             event_handler,
             &0.0,
-            None,
             &mut self.current_view,
             State::Splash,
         );
@@ -81,20 +80,15 @@ impl UIManager {
         cpu: &mut Cpu,
         fps: &f32,
     ) {
-        self.update_window_size(window, event_handler);
-        if event_handler.fast_forward > 1 {
+        if *event_handler.fast_forward.borrow() > 1 {
             event_handler.performance_mode = false;
-            event_handler.volume = 0;
-            event_handler.volume_slider = false;
-        } else {
-            event_handler.volume_slider = true;
         }
 
+        self.update_window_size(window, event_handler);
         self.top_panel.draw(
             egui_ctx,
             event_handler,
             fps,
-            Some(cpu),
             &mut self.current_view,
             State::Play,
         );
@@ -215,8 +209,10 @@ impl UIManager {
             .open(&mut event_handler.bug_report_opened)
             .show(egui_ctx, |ui| {
                 ui.label("Feel free to submit any issue:");
-                ui.add(Hyperlink::new("https://github.com/mario-hess/gaemboi/issues").open_in_new_tab(true));
-
+                ui.add(
+                    Hyperlink::new("https://github.com/mario-hess/gaemboi/issues")
+                        .open_in_new_tab(true),
+                );
             });
 
         fn color_picker_row(ui: &mut Ui, label: &str, color: &mut Color32) {

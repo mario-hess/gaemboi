@@ -11,7 +11,9 @@ mod frame_sequencer;
 mod mixer;
 
 use std::{
+    cell::RefCell,
     collections::VecDeque,
+    rc::Rc,
     sync::{Arc, Mutex},
 };
 
@@ -31,7 +33,6 @@ use crate::{
     ComponentTick,
 };
 
-const CPU_CYCLES_PER_SAMPLE: u32 = CPU_CLOCK_SPEED / SAMPLING_FREQUENCY as u32;
 pub const APU_CLOCK_SPEED: u16 = 512;
 pub const LENGTH_TIMER_MAX: u16 = 64;
 
@@ -72,6 +73,7 @@ pub struct Apu {
     pub left_volume: u8,
     pub enabled: bool,
     counter: u32,
+    sampling_frequency: Rc<RefCell<u32>>,
     pub audio_buffer: Arc<Mutex<VecDeque<u8>>>,
 }
 
@@ -155,7 +157,10 @@ impl ComponentTick for Apu {
 
         self.counter += t_cycles as u32;
 
-        while self.counter >= CPU_CYCLES_PER_SAMPLE {
+        let cpu_cycles_per_sample =
+            CPU_CLOCK_SPEED / SAMPLING_FREQUENCY as u32 * *self.sampling_frequency.borrow();
+
+        while self.counter >= cpu_cycles_per_sample {
             let (output_left, output_right) = self.mixer.mix([
                 &self.ch1.core,
                 &self.ch2.core,
@@ -166,13 +171,13 @@ impl ComponentTick for Apu {
             self.audio_buffer.lock().unwrap().push_back(output_left);
             self.audio_buffer.lock().unwrap().push_back(output_right);
 
-            self.counter -= CPU_CYCLES_PER_SAMPLE;
+            self.counter -= cpu_cycles_per_sample;
         }
     }
 }
 
 impl Apu {
-    pub fn new() -> Self {
+    pub fn new(sampling_frequency: Rc<RefCell<u32>>) -> Self {
         Self {
             ch1: SquareChannel::new(ChannelType::CH1),
             ch2: SquareChannel::new(ChannelType::CH2),
@@ -184,6 +189,7 @@ impl Apu {
             left_volume: 0,
             enabled: false,
             counter: 0,
+            sampling_frequency,
             audio_buffer: Arc::new(Mutex::new(VecDeque::new())),
         }
     }

@@ -69,20 +69,15 @@ fn main() -> Result<(), Error> {
     // Initialize SDL2
     let sdl_context = egui_sdl2_gl::sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
-    let audio_subsystem = sdl_context.audio().unwrap();
-    let controller_subsystem = sdl_context.game_controller().unwrap();
-    let _gamepad = initialize_gamepad(controller_subsystem);
-
-    // Initialize GL
     let gl_attr = video_subsystem.gl_attr();
     gl_attr.set_context_profile(GLProfile::Core);
     gl_attr.set_context_version(3, 2);
     gl_attr.set_double_buffer(true);
     gl_attr.set_multisample_samples(4);
     gl_attr.set_framebuffer_srgb_compatible(true);
-    unsafe {
-        egui_sdl2_gl::sdl2::sys::SDL_GL_SetSwapInterval(0);
-    }
+    let audio_subsystem = sdl_context.audio().unwrap();
+    let controller_subsystem = sdl_context.game_controller().unwrap();
+    let _gamepad = initialize_gamepad(controller_subsystem);
 
     // Initialze EventSystem
     let mut event_handler = event_handler::EventHandler::new();
@@ -118,6 +113,10 @@ fn main() -> Result<(), Error> {
     ]
     .into();
     egui_ctx.set_style(style);
+
+    unsafe {
+        egui_sdl2_gl::sdl2::sys::SDL_GL_SetSwapInterval(0);
+    }
 
     // Check if path is passed through environment variable
     if let Some(path) = config.file_path {
@@ -185,7 +184,8 @@ fn main() -> Result<(), Error> {
                 event_handler.file_path = None;
 
                 let rom_data = read_file(&file_path)?;
-                let mut cpu = cpu::Cpu::new(rom_data, colors.clone());
+                let mut cpu =
+                    cpu::Cpu::new(rom_data, colors.clone(), event_handler.fast_forward.clone());
 
                 match read_file(&file_path.replace(".gb", ".sav")) {
                     Ok(data) => cpu.memory_bus.load_game(data),
@@ -238,14 +238,16 @@ fn main() -> Result<(), Error> {
 
                     clock.reset();
 
+                    let fast_forward = *event_handler.fast_forward.borrow();
+
                     if event_handler.performance_mode {
                         if should_delay(
                             frame_start_time,
                             &cpu.memory_bus.apu.audio_buffer,
-                            &event_handler.fast_forward,
+                            fast_forward,
                         ) {
                             std::thread::sleep(std::time::Duration::from_micros(
-                                FRAME_DURATION_MICROS / event_handler.fast_forward as u64
+                                FRAME_DURATION_MICROS / fast_forward as u64
                                     - frame_start_time.elapsed().as_micros() as u64,
                             ));
                         }
@@ -253,7 +255,7 @@ fn main() -> Result<(), Error> {
                         while should_delay(
                             frame_start_time,
                             &cpu.memory_bus.apu.audio_buffer,
-                            &event_handler.fast_forward,
+                            fast_forward,
                         ) {
                             std::hint::spin_loop();
                         }
@@ -343,8 +345,8 @@ fn create_audio_device<'a>(
 fn should_delay(
     frame_start_time: std::time::Instant,
     audio_buffer: &Arc<Mutex<VecDeque<u8>>>,
-    fast_forward: &u8,
+    fast_forward: u32,
 ) -> bool {
-    frame_start_time.elapsed().as_micros() < FRAME_DURATION.as_micros() / *fast_forward as u128
+    frame_start_time.elapsed().as_micros() < FRAME_DURATION.as_micros() / fast_forward as u128
         && audio_buffer.lock().unwrap().len() > AUDIO_BUFFER_THRESHOLD
 }
