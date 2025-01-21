@@ -6,16 +6,19 @@
  */
 
 mod background;
+pub mod colors;
 mod lcd_control;
 mod lcd_status;
 mod oam;
 mod tile;
 mod window;
 
+use std::{cell::RefCell, rc::Rc};
+
+use colors::Colors;
 use egui_sdl2_gl::egui::Color32;
 
 use crate::{
-    event_handler::EventHandler,
     interrupt::{LCD_STAT_MASK, VBLANK_MASK},
     memory_bus::{MemoryAccess, OAM_END, OAM_START, VRAM_END, VRAM_START},
     ppu::{
@@ -108,6 +111,7 @@ pub struct Ppu {
     pub overlap_map: [bool; OVERLAP_MAP_SIZE],
     pub viewport_buffer: [Color32; BUFFER_SIZE],
     pub should_draw: bool,
+    colors: Rc<RefCell<Colors>>,
 }
 
 impl MemoryAccess for Ppu {
@@ -177,7 +181,7 @@ impl MemoryAccess for Ppu {
 }
 
 impl Ppu {
-    pub fn new() -> Self {
+    pub fn new(colors: Rc<RefCell<Colors>>) -> Self {
         Self {
             enabled: true,
             interrupts: 0,
@@ -198,10 +202,11 @@ impl Ppu {
             overlap_map: [false; OVERLAP_MAP_SIZE],
             viewport_buffer: [Color32::from_rgb(224, 248, 208); BUFFER_SIZE],
             should_draw: false,
+            colors,
         }
     }
 
-    pub fn tick(&mut self, m_cycles: u8, event_handler: &EventHandler) {
+    pub fn tick(&mut self, m_cycles: u8) {
         if !self.lcd_control.lcd_enabled() {
             return;
         }
@@ -262,7 +267,7 @@ impl Ppu {
                     return;
                 }
 
-                self.render_scanline(event_handler);
+                self.render_scanline();
                 self.lcd_status.set_mode(MODE_HBLANK, &mut self.interrupts);
 
                 self.counter -= CYCLES_TRANSFER;
@@ -379,17 +384,17 @@ impl Ppu {
         }
     }
 
-    fn render_scanline(&mut self, event_handler: &EventHandler) {
+    fn render_scanline(&mut self) {
         if self.lcd_control.bg_enabled() {
-            self.render_bg_window_line(event_handler);
+            self.render_bg_window_line();
         }
 
         if self.lcd_control.object_enabled() {
-            self.render_object_line(event_handler);
+            self.render_object_line();
         }
     }
 
-    fn render_bg_window_line(&mut self, event_handler: &EventHandler) {
+    fn render_bg_window_line(&mut self) {
         let base_offset = self.scan_y as usize * VIEWPORT_WIDTH;
         for scan_x in 0..VIEWPORT_WIDTH as u8 {
             let (tile_index_address, x_offset, y_offset) = self.get_bg_window_tile_data(scan_x);
@@ -404,7 +409,7 @@ impl Ppu {
             let overlap_offset = self.scan_y as usize + FULL_WIDTH * scan_x as usize;
             self.overlap_map[overlap_offset] = color_index != 0;
 
-            let pixel = self.pixel_color(&self.bg_palette, &color_index, event_handler);
+            let pixel = self.pixel_color(&self.bg_palette, &color_index);
 
             // Calculate the offset for the current pixel and update the viewport buffer
             let offset = scan_x as usize + base_offset;
@@ -412,7 +417,7 @@ impl Ppu {
         }
     }
 
-    fn render_object_line(&mut self, event_handler: &EventHandler) {
+    fn render_object_line(&mut self) {
         let scan_y = self.scan_y as i16;
         let base_offset = scan_y as usize * VIEWPORT_WIDTH;
 
@@ -475,7 +480,7 @@ impl Ppu {
                     self.sprite_palette0
                 };
 
-                let pixel = self.pixel_color(&sprite_palette, &color_index, event_handler);
+                let pixel = self.pixel_color(&sprite_palette, &color_index);
 
                 // Calculate the offset for the current pixel and update the viewport buffer
                 let offset = x_offset as usize + base_offset;
@@ -532,21 +537,20 @@ impl Ppu {
         self.interrupts = 0;
     }
 
-    fn pixel_color(&self, palette: &u8, color_index: &u8, event_handler: &EventHandler) -> Color32 {
+    fn pixel_color(&self, palette: &u8, color_index: &u8) -> Color32 {
+        let colors = self.colors.as_ref().borrow();
+
         match (palette >> (color_index << 1)) & 0b11 {
-            0b00 => event_handler.white,
-            0b01 => event_handler.light,
-            0b10 => event_handler.dark,
-            0b11 => event_handler.black,
+            0b00 => colors.white,
+            0b01 => colors.light,
+            0b10 => colors.dark,
+            0b11 => colors.black,
             _ => unreachable!(),
         }
     }
 
-    pub fn tiletable(
-        &self,
-        event_handler: &EventHandler,
-    ) -> [Color32; TILETABLE_WIDTH * TILETABLE_HEIGHT] {
-        let mut tiletable_buffer = [event_handler.white; TILETABLE_WIDTH * TILETABLE_HEIGHT];
+    pub fn tiletable(&self) -> [Color32; TILETABLE_WIDTH * TILETABLE_HEIGHT] {
+        let mut tiletable_buffer = [self.colors.as_ref().borrow().white; TILETABLE_WIDTH * TILETABLE_HEIGHT];
 
         // Grid vertical lines
         for i in 0..=16 {
@@ -570,7 +574,7 @@ impl Ppu {
             .map(|i| self.read_byte(i))
             .collect::<Vec<u8>>()
             .chunks_exact(16)
-            .map(|chunk| Tile::new(chunk, event_handler.black, event_handler.dark, event_handler.light, event_handler.white))
+            .map(|chunk| Tile::new(chunk, self.colors.clone()))
             .collect::<Vec<Tile>>();
 
         let tiles_per_row = 16;
@@ -596,24 +600,15 @@ impl Ppu {
         &self,
         start_address: u16,
         end_address: u16,
-        event_handler: &EventHandler,
     ) -> [Color32; TILEMAP_WIDTH * TILEMAP_HEIGHT] {
-        let mut tilemap_buffer = [event_handler.white; TILEMAP_WIDTH * TILEMAP_HEIGHT];
+        let mut tilemap_buffer = [self.colors.as_ref().borrow().white; TILEMAP_WIDTH * TILEMAP_HEIGHT];
 
         let tiles = (start_address..=end_address)
             .map(|i| self.lcd_control.get_address(self.read_byte(i)))
             .flat_map(|address| (0..16).map(move |j| self.read_byte(address + j)))
             .collect::<Vec<u8>>()
             .chunks_exact(16)
-            .map(|chunk| {
-                Tile::new(
-                    chunk,
-                    event_handler.black,
-                    event_handler.dark,
-                    event_handler.light,
-                    event_handler.white,
-                )
-            })
+            .map(|chunk| Tile::new(chunk, self.colors.clone()))
             .collect::<Vec<Tile>>();
 
         let tiles_per_row = TILEMAP_WIDTH / TILE_WIDTH as usize;

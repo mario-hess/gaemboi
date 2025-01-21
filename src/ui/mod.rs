@@ -8,6 +8,8 @@
 mod central_panel;
 mod top_panel;
 
+use std::{cell::RefCell, rc::Rc};
+
 use central_panel::CentralPanel;
 use egui_sdl2_gl::{
     egui::{Align, Color32, Context, FullOutput, Grid, Pos2, Rect, Stroke, Ui, Vec2},
@@ -22,8 +24,8 @@ use crate::{
     cpu::Cpu,
     event_handler::EventHandler,
     ppu::{
-        TILEMAP_HEIGHT, TILEMAP_WIDTH, TILETABLE_HEIGHT, TILETABLE_WIDTH, VIEWPORT_HEIGHT,
-        VIEWPORT_WIDTH,
+        colors::Colors, TILEMAP_HEIGHT, TILEMAP_WIDTH, TILETABLE_HEIGHT, TILETABLE_WIDTH,
+        VIEWPORT_HEIGHT, VIEWPORT_WIDTH,
     },
     State, View,
 };
@@ -36,10 +38,10 @@ pub struct UIManager {
 }
 
 impl UIManager {
-    pub fn new(painter: &mut Painter, black: &Color32, white: &Color32) -> Self {
+    pub fn new(painter: &mut Painter, colors: Rc<RefCell<Colors>>) -> Self {
         Self {
             top_panel: TopPanel::new(),
-            central_panel: CentralPanel::new(painter, black, white),
+            central_panel: CentralPanel::new(painter, colors),
             current_view: View::Viewport,
             previous_view: View::Viewport,
         }
@@ -75,6 +77,7 @@ impl UIManager {
         painter: &mut Painter,
         window: &mut Window,
         event_handler: &mut EventHandler,
+        colors: Rc<RefCell<Colors>>,
         cpu: &mut Cpu,
         fps: &f32,
     ) {
@@ -102,11 +105,17 @@ impl UIManager {
             &self.current_view,
             painter,
         );
-        self.draw_windows(egui_ctx, cpu, event_handler);
+        self.draw_windows(egui_ctx, cpu, event_handler, colors);
         self.finish_frame(egui_ctx, window, state, painter);
     }
 
-    fn draw_windows(&self, egui_ctx: &Context, cpu: &mut Cpu, event_handler: &mut EventHandler) {
+    fn draw_windows(
+        &self,
+        egui_ctx: &Context,
+        cpu: &mut Cpu,
+        event_handler: &mut EventHandler,
+        colors: Rc<RefCell<Colors>>,
+    ) {
         egui_sdl2_gl::egui::Window::new("Square Waves")
             .open(&mut event_handler.show_square_waves)
             .min_width(280.0)
@@ -153,7 +162,9 @@ impl UIManager {
                         ui.horizontal(|ui| {
                             ui.label(*label);
                             ui.with_layout(
-                                egui_sdl2_gl::egui::Layout::right_to_left(egui_sdl2_gl::egui::Align::Center),
+                                egui_sdl2_gl::egui::Layout::right_to_left(
+                                    egui_sdl2_gl::egui::Align::Center,
+                                ),
                                 |ui| {
                                     let button_label = match keybind {
                                         Some(key) => format!("{:?}", key),
@@ -177,16 +188,18 @@ impl UIManager {
                     .num_columns(2)
                     .spacing([10.0, 10.0]) // Set horizontal and vertical spacing
                     .show(ui, |ui| {
-                        color_picker_row(ui, "Black:", &mut event_handler.black);
-                        color_picker_row(ui, "Dark:", &mut event_handler.dark);
-                        color_picker_row(ui, "Light:", &mut event_handler.light);
-                        color_picker_row(ui, "White:", &mut event_handler.white);
+                        if let Ok(mut borrowed_colors) = colors.try_borrow_mut() {
+                            color_picker_row(ui, "Black:", &mut borrowed_colors.black);
+                            color_picker_row(ui, "Dark:", &mut borrowed_colors.dark);
+                            color_picker_row(ui, "Light:", &mut borrowed_colors.light);
+                            color_picker_row(ui, "White:", &mut borrowed_colors.white);
 
-                        if ui.button("Reset").clicked() {
-                            event_handler.black = Color32::from_rgb(8, 24, 32);
-                            event_handler.dark = Color32::from_rgb(52, 104, 86);
-                            event_handler.light = Color32::from_rgb(136, 192, 112);
-                            event_handler.white = Color32::from_rgb(224, 248, 208);
+                            if ui.button("Reset").clicked() {
+                                borrowed_colors.black = Color32::from_rgb(8, 24, 32);
+                                borrowed_colors.dark = Color32::from_rgb(52, 104, 86);
+                                borrowed_colors.light = Color32::from_rgb(136, 192, 112);
+                                borrowed_colors.white = Color32::from_rgb(224, 248, 208);
+                            }
                         }
                     });
             });

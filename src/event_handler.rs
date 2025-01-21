@@ -6,7 +6,6 @@
  */
 
 use egui_sdl2_gl::{
-    egui::Color32,
     painter::Painter,
     sdl2::{controller::Button, event::Event, keyboard::Keycode, video::Window, EventPump},
     EguiStateHandler,
@@ -47,10 +46,6 @@ pub struct EventHandler {
     pub cpu_status_opened: bool,
     pub keybindings_opened: bool,
     pub color_scheme_opened: bool,
-    pub black: Color32,
-    pub dark: Color32,
-    pub light: Color32,
-    pub white: Color32,
     pub quit: bool,
     pub rebinding_key: Option<&'static str>,
 }
@@ -90,10 +85,6 @@ impl EventHandler {
             cpu_status_opened: false,
             keybindings_opened: false,
             color_scheme_opened: false,
-            black: Color32::from_rgb(8, 24, 32),
-            dark: Color32::from_rgb(52, 104, 86),
-            light: Color32::from_rgb(136, 192, 112),
-            white: Color32::from_rgb(224, 248, 208),
             quit: false,
             rebinding_key: None,
         }

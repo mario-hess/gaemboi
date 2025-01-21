@@ -5,6 +5,8 @@
  * @date    September 13, 2024
  */
 
+use std::{cell::RefCell, rc::Rc};
+
 use egui_sdl2_gl::{
     egui::{load::SizedTexture, Color32, Image, TextureId, Vec2},
     painter::Painter,
@@ -14,7 +16,9 @@ use crate::{
     cpu::Cpu,
     event_handler::EventHandler,
     ppu::{
-        TILEMAP_END_0, TILEMAP_END_1, TILEMAP_HEIGHT, TILEMAP_START_0, TILEMAP_START_1, TILEMAP_WIDTH, TILETABLE_HEIGHT, TILETABLE_WIDTH, VIEWPORT_HEIGHT, VIEWPORT_WIDTH
+        colors::Colors, TILEMAP_END_0, TILEMAP_END_1, TILEMAP_HEIGHT, TILEMAP_START_0,
+        TILEMAP_START_1, TILEMAP_WIDTH, TILETABLE_HEIGHT, TILETABLE_WIDTH, VIEWPORT_HEIGHT,
+        VIEWPORT_WIDTH,
     },
     View,
 };
@@ -29,26 +33,31 @@ pub struct CentralPanel {
 }
 
 impl CentralPanel {
-    pub fn new(painter: &mut Painter, black: &Color32, white: &Color32) -> Self {
+    pub fn new(painter: &mut Painter, colors: Rc<RefCell<Colors>>) -> Self {
         let mut game_background: Vec<Color32> =
             Vec::with_capacity(VIEWPORT_WIDTH * VIEWPORT_HEIGHT);
-        game_background.fill(Color32::from_rgb(white.r(), white.g(), white.b()));
+        let borrowed_colors = colors.as_ref().borrow();
+        game_background.fill(Color32::from_rgb(
+            borrowed_colors.white.r(),
+            borrowed_colors.white.g(),
+            borrowed_colors.white.b(),
+        ));
 
         let game_texture_id = painter.new_user_texture(
             (VIEWPORT_WIDTH, VIEWPORT_HEIGHT),
-            &vec![*black; VIEWPORT_WIDTH * VIEWPORT_HEIGHT],
+            &vec![borrowed_colors.black; VIEWPORT_WIDTH * VIEWPORT_HEIGHT],
             false,
         );
 
         let tiletable_texture_id = painter.new_user_texture(
             (TILETABLE_WIDTH, TILETABLE_HEIGHT),
-            &vec![*black; TILETABLE_WIDTH * TILETABLE_HEIGHT],
+            &vec![borrowed_colors.black; TILETABLE_WIDTH * TILETABLE_HEIGHT],
             false,
         );
 
         let tilemap_texture_id = painter.new_user_texture(
             (TILEMAP_WIDTH, TILEMAP_HEIGHT),
-            &vec![*black; TILEMAP_WIDTH * TILEMAP_HEIGHT],
+            &vec![borrowed_colors.black; TILEMAP_WIDTH * TILEMAP_HEIGHT],
             false,
         );
 
@@ -63,7 +72,7 @@ impl CentralPanel {
 
         let splash_texture_id = painter.new_user_texture(
             (VIEWPORT_WIDTH, VIEWPORT_HEIGHT),
-            &vec![*black; VIEWPORT_WIDTH * VIEWPORT_HEIGHT],
+            &vec![borrowed_colors.black; VIEWPORT_WIDTH * VIEWPORT_HEIGHT],
             false,
         );
 
@@ -119,7 +128,7 @@ impl CentralPanel {
                             let tiletable_background: Vec<Color32> = cpu
                                 .memory_bus
                                 .ppu
-                                .tiletable(event_handler)
+                                .tiletable()
                                 .iter()
                                 .map(|color| Color32::from_rgb(color.r(), color.g(), color.b()))
                                 .collect();
@@ -141,7 +150,7 @@ impl CentralPanel {
                             let tilemap_background: Vec<Color32> = cpu
                                 .memory_bus
                                 .ppu
-                                .tilemap(TILEMAP_START_0, TILEMAP_END_0, event_handler)
+                                .tilemap(TILEMAP_START_0, TILEMAP_END_0)
                                 .iter()
                                 .map(|color| Color32::from_rgb(color.r(), color.g(), color.b()))
                                 .collect();
@@ -163,7 +172,7 @@ impl CentralPanel {
                             let tilemap_background: Vec<Color32> = cpu
                                 .memory_bus
                                 .ppu
-                                .tilemap(TILEMAP_START_1, TILEMAP_END_1, event_handler)
+                                .tilemap(TILEMAP_START_1, TILEMAP_END_1)
                                 .iter()
                                 .map(|color| Color32::from_rgb(color.r(), color.g(), color.b()))
                                 .collect();

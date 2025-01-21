@@ -33,9 +33,12 @@ use egui_sdl2_gl::sdl2::audio::{AudioDevice, AudioSpecDesired};
 use egui_sdl2_gl::sdl2::video::GLProfile;
 use egui_sdl2_gl::sdl2::AudioSubsystem;
 use egui_sdl2_gl::{DpiScaling, ShaderVersion};
+use ppu::colors::Colors;
 use ppu::{VIEWPORT_HEIGHT, VIEWPORT_WIDTH};
+use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::io::{Error, Read};
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use ui::UIManager;
 
@@ -99,6 +102,7 @@ fn main() -> Result<(), Error> {
     });
 
     let mut event_handler = event_handler::EventHandler::new();
+    let colors = Rc::new(RefCell::new(Colors::new()));
 
     let mut window = video_subsystem
         .window(
@@ -143,8 +147,8 @@ fn main() -> Result<(), Error> {
     let mut frame_count = 0;
     let mut last_second = std::time::Instant::now();
     let mut fps = 0.0;
-    
-    let mut ui_manager = UIManager::new(&mut painter, &event_handler.black, &event_handler.white);
+
+    let mut ui_manager = UIManager::new(&mut painter, colors.clone());
     let start_time = std::time::Instant::now();
 
     while !event_handler.quit {
@@ -194,7 +198,7 @@ fn main() -> Result<(), Error> {
                 event_handler.file_path = None;
 
                 let rom_data = read_file(&file_path)?;
-                let mut cpu = cpu::Cpu::new(rom_data);
+                let mut cpu = cpu::Cpu::new(rom_data, colors.clone());
 
                 match read_file(&file_path.replace(".gb", ".sav")) {
                     Ok(data) => cpu.memory_bus.load_game(data),
@@ -224,7 +228,7 @@ fn main() -> Result<(), Error> {
 
                     while clock.cycles_passed <= CYCLES_PER_FRAME {
                         let m_cycles = cpu.step();
-                        cpu.memory_bus.tick(m_cycles, &event_handler);
+                        cpu.memory_bus.tick(m_cycles);
 
                         if cpu.memory_bus.ppu.should_draw {
                             ui_manager.draw(
@@ -233,6 +237,7 @@ fn main() -> Result<(), Error> {
                                 &mut painter,
                                 &mut window,
                                 &mut event_handler,
+                                colors.clone(),
                                 &mut cpu,
                                 &fps,
                             );

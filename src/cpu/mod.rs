@@ -9,11 +9,13 @@ pub mod clock;
 pub mod instruction;
 mod registers;
 
+use std::{cell::RefCell, rc::Rc};
+
 use crate::{
     cpu::{
         instruction::*,
         registers::{program_counter::ProgramCounter, Registers},
-    }, interrupt::Interrupt, memory_bus::{MemoryAccess, MemoryBus}
+    }, interrupt::Interrupt, memory_bus::{MemoryAccess, MemoryBus}, ppu::colors::Colors
 };
 
 const HEADER_CHECKSUM_ADDRESS: usize = 0x014D;
@@ -31,14 +33,14 @@ pub struct Cpu {
 }
 
 impl Cpu {
-    pub fn new(rom_data: Vec<u8>) -> Self {
+    pub fn new(rom_data: Vec<u8>, colors: Rc<RefCell<Colors>>) -> Self {
         // If the header checksum is 0x00, then the carry and
         // half-carry flags are clear; otherwise, they are both set
 
         let flags_enabled = rom_data[HEADER_CHECKSUM_ADDRESS] != 0x00;
 
         Self {
-            memory_bus: MemoryBus::new(rom_data),
+            memory_bus: MemoryBus::new(rom_data, colors),
             registers: Registers::new(flags_enabled),
             program_counter: ProgramCounter::new(),
             stack_pointer: STACK_POINTER_START,
