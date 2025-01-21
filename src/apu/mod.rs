@@ -138,8 +138,6 @@ impl MemoryAccess for Apu {
 impl ComponentTick for Apu {
     fn tick(&mut self, m_cycles: u8) {
         if !self.enabled {
-            //self.audio_buffer.lock().unwrap().push_back(0);
-            //self.audio_buffer.lock().unwrap().push_back(0);
             return;
         }
 
