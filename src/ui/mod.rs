@@ -12,7 +12,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use central_panel::CentralPanel;
 use egui_sdl2_gl::{
-    egui::{Align, Color32, Context, FullOutput, Grid, Pos2, Rect, Stroke, Ui, Vec2},
+    egui::{Align, Color32, Context, FullOutput, Grid, Hyperlink, Pos2, Rect, Stroke, Ui, Vec2},
     painter::Painter,
     sdl2::video::Window,
     EguiStateHandler,
@@ -202,6 +202,21 @@ impl UIManager {
                             }
                         }
                     });
+            });
+
+        egui_sdl2_gl::egui::Window::new("About")
+            .open(&mut event_handler.about_opened)
+            .show(egui_ctx, |ui| {
+                ui.label("Created by: Mario Hess");
+                ui.label("Version: 1.0.0");
+            });
+
+        egui_sdl2_gl::egui::Window::new("Bug report")
+            .open(&mut event_handler.bug_report_opened)
+            .show(egui_ctx, |ui| {
+                ui.label("Feel free to submit any issue:");
+                ui.add(Hyperlink::new("https://github.com/mario-hess/gaemboi/issues").open_in_new_tab(true));
+
             });
 
         fn color_picker_row(ui: &mut Ui, label: &str, color: &mut Color32) {

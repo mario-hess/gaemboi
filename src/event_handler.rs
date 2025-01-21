@@ -46,6 +46,8 @@ pub struct EventHandler {
     pub cpu_status_opened: bool,
     pub keybindings_opened: bool,
     pub color_scheme_opened: bool,
+    pub about_opened: bool,
+    pub bug_report_opened: bool,
     pub quit: bool,
     pub rebinding_key: Option<&'static str>,
 }
@@ -85,6 +87,8 @@ impl EventHandler {
             cpu_status_opened: false,
             keybindings_opened: false,
             color_scheme_opened: false,
+            about_opened: false,
+            bug_report_opened: false,
             quit: false,
             rebinding_key: None,
         }

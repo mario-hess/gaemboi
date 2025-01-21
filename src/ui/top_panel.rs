@@ -153,20 +153,21 @@ impl TopPanel {
                         });
 
                         ui.menu_button("Settings", |ui| {
+                            match current_state {
+                                State::Splash => ui.set_enabled(false),
+                                State::Play => {}
+                            }
+
                             if ui.button("Keybindings").clicked() {
                                 event_handler.keybindings_opened =
                                     !event_handler.keybindings_opened;
                                 ui.close_menu();
                             }
+
                             if ui.button("Color Scheme").clicked() {
                                 event_handler.color_scheme_opened =
                                     !event_handler.color_scheme_opened;
                                 ui.close_menu();
-                            }
-
-                            match current_state {
-                                State::Splash => ui.set_enabled(false),
-                                State::Play => {}
                             }
 
                             ui.add_enabled(event_handler.fast_forward == 1, |ui: &mut Ui| {
@@ -196,7 +197,13 @@ impl TopPanel {
                         });
                         ui.menu_button("Help", |ui| {
                             if ui.button("About").clicked() {
-                                // Handle About action
+                                event_handler.about_opened = !event_handler.about_opened;
+                                ui.close_menu();
+                            }
+
+                            if ui.button("Bug report").clicked() {
+                                event_handler.bug_report_opened = !event_handler.bug_report_opened;
+                                ui.close_menu();
                             }
                         });
                     });
