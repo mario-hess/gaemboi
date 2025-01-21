@@ -34,27 +34,6 @@ This is a Nintendo Game Boy emulator written in Rust. It aims to accurately emul
 <img src="https://i.imgur.com/87n0Ovh.gif" alt="Pokemon Idle" width="320">
 </div>
 
-## Tested Games
-| Status | Game Title |
-| ------ | --------------- |
-| :heavy_check_mark: | Tetris |
-| :heavy_check_mark: | Pokemon Blue/Red/Yellow |
-| :heavy_check_mark: | Dr. Mario (World) |
-| :heavy_check_mark: | Super Mario Land (World) |
-| :heavy_check_mark: | Mario & Yoshi |
-| :heavy_check_mark: | Wario Land - Super Mario Land 3 (World) |
-| :heavy_check_mark: | Legend of Zelda, The - Link's Awakening |
-| :heavy_check_mark: | Castlevania Legends |
-| :heavy_check_mark: | Donkey Kong |
-| :heavy_check_mark: | Kirby's Dream Land |
-| :heavy_check_mark: | Kirby's Dram Land 2 |
-| :heavy_check_mark: | Megaman V |
-| :heavy_check_mark: | Tamagotchi |
-| :x: | Final Fantasy Adventure |
-| :x: | Street Fighter II |
-| :x: | Metroid II - Return of Samus |
-| :x: | Super Mario Land 2 |
-
 ## Getting Started
 
 ### Prerequisites
@@ -124,6 +103,27 @@ Replace <rom_file_name> with the name of your Game Boy ROM file (.gb).
 | :heavy_check_mark: | ![failure image](images/dmg_acid2/14_right_mole.png) | Right mole visible | Object Priority Same X Coordinate |
 | :heavy_check_mark: | ![failure image](images/dmg_acid2/15_hello_world.png) | Hello World missing exclaimation mark (!) | 10 object per line limit |
 | :heavy_check_mark: | ![failure image](images/dmg_acid2/16_half_mouth.png) | Half of mouth missing | Bit 0 of tile index for 8x16 objects should be ignored |
+
+## Tested Games
+| Status | Game Title |
+| ------ | --------------- |
+| :heavy_check_mark: | Tetris |
+| :heavy_check_mark: | Pokemon Blue/Red/Yellow |
+| :heavy_check_mark: | Dr. Mario (World) |
+| :heavy_check_mark: | Super Mario Land (World) |
+| :heavy_check_mark: | Mario & Yoshi |
+| :heavy_check_mark: | Wario Land - Super Mario Land 3 (World) |
+| :heavy_check_mark: | Legend of Zelda, The - Link's Awakening |
+| :heavy_check_mark: | Castlevania Legends |
+| :heavy_check_mark: | Donkey Kong |
+| :heavy_check_mark: | Kirby's Dream Land |
+| :heavy_check_mark: | Kirby's Dram Land 2 |
+| :heavy_check_mark: | Megaman V |
+| :heavy_check_mark: | Tamagotchi |
+| :x: | Final Fantasy Adventure |
+| :x: | Street Fighter II |
+| :x: | Metroid II - Return of Samus |
+| :x: | Super Mario Land 2 |
 
 ## License
 
