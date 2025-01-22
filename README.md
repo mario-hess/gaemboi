@@ -2,7 +2,7 @@
 
 <div align="center">
 <a href="https://github.com/mario-hess/gaemboi">
-<img src="https://i.imgur.com/Nc7mM3N.png" alt="Logo" width="360">
+<img src="https://i.imgur.com/YLVsUAa.gif" alt="Logo" width="360">
 </a>
 </div>
 
@@ -120,6 +120,7 @@ Replace <rom_file_name> with the name of your Game Boy ROM file (.gb).
 | :heavy_check_mark: | Kirby's Dram Land 2 |
 | :heavy_check_mark: | Megaman V |
 | :heavy_check_mark: | Tamagotchi |
+| :heavy_check_mark: | Tennis |
 | :x: | Final Fantasy Adventure |
 | :x: | Street Fighter II |
 | :x: | Metroid II - Return of Samus |
