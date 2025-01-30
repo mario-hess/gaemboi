@@ -5,11 +5,18 @@
  * @date    September 13, 2024
  */
 
+use std::f32;
 use std::{cell::RefCell, rc::Rc};
 
 use egui_sdl2_gl::{
     egui::{load::SizedTexture, Color32, Image, TextureId, Vec2},
     painter::Painter,
+};
+
+use image::GenericImageView;
+use std::{
+    path::Path,
+    time::{Duration, Instant},
 };
 
 use crate::{
@@ -28,12 +35,45 @@ pub struct CentralPanel {
     pub game_texture_id: TextureId,
     pub tiletable_texture_id: TextureId,
     pub tilemap_texture_id: TextureId,
+    pub splash_frames: Vec<Vec<Color32>>, // Store each frame as Color32 data
     splash_texture_id: TextureId,
-    pub splash_background: Vec<Color32>,
+    current_frame: usize,
+    last_frame_time: Instant,
+    frame_duration: Duration,
 }
 
 impl CentralPanel {
-    pub fn new(painter: &mut Painter, colors: Rc<RefCell<Colors>>) -> Self {
+    pub fn new(
+        painter: &mut Painter,
+        colors: Rc<RefCell<Colors>>,
+        frame_paths: &Vec<String>,
+    ) -> Self {
+        let mut splash_frames = Vec::new();
+        let mut width = 0;
+        let mut height = 0;
+
+        // Load all frames into memory
+        for path in frame_paths {
+            let img = image::open(Path::new(path)).expect("Failed to load frame image");
+            let (img_width, img_height) = img.dimensions();
+            width = img_width as usize; // Assuming all frames have the same dimensions
+            height = img_height as usize;
+
+            let image_data: Vec<Color32> = img
+                .to_rgba8()
+                .pixels()
+                .map(|p| Color32::from_rgba_unmultiplied(p[0], p[1], p[2], p[3]))
+                .collect();
+            splash_frames.push(image_data);
+        }
+
+        // Use the width and height of the loaded frames to define the texture size
+        let splash_texture_id = painter.new_user_texture(
+            (width, height),   // Use the dimensions of the images directly
+            &splash_frames[0], // Use the first frame initially
+            false,
+        );
+
         let mut game_background: Vec<Color32> =
             Vec::with_capacity(VIEWPORT_WIDTH * VIEWPORT_HEIGHT);
         let borrowed_colors = colors.as_ref().borrow();
@@ -61,28 +101,16 @@ impl CentralPanel {
             false,
         );
 
-        let img = image::load_from_memory(include_bytes!("../../images/splash.png"))
-            .expect("Failed to load image");
-
-        let image_data: Vec<u8> = img.to_rgba8().into_raw();
-        let splash_background = image_data
-            .chunks_exact(4)
-            .map(|chunk| Color32::from_rgba_unmultiplied(chunk[0], chunk[1], chunk[2], chunk[3]))
-            .collect();
-
-        let splash_texture_id = painter.new_user_texture(
-            (VIEWPORT_WIDTH, VIEWPORT_HEIGHT),
-            &vec![borrowed_colors.black; VIEWPORT_WIDTH * VIEWPORT_HEIGHT],
-            false,
-        );
-
         Self {
             game_background,
             game_texture_id,
             tiletable_texture_id,
             tilemap_texture_id,
+            splash_frames,
             splash_texture_id,
-            splash_background,
+            current_frame: 0,
+            last_frame_time: Instant::now(),
+            frame_duration: Duration::from_millis(100),
         }
     }
 
@@ -192,8 +220,19 @@ impl CentralPanel {
                         }
                     }
                 } else {
-                    painter
-                        .update_user_texture_data(self.splash_texture_id, &self.splash_background);
+                    // Update the current frame if enough time has passed
+                    if self.last_frame_time.elapsed() >= self.frame_duration {
+                        self.current_frame = (self.current_frame + 1) % self.splash_frames.len();
+                        self.last_frame_time = Instant::now();
+
+                        // Update the texture with the current frame
+                        painter.update_user_texture_data(
+                            self.splash_texture_id,
+                            &self.splash_frames[self.current_frame],
+                        );
+                    }
+
+                    // Display the current frame
                     let splash_image = Image::new(SizedTexture::new(
                         self.splash_texture_id,
                         Vec2::new(
@@ -202,6 +241,7 @@ impl CentralPanel {
                         ),
                     ))
                     .maintain_aspect_ratio(true);
+
                     ui.add(splash_image);
                 }
             });

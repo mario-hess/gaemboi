@@ -12,10 +12,7 @@ mod mbc2;
 mod mbc3;
 mod mbc5;
 
-use std::{
-    fs::File,
-    io::{Error, Write},
-};
+use std::{error::Error, fs::File, io::Write};
 
 use crate::{
     cartridge::{core::CartridgeCore, mbc0::Mbc0, mbc1::Mbc1, mbc2::Mbc2, mbc3::Mbc3, mbc5::Mbc5},
@@ -70,7 +67,7 @@ impl MemoryAccess for Cartridge {
 }
 
 impl Cartridge {
-    pub fn build(rom_data: Vec<u8>) -> Self {
+    pub fn build(rom_data: Vec<u8>) -> Result<Self, &'static str> {
         let core = CartridgeCore::new(&rom_data);
 
         let mbc: Box<dyn MemoryBankController> = match rom_data[CARTRIDGE_TYPE_ADDRESS] {
@@ -79,10 +76,10 @@ impl Cartridge {
             0x05 | 0x06 => Box::new(Mbc2::new(core)),
             0x0F..=0x13 => Box::new(Mbc3::new(core)),
             0x19..=0x1E => Box::new(Mbc5::new(core)),
-            _ => panic!("Error: Cartridge type not supported"),
+            _ => return Err("Error: Cartridge type not supported"),
         };
 
-        Self { mbc }
+        Ok(Self { mbc })
     }
 
     pub fn load_game(&mut self, ram_data: Vec<u8>) {
@@ -90,7 +87,7 @@ impl Cartridge {
         println!("Game loaded.")
     }
 
-    pub fn save_game(&self, save_path: &str) -> Result<(), Error> {
+    pub fn save_game(&self, save_path: &str) -> Result<(), Box<dyn Error>> {
         if let Some(ram_data) = self.mbc.save_ram() {
             let mut file = File::create(save_path)?;
             file.write_all(&ram_data)?;

@@ -5,7 +5,10 @@
  * @date    May 25, 2024
  */
 
-use egui_sdl2_gl::sdl2::audio::AudioCallback;
+use egui_sdl2_gl::sdl2::{
+    audio::{AudioCallback, AudioDevice, AudioSpecDesired},
+    AudioSubsystem,
+};
 
 use std::{
     collections::VecDeque,
@@ -58,4 +61,24 @@ impl AudioCallback for Audio<'_> {
             }
         }
     }
+}
+
+pub fn create_audio_device<'a>(
+    audio_subsystem: &AudioSubsystem,
+    left_volume: &'a u8,
+    right_volume: &'a u8,
+    volume: &'a u8,
+    audio_buffer: &'a mut Arc<Mutex<VecDeque<u8>>>,
+) -> AudioDevice<Audio<'a>> {
+    let device = AudioSpecDesired {
+        freq: Some(SAMPLING_FREQUENCY as i32),
+        samples: Some(SAMPLING_RATE),
+        channels: Some(2),
+    };
+
+    let audio = Audio::new(audio_buffer, left_volume, right_volume, volume);
+
+    audio_subsystem
+        .open_playback(None, &device, |_spec| audio)
+        .unwrap()
 }

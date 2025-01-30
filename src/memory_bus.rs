@@ -5,7 +5,7 @@
  * @date    May 28, 2024
  */
 
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, error::Error, rc::Rc};
 
 use crate::{
     apu::{Apu, AUDIO_END, AUDIO_START},
@@ -203,10 +203,14 @@ impl ComponentTick for MemoryBus {
 }
 
 impl MemoryBus {
-    pub fn new(rom_data: Vec<u8>, colors: Rc<RefCell<Colors>>, fast_forward: Rc<RefCell<u32>>) -> Self {
-        let cartridge = Cartridge::build(rom_data);
+    pub fn new(
+        rom_data: Vec<u8>,
+        colors: Rc<RefCell<Colors>>,
+        fast_forward: Rc<RefCell<u32>>,
+    ) -> Result<Self, Box<dyn Error>> {
+        let cartridge = Cartridge::build(rom_data)?;
 
-        Self {
+        Ok(Self {
             cartridge,
             ppu: Ppu::new(colors),
             apu: Apu::new(fast_forward),
@@ -219,7 +223,7 @@ impl MemoryBus {
             serial_sc: 0x00,
             timer: Timer::new(),
             speed_switch: 0x00,
-        }
+        })
     }
 
     pub fn get_interrupt_flag(&mut self) -> u8 {

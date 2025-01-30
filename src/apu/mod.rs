@@ -8,6 +8,7 @@
 pub mod audio;
 pub mod channel;
 mod frame_sequencer;
+pub mod wav_player;
 mod mixer;
 
 use std::{

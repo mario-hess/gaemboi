@@ -38,10 +38,10 @@ pub struct UIManager {
 }
 
 impl UIManager {
-    pub fn new(painter: &mut Painter, colors: Rc<RefCell<Colors>>) -> Self {
+    pub fn new(painter: &mut Painter, colors: Rc<RefCell<Colors>>, frame_paths: &Vec<String>) -> Self {
         Self {
             top_panel: TopPanel::new(),
-            central_panel: CentralPanel::new(painter, colors),
+            central_panel: CentralPanel::new(painter, colors, frame_paths),
             current_view: View::Viewport,
             previous_view: View::Viewport,
         }
@@ -180,7 +180,7 @@ impl UIManager {
             .show(egui_ctx, |ui| {
                 Grid::new("color_scheme_grid")
                     .num_columns(2)
-                    .spacing([10.0, 10.0]) // Set horizontal and vertical spacing
+                    .spacing([10.0, 10.0])
                     .show(ui, |ui| {
                         if let Ok(mut borrowed_colors) = colors.try_borrow_mut() {
                             color_picker_row(ui, "Black:", &mut borrowed_colors.black);
@@ -188,11 +188,103 @@ impl UIManager {
                             color_picker_row(ui, "Light:", &mut borrowed_colors.light);
                             color_picker_row(ui, "White:", &mut borrowed_colors.white);
 
-                            if ui.button("Reset").clicked() {
-                                borrowed_colors.black = Color32::from_rgb(8, 24, 32);
-                                borrowed_colors.dark = Color32::from_rgb(52, 104, 86);
-                                borrowed_colors.light = Color32::from_rgb(136, 192, 112);
-                                borrowed_colors.white = Color32::from_rgb(224, 248, 208);
+                            ui.label("Presets");
+                            ui.end_row();
+
+                            let presets = [
+                                (
+                                    "Default",
+                                    (8, 24, 32),
+                                    (52, 104, 86),
+                                    (136, 192, 112),
+                                    (224, 248, 208),
+                                ),
+                                (
+                                    "Green",
+                                    (24, 16, 16),
+                                    (72, 160, 88),
+                                    (160, 208, 128),
+                                    (248, 232, 248),
+                                ),
+                                (
+                                    "Red",
+                                    (24, 16, 16),
+                                    (208, 80, 48),
+                                    (248, 160, 80),
+                                    (248, 232, 248),
+                                ),
+                                (
+                                    "Cyan",
+                                    (24, 16, 16),
+                                    (112, 152, 200),
+                                    (168, 200, 232),
+                                    (248, 232, 248),
+                                ),
+                                (
+                                    "Yellow",
+                                    (24, 16, 16),
+                                    (208, 160, 0),
+                                    (248, 224, 112),
+                                    (248, 232, 248),
+                                ),
+                                (
+                                    "Brown",
+                                    (24, 16, 16),
+                                    (168, 112, 72),
+                                    (224, 160, 120),
+                                    (248, 232, 248),
+                                ),
+                                (
+                                    "Gray",
+                                    (24, 16, 16),
+                                    (120, 120, 144),
+                                    (208, 168, 176),
+                                    (248, 232, 248),
+                                ),
+                                (
+                                    "Purple",
+                                    (24, 16, 16),
+                                    (168, 120, 184),
+                                    (216, 176, 192),
+                                    (248, 232, 248),
+                                ),
+                                (
+                                    "Blue",
+                                    (24, 16, 16),
+                                    (88, 120, 184),
+                                    (144, 160, 216),
+                                    (248, 232, 248),
+                                ),
+                                (
+                                    "Pink",
+                                    (24, 16, 16),
+                                    (224, 120, 168),
+                                    (240, 176, 192),
+                                    (248, 232, 248),
+                                ),
+                                (
+                                    "Mew",
+                                    (24, 16, 16),
+                                    (128, 112, 152),
+                                    (240, 176, 136),
+                                    (248, 232, 248),
+                                ),
+                            ];
+
+                            for chunk in presets.chunks(3) {
+                                for &(name, black, dark, light, white) in chunk {
+                                    if ui.button(name).clicked() {
+                                        borrowed_colors.black =
+                                            Color32::from_rgb(black.0, black.1, black.2);
+                                        borrowed_colors.dark =
+                                            Color32::from_rgb(dark.0, dark.1, dark.2);
+                                        borrowed_colors.light =
+                                            Color32::from_rgb(light.0, light.1, light.2);
+                                        borrowed_colors.white =
+                                            Color32::from_rgb(white.0, white.1, white.2);
+                                    }
+                                }
+                                ui.end_row();
                             }
                         }
                     });
