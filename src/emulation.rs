@@ -2,7 +2,6 @@ use std::{
     cell::RefCell,
     collections::VecDeque,
     error::Error,
-    io::Read,
     rc::Rc,
     sync::{Arc, Mutex},
     time::Instant,
