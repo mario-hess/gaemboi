@@ -1,25 +1,30 @@
-name: Rust
+name: Rust CI
 
 on:
   push:
-    branches: ['main']
+    branches:
+      - staging
   pull_request:
-    branches: ['main']
-
-env:
-  CARGO_TERM_COLOR: always
+    branches:
+      - staging
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y libglib2.0-dev libgtk-3-dev
-      - name: Build
-        run: cargo build --verbose
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build project
+        run: cargo build --release
+
       - name: Run tests
-        run: cargo test --verbose
+        run: cargo test --all
