@@ -30,7 +30,7 @@ This is a Nintendo Game Boy emulator written in Rust. It aims to accurately emul
 ## Screenshots
 
 <div>
-<img src="https://i.imgur.com/W8PJx8G.gif" alt="Pokemon Intro" width="320">
+<img src="https://i.imgur.com/sIWOSmb.gif" alt="Emulator Showcase" width="320">
 <img src="https://i.imgur.com/87n0Ovh.gif" alt="Pokemon Idle" width="320">
 </div>
 
