@@ -45,10 +45,7 @@ impl MemoryBankController for Mbc5 {
             ),
         }
 
-        let max_banks = (self.core.rom_data.len() / self.core.rom_offset).max(1);
-        if self.core.rom_bank as usize >= max_banks {
-            self.core.rom_bank = (self.core.rom_bank as usize % max_banks) as u16;
-        }
+        self.core.set_rom_bank();
     }
 
     fn read_ram(&self, address: u16) -> u8 {

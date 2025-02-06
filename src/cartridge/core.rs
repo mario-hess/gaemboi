@@ -43,6 +43,13 @@ impl CartridgeCore {
             ram_enabled,
         }
     }
+
+    pub fn set_rom_bank(&mut self) {
+        let max_banks = (self.rom_data.len() / self.rom_offset).max(1);
+        if self.rom_bank as usize >= max_banks {
+            self.rom_bank = (self.rom_bank as usize % max_banks) as u16;
+        }
+    }
 }
 
 fn create_ram(rom_data: &[u8]) -> Option<Vec<u8>> {
