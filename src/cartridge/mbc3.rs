@@ -45,7 +45,7 @@ impl MemoryBankController for Mbc3 {
                 self.core.rom_bank = (bank_number & 0b0111_1111) as u16;
             }
             // 0x4000 - 0x5FFF (RAM bank number)
-            0x4 | 0x5 => self.core.ram_bank = value & 0b0000_0011,
+            0x4 | 0x5 => self.core.ram_bank = value & 0b11,
             0x6 | 0x7 => {}
             _ => eprintln!(
                 "Unknown address: {:#X}. Can't write byte: {:#X}.",
@@ -53,10 +53,7 @@ impl MemoryBankController for Mbc3 {
             ),
         }
 
-        let max_banks = (self.core.rom_data.len() / self.core.rom_offset).max(1);
-        if self.core.rom_bank as usize >= max_banks {
-            self.core.rom_bank = (self.core.rom_bank as usize % max_banks) as u16;
-        }
+        self.core.set_rom_bank();
     }
 
     fn read_ram(&self, address: u16) -> u8 {

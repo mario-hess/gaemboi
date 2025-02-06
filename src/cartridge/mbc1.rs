@@ -28,7 +28,6 @@ impl Mbc1 {
 
 impl MemoryBankController for Mbc1 {
     fn read_rom(&self, address: u16) -> u8 {
-
         match (address & MASK_MSB) >> 12 {
             // 0x0000 - 0x3FFF (Bank 00)
             0x0..=0x3 => self.core.rom_data[address as usize],
@@ -57,11 +56,11 @@ impl MemoryBankController for Mbc1 {
             }
             // 0x4000 - 0x5FFF (RAM bank number — or — upper bits of ROM bank number)
             0x4 | 0x5 => match self.mode {
-                Mode::RamBanking => self.core.ram_bank = value,
-                Mode::RomBanking => self.core.rom_bank |= ((value & 0b0000_0011) << 5) as u16,
+                Mode::RamBanking => self.core.ram_bank = value & 0b11,
+                Mode::RomBanking => self.core.rom_bank |= ((value & 0b11) << 5) as u16,
             },
             // 0x6000 - 0x7FFF (Banking mode select)
-            0x6 | 0x7 => match value {
+            0x6 | 0x7 => match value & 0b1 {
                 0 => self.mode = Mode::RomBanking,
                 1 => self.mode = Mode::RamBanking,
                 _ => {}
@@ -72,10 +71,7 @@ impl MemoryBankController for Mbc1 {
             ),
         }
 
-        let max_banks = (self.core.rom_data.len() / self.core.rom_offset).max(1);
-        if self.core.rom_bank as usize >= max_banks {
-            self.core.rom_bank = (self.core.rom_bank as usize % max_banks) as u16;
-        }
+        self.core.set_rom_bank();
     }
 
     fn read_ram(&self, address: u16) -> u8 {
@@ -96,11 +92,8 @@ impl MemoryBankController for Mbc1 {
             return;
         }
 
-        let ram_offset = self.core.ram_offset;
-        let ram_bank = self.core.ram_bank;
-
         if let Some(ref mut ram_data) = self.core.ram_data {
-            let offset = ram_offset * ram_bank as usize;
+            let offset = self.core.ram_offset * self.core.ram_bank as usize;
             ram_data[(address as usize - RAM_ADDRESS) + offset] = value;
         }
     }
