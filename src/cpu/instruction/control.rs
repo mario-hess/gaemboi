@@ -78,13 +78,14 @@ pub fn ccf(cpu: &mut Cpu) -> CycleDuration {
 // and cancelling any scheduled effects of the EI
 // instruction if any
 pub fn disable_interrupt(cpu: &mut Cpu) -> CycleDuration {
-    cpu.ime_state = false;
+    cpu.ime = false;
+    cpu.ime_scheduled = false;
 
     CycleDuration::Default
 }
 
 pub fn enable_interrupt(cpu: &mut Cpu) -> CycleDuration {
-    cpu.ime_state = true;
+    cpu.ime_scheduled = true;
 
     CycleDuration::Default
 }

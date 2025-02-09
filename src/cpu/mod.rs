@@ -31,7 +31,7 @@ pub struct Cpu {
     pub stack_pointer: u16,
     interrupt: Interrupt,
     ime: bool,
-    ime_state: bool,
+    ime_scheduled: bool,
     halted: bool,
 }
 
@@ -53,7 +53,7 @@ impl Cpu {
             stack_pointer: STACK_POINTER_START,
             interrupt: Interrupt::new(),
             ime: false,
-            ime_state: false,
+            ime_scheduled: false,
             halted: false,
         })
     }
@@ -82,14 +82,11 @@ impl Cpu {
             }
         }
 
-        // IME is set after last instruction
-        self.ime = self.ime_state;
-
         let byte = self.memory_bus.read_byte(self.program_counter.next());
         let instruction = Instruction::from_byte(byte);
 
         // Check if mnemonic refers to the prefix table
-        match instruction.mnemonic {
+        let cycles = match instruction.mnemonic {
             Mnemonic::Prefix => self.prefix_step(),
             _ => {
                 let cycle_duration = self.execute_instruction(instruction);
@@ -98,7 +95,14 @@ impl Cpu {
                     CycleDuration::Optional => instruction.opt_m_cycles.unwrap(),
                 }
             }
+        };
+
+        if self.ime_scheduled {
+            self.ime = true;
+            self.ime_scheduled = false;
         }
+
+        cycles
     }
 
     // Handle next instruction from prefix table
