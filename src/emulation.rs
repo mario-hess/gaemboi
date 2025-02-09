@@ -139,10 +139,11 @@ impl Emulation {
                     }
                 }
             } else {
-                std::thread::sleep(std::time::Duration::from_micros(
-                    FRAME_DURATION_MICROS / fast_forward as u64
-                        - frame_start_time.elapsed().as_micros() as u64,
-                ));
+                while frame_start_time.elapsed().as_micros()
+                    < FRAME_DURATION.as_micros() / fast_forward as u128
+                {
+                    std::hint::spin_loop();
+                }
             }
 
             let frame_time = frame_start_time.elapsed().as_secs_f32();
