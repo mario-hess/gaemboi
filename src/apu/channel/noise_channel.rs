@@ -113,7 +113,7 @@ impl NoiseChannel {
     }
 
     fn get_length_timer(&self) -> u8 {
-        (self.length_counter.timer & 0x3F) as u8
+        0xFF
     }
 
     fn set_length_timer(&mut self, value: u8) {
@@ -151,7 +151,7 @@ impl NoiseChannel {
         };
         let triggered = if self.core.triggered { 0x80 } else { 0x00 };
 
-        length_enabled | triggered
+        0xBF | length_enabled | triggered
     }
 
     fn set_control(&mut self, value: u8) {

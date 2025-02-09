@@ -36,7 +36,7 @@ impl MemoryAccess for WaveChannel {
     fn read_byte(&self, address: u16) -> u8 {
         match address {
             DAC_ENABLE => self.get_dac_enable(),
-            LENGTH_TIMER => self.length_counter.timer as u8,
+            LENGTH_TIMER => 0xFF,
             VOLUME => self.get_output_level(),
             FREQUENCY_LOW => self.get_frequency_low(),
             FREQUENCY_HIGH => self.get_frequency_high(),
@@ -106,9 +106,9 @@ impl WaveChannel {
 
     fn get_dac_enable(&self) -> u8 {
         if self.core.dac_enabled {
-            0x80
+            0x7F | 0x80
         } else {
-            0x00
+            0x7F
         }
     }
 
@@ -121,7 +121,7 @@ impl WaveChannel {
     }
 
     fn get_output_level(&self) -> u8 {
-        (self.volume & 0x03) << 5
+        0x9F | (self.volume & 0x03) << 5
     }
 
     fn set_output_level(&mut self, value: u8) {
@@ -139,7 +139,7 @@ impl WaveChannel {
     }
 
     fn get_frequency_low(&self) -> u8 {
-        self.frequency as u8
+        0xFF
     }
 
     fn set_frequency_low(&mut self, value: u8) {
@@ -155,7 +155,7 @@ impl WaveChannel {
         };
         let triggered = if self.core.triggered { 0x80 } else { 0x00 };
 
-        frequency_high | length_enabled | triggered
+        0xBF | frequency_high | length_enabled | triggered
     }
 
     fn set_frequency_high(&mut self, value: u8) {

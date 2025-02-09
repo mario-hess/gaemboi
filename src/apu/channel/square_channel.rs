@@ -59,7 +59,7 @@ impl MemoryAccess for SquareChannel {
                 if let Some(sweep) = &self.sweep {
                     sweep.get()
                 } else {
-                    0x00
+                    0xFF
                 }
             }
             LENGTH_TIMER => self.get_length_timer(),
@@ -162,7 +162,7 @@ impl SquareChannel {
         let wave_duty = (self.wave_duty & 0x03) << 6;
         let length_timer = (self.length_counter.timer & 0x3F) as u8;
 
-        wave_duty | length_timer
+        0x3F | wave_duty | length_timer
     }
 
     fn set_length_timer(&mut self, value: u8) {
@@ -180,7 +180,7 @@ impl SquareChannel {
     }
 
     fn get_frequency_low(&self) -> u8 {
-        self.frequency as u8
+        0xFF | self.frequency as u8
     }
 
     fn set_frequency_low(&mut self, value: u8) {
@@ -196,7 +196,7 @@ impl SquareChannel {
         };
         let triggered = if self.core.triggered { 0x80 } else { 0x00 };
 
-        frequency_high | length_enabled | triggered
+        0xBF | frequency_high | length_enabled | triggered
     }
 
     fn set_frequency_high(&mut self, value: u8) {

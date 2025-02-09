@@ -59,7 +59,7 @@ impl Sweep {
         let direction = if self.direction { 0x08 } else { 0x0 };
         let pace = (self.pace & 0x07) << 4;
 
-        shift | direction | pace | 0x80
+        0x80 | shift | direction | pace
     }
 
     pub fn reset(&mut self) {

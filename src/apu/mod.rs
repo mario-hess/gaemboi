@@ -218,7 +218,7 @@ impl Apu {
         let ch4_enabled = if self.ch4.core.enabled { 0x08 } else { 0x00 };
         let enabled = if self.enabled { 0x80 } else { 0x00 };
 
-        ch1_enabled | ch2_enabled | ch3_enabled | ch4_enabled | enabled
+        0x70 | ch1_enabled | ch2_enabled | ch3_enabled | ch4_enabled | enabled
     }
 
     fn set_master_control(&mut self, value: u8) {
