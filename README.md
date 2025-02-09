@@ -108,7 +108,7 @@ Replace <rom_file_name> with the name of your Game Boy ROM file (.gb).
 | Status | Game Title |
 | ------ | --------------- |
 | :heavy_check_mark: | Tetris |
-| :heavy_check_mark: | Pokemon Blue/Red/Yellow |
+| :heavy_check_mark: | Pokemon Green/Blue/Red/Yellow |
 | :heavy_check_mark: | Dr. Mario (World) |
 | :heavy_check_mark: | Super Mario Land (World) |
 | :heavy_check_mark: | Mario & Yoshi |
