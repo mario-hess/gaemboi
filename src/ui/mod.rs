@@ -161,7 +161,7 @@ impl UIManager {
                                 ),
                                 |ui| {
                                     let button_label = match keybind {
-                                        Some(key) => format!("{:?}", key),
+                                        Some(key) => format!("{:?}", key.name()),
                                         None => "Unbound".to_string(),
                                     };
 
