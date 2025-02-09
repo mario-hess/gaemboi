@@ -35,18 +35,20 @@ impl Joypad {
     }
 
     pub fn get(&self) -> u8 {
-        if self.select_buttons {
-            return (if self.a { 0 } else { 1 }) << A_RIGHT_POS
-                | (if self.b { 0 } else { 1 }) << B_LEFT_BOS
-                | (if self.select { 0 } else { 1 }) << SELECT_UP_POS
-                | (if self.start { 0 } else { 1 }) << START_DOWN_POS;
-        }
-
         if self.select_dpad {
-            return (if self.right { 0 } else { 1 }) << A_RIGHT_POS
+            return 0xC0
+                | (if self.right { 0 } else { 1 }) << A_RIGHT_POS
                 | (if self.left { 0 } else { 1 }) << B_LEFT_BOS
                 | (if self.up { 0 } else { 1 }) << SELECT_UP_POS
                 | (if self.down { 0 } else { 1 }) << START_DOWN_POS;
+        }
+
+        if self.select_buttons {
+            return 0xC0 
+                | (if self.a { 0 } else { 1 }) << A_RIGHT_POS
+                | (if self.b { 0 } else { 1 }) << B_LEFT_BOS
+                | (if self.select { 0 } else { 1 }) << SELECT_UP_POS
+                | (if self.start { 0 } else { 1 }) << START_DOWN_POS;
         }
 
         // Return default value to not boot in multiplayer mode
