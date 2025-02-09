@@ -121,10 +121,10 @@ Replace <rom_file_name> with the name of your Game Boy ROM file (.gb).
 | :heavy_check_mark: | Megaman V |
 | :heavy_check_mark: | Tamagotchi |
 | :heavy_check_mark: | Tennis |
-| :x: | Final Fantasy Adventure |
+| :heavy_check_mark: | Final Fantasy Adventure |
+| :heavy_check_mark: | Metroid II - Return of Samus |
+| :heavy_check_mark: | Super Mario Land 2 |
 | :x: | Street Fighter II |
-| :x: | Metroid II - Return of Samus |
-| :x: | Super Mario Land 2 |
 
 ## License
 
