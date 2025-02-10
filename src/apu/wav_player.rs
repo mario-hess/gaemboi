@@ -17,11 +17,11 @@ impl AudioCallback for WavPlayer {
         let len = data.len();
         for x in out.iter_mut() {
             if *pos < len {
-                *x = data[*pos];
+                *x = data[*pos] / 10;
                 *pos += 1;
             } else {
                 *pos = 0; // Loop back to the start
-                *x = data[*pos];
+                *x = data[*pos] / 10;
                 *pos += 1;
             }
         }

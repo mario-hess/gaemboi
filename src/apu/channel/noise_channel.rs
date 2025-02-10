@@ -75,7 +75,7 @@ impl ComponentTick for NoiseChannel {
             self.lfsr |= if result { 0b01 << 6 } else { 0x00 };
         }
 
-        self.core.output = if result {
+        self.core.output = if (self.lfsr & 0b01) == 0 {
             self.volume_envelope.volume
         } else {
             0x00
@@ -91,7 +91,7 @@ impl NoiseChannel {
             core: ChannelCore::default(),
             length_counter: LengthCounter::default(),
             volume_envelope: VolumeEnvelope::default(),
-            lfsr: 0,
+            lfsr: 0x7FFF,
             clock_divider: 0,
             lfsr_width: false,
             clock_shift: 0,
@@ -166,7 +166,7 @@ impl NoiseChannel {
         self.core.reset();
         self.length_counter.reset(channel);
         self.volume_envelope.reset();
-        self.lfsr = 0;
+        self.lfsr = 0x7FFF;
         self.clock_divider = 0;
         self.lfsr_width = false;
         self.clock_shift = 0;

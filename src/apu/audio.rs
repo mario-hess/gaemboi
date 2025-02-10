@@ -42,9 +42,9 @@ impl<'a> Audio<'a> {
 }
 
 impl AudioCallback for Audio<'_> {
-    type Channel = f32;
+    type Channel = i16;
 
-    fn callback(&mut self, out: &mut [f32]) {
+    fn callback(&mut self, out: &mut [i16]) {
         for (i, sample) in out.iter_mut().enumerate() {
             if !self.audio_buffer.lock().unwrap().is_empty() {
                 let master_volume = if i % 2 == 0 {
@@ -53,11 +53,11 @@ impl AudioCallback for Audio<'_> {
                     self.right_master
                 };
 
-                *sample = self.audio_buffer.lock().unwrap().pop_front().unwrap() as f32
-                    * (*self.volume as f32 / 10000.0)
-                    * *master_volume as f32;
+                *sample = self.audio_buffer.lock().unwrap().pop_front().unwrap() as i16
+                    * *self.volume as i16
+                    * *master_volume as i16;
             } else {
-                *sample = 0.0
+                *sample = 0
             }
         }
     }
