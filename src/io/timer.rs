@@ -87,8 +87,8 @@ impl ComponentTick for Timer {
         }
 
         // TIMA (0xFF05) is incremented at the clock frequency specified by the
-        // TAC (0xFF07) register. When the value overflows (exceeds 0xFF), it is
-        // reset to the value specified in TMA (0xFF06) and an interrupt is requested
+        // TAC (0xFF07) register. When the value overflows, it is reset to
+        // the value specified in TMA (0xFF06) and an interrupt is requested
         self.tima_counter += t_cycles;
 
         while self.tima_counter >= self.tac_cycles {
