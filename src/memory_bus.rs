@@ -12,6 +12,7 @@ use crate::{
     cartridge::Cartridge,
     io::{joypad::Joypad, timer::Timer},
     ppu::{colors::Colors, Ppu},
+    ComponentTick, MemoryAccess,
 };
 
 pub const CARTRIDGE_ROM_START: u16 = 0x0000;
@@ -57,15 +58,6 @@ const HRAM_START: u16 = 0xFF80;
 const HRAM_END: u16 = 0xFFFE;
 
 const INTERRUPT_ENABLE: u16 = 0xFFFF;
-
-pub trait MemoryAccess {
-    fn read_byte(&self, address: u16) -> u8;
-    fn write_byte(&mut self, address: u16, value: u8);
-}
-
-pub trait ComponentTick {
-    fn tick(&mut self, m_cycles: u8);
-}
 
 pub struct MemoryBus {
     cartridge: Cartridge,

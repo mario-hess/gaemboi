@@ -33,11 +33,15 @@ pub struct NoiseChannel {
 impl MemoryAccess for NoiseChannel {
     fn read_byte(&self, address: u16) -> u8 {
         match address {
-            LENGTH_TIMER => self.get_length_timer(),
+            LENGTH_TIMER => 0xFF,
             VOLUME_ENVELOPE => self.volume_envelope.get(),
             FREQUENCY_RANDOMNESS => self.get_frequency_randomness(),
             CONTROL => self.get_control(),
-            _ => unreachable!(),
+            _ => {
+                eprintln!("[Noise Channel] Unknown address: {:#X} Can't read byte.", address);
+
+                0xFF
+            }
         }
     }
 
@@ -47,7 +51,10 @@ impl MemoryAccess for NoiseChannel {
             VOLUME_ENVELOPE => self.set_volume_envelope(value),
             FREQUENCY_RANDOMNESS => self.set_frequency_randomness(value),
             CONTROL => self.set_control(value),
-            _ => unreachable!(),
+            _ => eprintln!(
+                "[Noise Channel] Unknown address: {:#X} Can't write byte: {:#X}.",
+                address, value
+            ),
         }
     }
 }
@@ -110,10 +117,6 @@ impl NoiseChannel {
         if self.length_counter.timer == 0 {
             self.length_counter.timer = LENGTH_TIMER_MAX;
         }
-    }
-
-    fn get_length_timer(&self) -> u8 {
-        0xFF
     }
 
     fn set_length_timer(&mut self, value: u8) {

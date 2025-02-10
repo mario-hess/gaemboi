@@ -14,9 +14,9 @@ pub struct ChannelCore {
 }
 
 impl ChannelCore {
-    pub fn new() -> Self {
+    pub fn new(enabled: bool) -> Self {
         Self {
-            enabled: false,
+            enabled,
             dac_enabled: false,
             output: 0,
             timer: 0,
@@ -43,6 +43,6 @@ impl ChannelCore {
 
 impl Default for ChannelCore {
     fn default() -> Self {
-        Self::new()
+        Self::new(false)
     }
 }

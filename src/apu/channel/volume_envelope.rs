@@ -14,13 +14,17 @@ pub struct VolumeEnvelope {
 }
 
 impl VolumeEnvelope {
-    pub fn new() -> Self {
+    pub fn new(value: u8) -> Self {
+        let pace = value & 0x07;
+        let direction = (value & 0x08) != 0;
+        let volume = (value & 0xF0) >> 4;
+
         Self {
             enabled: false,
             counter: 0,
-            pace: 0,
-            direction: true,
-            volume: 0,
+            pace,
+            direction,
+            volume,
         }
     }
 
@@ -74,6 +78,6 @@ impl VolumeEnvelope {
 
 impl Default for VolumeEnvelope {
     fn default() -> Self {
-        Self::new()
+        Self::new(0x00)
     }
 }

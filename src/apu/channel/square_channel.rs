@@ -64,9 +64,13 @@ impl MemoryAccess for SquareChannel {
             }
             LENGTH_TIMER => self.get_length_timer(),
             VOLUME_ENVELOPE => self.volume_envelope.get(),
-            FREQUENCY_LOW => self.get_frequency_low(),
+            FREQUENCY_LOW => 0xFF,
             FREQUENCY_HIGH => self.get_frequency_high(),
-            _ => unreachable!(),
+            _ => {
+                eprintln!("[Square Channel] Unknown address: {:#X} Can't read byte.", address);
+
+                0xFF
+            }
         }
     }
 
@@ -81,7 +85,10 @@ impl MemoryAccess for SquareChannel {
             VOLUME_ENVELOPE => self.set_volume_envelope(value),
             FREQUENCY_LOW => self.set_frequency_low(value),
             FREQUENCY_HIGH => self.set_frequency_high(value),
-            _ => unreachable!(),
+            _ => eprintln!(
+                "[Square Channel] Unknown address: {:#X} Can't write byte: {:#X}.",
+                address, value
+            ),
         }
     }
 }
@@ -124,14 +131,26 @@ impl SquareChannel {
             None
         };
 
+        let wave_duty = if sweep_enabled {
+            0x02
+        } else {
+            0x0
+        };
+
+        let volume_envelope = if sweep_enabled {
+            0xF3
+        } else {
+            0x00
+        };
+
         Self {
-            core: ChannelCore::default(),
+            core: ChannelCore::new(sweep_enabled),
             length_counter: LengthCounter::default(),
-            volume_envelope: VolumeEnvelope::default(),
+            volume_envelope: VolumeEnvelope::new(volume_envelope),
             sweep,
             sequence: 0,
             frequency: 0,
-            wave_duty: 0,
+            wave_duty,
         }
     }
 
@@ -177,10 +196,6 @@ impl SquareChannel {
         if !self.core.dac_enabled {
             self.core.enabled = false;
         }
-    }
-
-    fn get_frequency_low(&self) -> u8 {
-        0xFF | self.frequency as u8
     }
 
     fn set_frequency_low(&mut self, value: u8) {

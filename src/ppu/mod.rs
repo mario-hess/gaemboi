@@ -20,7 +20,7 @@ use egui_sdl2_gl::egui::Color32;
 
 use crate::{
     interrupt::{LCD_STAT_MASK, VBLANK_MASK},
-    memory_bus::{ComponentTick, MemoryAccess, OAM_END, OAM_START, VRAM_END, VRAM_START},
+    memory_bus::{OAM_END, OAM_START, VRAM_END, VRAM_START},
     ppu::{
         background::Background,
         lcd_control::LCD_control,
@@ -29,6 +29,7 @@ use crate::{
         tile::Tile,
         window::Window,
     },
+    ComponentTick, MemoryAccess,
 };
 
 pub const VRAM_SIZE: usize = 8 * 1024;

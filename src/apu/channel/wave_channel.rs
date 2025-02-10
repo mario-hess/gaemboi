@@ -38,9 +38,16 @@ impl MemoryAccess for WaveChannel {
             DAC_ENABLE => self.get_dac_enable(),
             LENGTH_TIMER => 0xFF,
             VOLUME => self.get_output_level(),
-            FREQUENCY_LOW => self.get_frequency_low(),
+            FREQUENCY_LOW => 0xFF,
             FREQUENCY_HIGH => self.get_frequency_high(),
-            _ => unreachable!(),
+            _ => {
+                eprintln!(
+                    "[Wave Channel] Unknown address: {:#X} Can't read byte.",
+                    address
+                );
+
+                0xFF
+            }
         }
     }
 
@@ -51,7 +58,10 @@ impl MemoryAccess for WaveChannel {
             VOLUME => self.set_output_level(value),
             FREQUENCY_LOW => self.set_frequency_low(value),
             FREQUENCY_HIGH => self.set_frequency_high(value),
-            _ => unreachable!(),
+            _ => eprintln!(
+                "[Wave Channel] Unknown address: {:#X} Can't write byte: {:#X}.",
+                address, value
+            ),
         }
     }
 }
@@ -86,7 +96,10 @@ impl WaveChannel {
             length_counter: LengthCounter::default(),
             volume: 0,
             frequency: 0,
-            wave_ram: [0; 32],
+            wave_ram: [
+                0x8, 0x4, 0x4, 0x0, 0x4, 0x3, 0xA, 0xA, 0x2, 0xD, 0x7, 0x8, 0x9, 0x2, 0x3, 0xC,
+                0x6, 0x0, 0x5, 0x9, 0x5, 0x9, 0xB, 0x0, 0x3, 0x4, 0xB, 0x8, 0x2, 0xE, 0xD, 0xA,
+            ],
             wave_ram_position: 0,
         }
     }
@@ -106,7 +119,7 @@ impl WaveChannel {
 
     fn get_dac_enable(&self) -> u8 {
         if self.core.dac_enabled {
-            0x7F | 0x80
+            0xFF
         } else {
             0x7F
         }
@@ -138,10 +151,6 @@ impl WaveChannel {
         }
     }
 
-    fn get_frequency_low(&self) -> u8 {
-        0xFF
-    }
-
     fn set_frequency_low(&mut self, value: u8) {
         self.frequency = (self.frequency & 0x0700) | value as u16;
     }
@@ -169,8 +178,11 @@ impl WaveChannel {
     }
 
     pub fn read_wave_ram(&self, address: u16) -> u8 {
-        let index = address - WAVE_PATTERN_START;
-        self.wave_ram[index as usize]
+        let index = (address - WAVE_PATTERN_START) * 2;
+        let upper_nibble = (self.wave_ram[index as usize] & 0xF) << 4;
+        let lower_nibble = self.wave_ram[(index + 1) as usize] & 0xF;
+
+        upper_nibble | lower_nibble
     }
 
     pub fn write_wave_ram(&mut self, address: u16, value: u8) {

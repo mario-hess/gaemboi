@@ -16,7 +16,7 @@ use std::{error::Error, fs::File, io::Write};
 
 use crate::{
     cartridge::{core::CartridgeCore, mbc0::Mbc0, mbc1::Mbc1, mbc2::Mbc2, mbc3::Mbc3, mbc5::Mbc5},
-    memory_bus::MemoryAccess,
+    MemoryAccess,
 };
 
 const ROM_BANK_SIZE: usize = 16 * 1024;

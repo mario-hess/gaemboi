@@ -5,9 +5,7 @@
  * @date    May 27, 2024
  */
 
-use crate::{
-    cpu::clock::CPU_CLOCK_SPEED, interrupt::TIMER_MASK, memory_bus::MemoryAccess, ComponentTick,
-};
+use crate::{cpu::clock::CPU_CLOCK_SPEED, interrupt::TIMER_MASK, ComponentTick, MemoryAccess};
 
 const DIV: u16 = 0xFF04;
 const TIMA: u16 = 0xFF05;

@@ -8,8 +8,8 @@
 pub mod audio;
 pub mod channel;
 mod frame_sequencer;
-pub mod wav_player;
 mod mixer;
+pub mod wav_player;
 
 use std::{
     cell::RefCell,
@@ -30,8 +30,7 @@ use crate::{
         mixer::Mixer,
     },
     cpu::clock::CPU_CLOCK_SPEED,
-    memory_bus::MemoryAccess,
-    ComponentTick,
+    ComponentTick, MemoryAccess,
 };
 
 pub const APU_CLOCK_SPEED: u16 = 512;
@@ -95,7 +94,11 @@ impl MemoryAccess for Apu {
             PANNING => (&self.mixer).into(),
             MASTER_CONTROL => self.get_master_control(),
             WAVE_PATTERN_START..=WAVE_PATTERN_END => self.ch3.read_wave_ram(address),
-            _ => unreachable!(),
+            _ => {
+                eprintln!("[APU] Unknown address: {:#X} Can't read byte.", address);
+
+                0xFF
+            }
         }
     }
 
@@ -133,7 +136,10 @@ impl MemoryAccess for Apu {
                 self.mixer = value.into();
             }
             MASTER_CONTROL => {}
-            _ => println!("Cant write: {:#X}", address),
+            _ => eprintln!(
+                "[APU] Unknown address: {:#X} Can't write byte: {:#X}.",
+                address, value
+            ),
         }
     }
 }
@@ -186,9 +192,9 @@ impl Apu {
             ch4: NoiseChannel::new(),
             frame_sequencer: FrameSequencer::new(),
             mixer: Mixer::default(),
-            right_volume: 0,
-            left_volume: 0,
-            enabled: false,
+            right_volume: 0x07,
+            left_volume: 0x07,
+            enabled: true,
             counter: 0,
             sampling_frequency,
             audio_buffer: Arc::new(Mutex::new(VecDeque::new())),
@@ -238,10 +244,23 @@ impl Apu {
      * never mutes a non-silent input.
      */
     fn get_master_volume(&self) -> u8 {
-        let right_volume = self.right_volume - 1;
-        let left_volume = (self.left_volume - 1) << 4;
+        let right_volume = if self.right_volume == 0 {
+            1
+        } else if self.right_volume == 7 {
+            8
+        } else {
+            self.right_volume
+        };
 
-        right_volume | left_volume
+        let left_volume = if self.left_volume == 0 {
+            1
+        } else if self.left_volume == 7 {
+            8
+        } else {
+            self.left_volume
+        };
+
+        (left_volume << 4) | right_volume
     }
 
     fn set_master_volume(&mut self, value: u8) {

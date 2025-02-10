@@ -21,11 +21,19 @@ use crate::{
         Cpu,
     },
     event_handler::EventHandler,
-    memory_bus::ComponentTick,
     ppu::colors::Colors,
     ui::UIManager,
     FRAME_DURATION, FRAME_DURATION_MICROS,
 };
+
+pub trait MemoryAccess {
+    fn read_byte(&self, address: u16) -> u8;
+    fn write_byte(&mut self, address: u16, value: u8);
+}
+
+pub trait ComponentTick {
+    fn tick(&mut self, m_cycles: u8);
+}
 
 pub struct Emulation {
     pub cpu: Cpu,

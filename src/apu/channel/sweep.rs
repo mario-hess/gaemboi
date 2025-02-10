@@ -1,6 +1,6 @@
 /*
  * @file    apu/channel/sweep.rs
- * @brief   Channel 1 has a frequency sweep unit that can periodically adjust the channel's frequency up or down. 
+ * @brief   Channel 1 has a frequency sweep unit that can periodically adjust the channel's frequency up or down.
  * @author  Mario Hess
  * @date    May 26, 2024
  */
@@ -16,7 +16,7 @@ impl Sweep {
     fn new() -> Self {
         Self {
             step: 0,
-            direction: true,
+            direction: false,
             pace: 0,
             sequence: 0,
         }
@@ -33,9 +33,9 @@ impl Sweep {
             let delta = *frequency >> self.step;
 
             *frequency = if self.direction {
-                frequency.saturating_add(delta)
-            } else {
                 frequency.saturating_sub(delta)
+            } else {
+                frequency.saturating_add(delta)
             };
 
             // Overflow check
@@ -50,16 +50,16 @@ impl Sweep {
 
     pub fn set(&mut self, value: u8) {
         self.step = value & 0x07;
-        self.direction = (value & 0x08) == 0x00;
+        self.direction = (value & 0x08) != 0x00;
         self.pace = (value & 0x70) >> 4;
     }
 
     pub fn get(&self) -> u8 {
-        let shift = self.step & 0x07;
+        let step = self.step & 0x07;
         let direction = if self.direction { 0x08 } else { 0x0 };
         let pace = (self.pace & 0x07) << 4;
 
-        0x80 | shift | direction | pace
+        0x80 | step | direction | pace
     }
 
     pub fn reset(&mut self) {
@@ -71,5 +71,66 @@ impl Sweep {
 
     pub fn default() -> Self {
         Sweep::new()
+    }
+}
+
+#[cfg(test)]
+mod sweep_tests {
+    use super::*;
+    #[test]
+    fn default_values() {
+        let sweep = Sweep::new();
+
+        assert_eq!(sweep.get(), 0x80);
+    }
+
+    #[test]
+    fn empty_fill() {
+        let mut sweep = Sweep::new();
+
+        let value = 0x00;
+        sweep.set(value);
+
+        assert_eq!(sweep.get(), 0x80);
+    }
+
+    #[test]
+    fn saturate_all() {
+        let mut sweep = Sweep::new();
+
+        let value = 0xFF;
+        sweep.set(value);
+
+        assert_eq!(sweep.get(), 0xFF);
+    }
+
+    #[test]
+    fn saturate_step() {
+        let mut sweep = Sweep::new();
+
+        let value = 0x07;
+        sweep.set(value);
+
+        assert_eq!(sweep.get(), 0x87); 
+    }
+
+    #[test]
+    fn saturate_direction() {
+        let mut sweep = Sweep::new();
+
+        let value = 0x08;
+        sweep.set(value);
+
+        assert_eq!(sweep.get(), 0x88);
+    }
+
+    #[test]
+    fn saturate_pace() {
+        let mut sweep = Sweep::new();
+
+        let value = 0x70;
+        sweep.set(value);
+
+        assert_eq!(sweep.get(), 0xF0);
     }
 }

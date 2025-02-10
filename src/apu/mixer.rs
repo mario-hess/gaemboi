@@ -30,9 +30,15 @@ pub struct Mixer {
 
 impl Mixer {
     pub fn new() -> Self {
-        Self {
-            panning: [false; 8],
+        let value = 0xF3;
+        let mut panning = [false; 8];
+
+        for (i, &(right_mask, left_mask)) in MASKS.iter().enumerate() {
+            panning[i] = value & right_mask != 0;
+            panning[i + 4] = value & left_mask != 0;
         }
+
+        Mixer { panning }
     }
 
     pub fn mix(&self, channels: [&ChannelCore; 4]) -> (u8, u8) {

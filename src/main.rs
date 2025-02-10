@@ -32,8 +32,7 @@ use egui_sdl2_gl::{
 };
 
 use {
-    emulation::Emulation,
-    memory_bus::ComponentTick,
+    emulation::{ComponentTick, Emulation, MemoryAccess},
     ppu::{colors::Colors, VIEWPORT_HEIGHT, VIEWPORT_WIDTH},
     ui::UIManager,
 };
