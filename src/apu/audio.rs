@@ -55,7 +55,7 @@ impl AudioCallback for Audio<'_> {
 
                 *sample = self.audio_buffer.lock().unwrap().pop_front().unwrap() as i16
                     * *self.volume as i16
-                    * *master_volume as i16;
+                    * *master_volume as i16 + 1;
             } else {
                 *sample = 0
             }

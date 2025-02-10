@@ -84,15 +84,18 @@ impl MemoryAccess for Apu {
                 let address = calculate_square_address(CH1_START, address);
                 self.ch1.read_byte(address)
             }
+            0xFF15 => 0xFF,
             CH2_START..=CH2_END => {
                 let address = calculate_square_address(CH2_START, address);
                 self.ch2.read_byte(address)
             }
             CH3_START..=CH3_END => self.ch3.read_byte(address),
+            0xFF1F => 0xFF,
             CH4_START..=CH4_END => self.ch4.read_byte(address),
             MASTER_VOLUME => self.get_master_volume(),
             PANNING => (&self.mixer).into(),
             MASTER_CONTROL => self.get_master_control(),
+            0xFF27..=0xFF2F => 0xFF,
             WAVE_PATTERN_START..=WAVE_PATTERN_END => self.ch3.read_wave_ram(address),
             _ => {
                 eprintln!("[APU] Unknown address: {:#X} Can't read byte.", address);
@@ -132,10 +135,9 @@ impl MemoryAccess for Apu {
             0xFF1F => {}
             CH4_START..=CH4_END => self.ch4.write_byte(address, value),
             MASTER_VOLUME => self.set_master_volume(value),
-            PANNING => {
-                self.mixer = value.into();
-            }
-            MASTER_CONTROL => {}
+            PANNING => self.mixer = value.into(),
+            MASTER_CONTROL => self.set_master_control(value),
+            0xFF27..=0xFF2F => {}
             _ => eprintln!(
                 "[APU] Unknown address: {:#X} Can't write byte: {:#X}.",
                 address, value
@@ -244,28 +246,12 @@ impl Apu {
      * never mutes a non-silent input.
      */
     fn get_master_volume(&self) -> u8 {
-        let right_volume = if self.right_volume == 0 {
-            1
-        } else if self.right_volume == 7 {
-            8
-        } else {
-            self.right_volume
-        };
-
-        let left_volume = if self.left_volume == 0 {
-            1
-        } else if self.left_volume == 7 {
-            8
-        } else {
-            self.left_volume
-        };
-
-        (left_volume << 4) | right_volume
+        (self.left_volume << 4) | self.right_volume
     }
 
     fn set_master_volume(&mut self, value: u8) {
-        self.right_volume = (value & 0x07) + 1;
-        self.left_volume = ((value & 0x70) >> 4) + 1;
+        self.right_volume = value & 0x07;
+        self.left_volume = (value & 0x70) >> 4;
     }
 
     fn reset(&mut self) {

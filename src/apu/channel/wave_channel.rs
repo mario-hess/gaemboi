@@ -79,7 +79,7 @@ impl ComponentTick for WaveChannel {
             return;
         }
 
-        let wave_index = self.wave_ram_position / 2;
+        let wave_index = self.wave_ram_position;
         let output = self.wave_ram[wave_index as usize];
 
         self.core.output = output >> self.volume_shift();
@@ -177,16 +177,29 @@ impl WaveChannel {
         self.frequency = (self.frequency & 0x00FF) | ((value & 0x07) as u16) << 8;
     }
 
+    /*
+    pub fn read_wave_ram(&self, address: u16) -> u8 {
+        let index = address - WAVE_PATTERN_START;
+        self.wave_ram[index as usize]
+    }
+
+    pub fn write_wave_ram(&mut self, address: u16, value: u8) {
+        let index = address - WAVE_PATTERN_START;
+        self.wave_ram[index as usize] = (value & 0xF0) >> 4;
+        self.wave_ram[index as usize + 1] = value & 0xF;
+    }
+    */
+
     pub fn read_wave_ram(&self, address: u16) -> u8 {
         let index = (address - WAVE_PATTERN_START) * 2;
         let upper_nibble = (self.wave_ram[index as usize] & 0xF) << 4;
-        let lower_nibble = self.wave_ram[(index + 1) as usize] & 0xF;
+        let lower_nibble = self.wave_ram[index as usize + 1] & 0xF;
 
         upper_nibble | lower_nibble
     }
 
     pub fn write_wave_ram(&mut self, address: u16, value: u8) {
-        let index = address - WAVE_PATTERN_START;
+        let index = (address - WAVE_PATTERN_START) * 2;
         self.wave_ram[index as usize] = (value & 0xF0) >> 4;
         self.wave_ram[index as usize + 1] = value & 0xF;
     }

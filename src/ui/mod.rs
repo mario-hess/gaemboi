@@ -442,7 +442,7 @@ pub fn draw_wave(
     let rect = response.rect;
 
     // Draw grid
-    for i in 0..=32 {
+    for i in 0..=16 {
         let x = egui_sdl2_gl::egui::remap(i as f32, 0.0..=16.0, rect.left()..=rect.right());
         painter.line_segment(
             [Pos2::new(x, rect.top()), Pos2::new(x, rect.bottom())],
@@ -459,8 +459,8 @@ pub fn draw_wave(
 
     // Draw wave
     let mut points = Vec::with_capacity(16);
-    for i in (0..32).step_by(2) {
-        let sample = (wave_ram[i] as u16) | ((wave_ram[i + 1] as u16) << 4);
+    for i in 0..16 {
+        let sample = (wave_ram[i * 2] as u16) | ((wave_ram[i * 2 + 1] as u16) << 4);
         let x = egui_sdl2_gl::egui::remap(i as f32, 0.0..=15.0, rect.left()..=rect.right());
         let y = egui_sdl2_gl::egui::remap(
             sample as f32,
@@ -477,7 +477,7 @@ pub fn draw_wave(
     // Highlight current position
     let current_x = egui_sdl2_gl::egui::remap(
         *wave_ram_position as f32,
-        0.0..=31.0,
+        0.0..=15.0,
         rect.left()..=rect.right(),
     );
     painter.line_segment(
