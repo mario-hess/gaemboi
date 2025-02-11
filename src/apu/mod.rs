@@ -70,7 +70,9 @@ pub struct Apu {
     frame_sequencer: FrameSequencer,
     mixer: Mixer,
     pub right_volume: u8,
+    vin_right: bool,
     pub left_volume: u8,
+    vin_left: bool,
     pub enabled: bool,
     counter: u32,
     sampling_frequency: Rc<RefCell<u32>>,
@@ -148,10 +150,6 @@ impl MemoryAccess for Apu {
 
 impl ComponentTick for Apu {
     fn tick(&mut self, m_cycles: u8) {
-        if !self.enabled {
-            return;
-        }
-
         let t_cycles = (m_cycles * 4) as u16;
 
         self.frame_sequencer.tick(
@@ -161,6 +159,10 @@ impl ComponentTick for Apu {
             &mut self.ch3,
             &mut self.ch4,
         );
+
+        if !self.enabled {
+            return;
+        }
 
         self.tick_channels(m_cycles);
 
@@ -195,7 +197,9 @@ impl Apu {
             frame_sequencer: FrameSequencer::new(),
             mixer: Mixer::default(),
             right_volume: 0x07,
+            vin_right: false,
             left_volume: 0x07,
+            vin_left: false,
             enabled: true,
             counter: 0,
             sampling_frequency,
@@ -246,12 +250,19 @@ impl Apu {
      * never mutes a non-silent input.
      */
     fn get_master_volume(&self) -> u8 {
-        (self.left_volume << 4) | self.right_volume
+        let right_volume = self.right_volume;
+        let vin_right = if self.vin_right { 0x08 } else { 0 };
+        let left_volume = self.left_volume << 4;
+        let vin_left = if self.vin_left { 0x80 } else { 0 };
+
+        right_volume | vin_right | left_volume | vin_left
     }
 
     fn set_master_volume(&mut self, value: u8) {
         self.right_volume = value & 0x07;
+        self.vin_right = value & 0x08 != 0;
         self.left_volume = (value & 0x70) >> 4;
+        self.vin_left = value & 0x80 != 0;
     }
 
     fn reset(&mut self) {
@@ -263,7 +274,9 @@ impl Apu {
         self.mixer.reset();
 
         self.left_volume = 0;
+        self.vin_left = false;
         self.right_volume = 0;
+        self.vin_right = false;
         self.counter = 0;
         self.audio_buffer.lock().unwrap().clear();
     }

@@ -64,10 +64,13 @@ impl MemoryAccess for SquareChannel {
             }
             LENGTH_TIMER => self.get_length_timer(),
             VOLUME_ENVELOPE => self.volume_envelope.get(),
-            FREQUENCY_LOW => 0xFF,
+            FREQUENCY_LOW => self.get_frequency_low(),
             FREQUENCY_HIGH => self.get_frequency_high(),
             _ => {
-                eprintln!("[Square Channel] Unknown address: {:#X} Can't read byte.", address);
+                eprintln!(
+                    "[Square Channel] Unknown address: {:#X} Can't read byte.",
+                    address
+                );
 
                 0xFF
             }
@@ -131,17 +134,9 @@ impl SquareChannel {
             None
         };
 
-        let wave_duty = if sweep_enabled {
-            0x02
-        } else {
-            0x0
-        };
+        let wave_duty = if sweep_enabled { 0x02 } else { 0x0 };
 
-        let volume_envelope = if sweep_enabled {
-            0xF3
-        } else {
-            0x00
-        };
+        let volume_envelope = if sweep_enabled { 0xF3 } else { 0x00 };
 
         Self {
             core: ChannelCore::new(sweep_enabled),
@@ -192,10 +187,16 @@ impl SquareChannel {
     fn set_volume_envelope(&mut self, value: u8) {
         self.volume_envelope.set(value);
 
+        // https://gbdev.io/pandocs/Audio_details.html#dacs
+        // Channel x’s DAC is enabled if and only if [NRx2] & 0xF8 != 0;
         self.core.dac_enabled = value & 0xF8 != 0x00;
         if !self.core.dac_enabled {
             self.core.enabled = false;
         }
+    }
+
+    fn get_frequency_low(&self) -> u8 {
+        0xFF
     }
 
     fn set_frequency_low(&mut self, value: u8) {
@@ -237,3 +238,320 @@ impl SquareChannel {
         }
     }
 }
+
+#[cfg(test)]
+mod ch1_length_timer_tests {
+    use super::*;
+
+    #[test]
+    fn default_values() {
+        let ch1 = SquareChannel::new(ChannelType::CH1);
+
+        assert_eq!(ch1.get_length_timer(), 0xBF);
+    }
+
+    #[test]
+    fn empty_fill() {
+        let mut ch1 = SquareChannel::new(ChannelType::CH1);
+
+        let value = 0x00;
+        ch1.set_length_timer(value);
+
+        assert_eq!(ch1.get_length_timer(), 0x3F);
+    }
+
+    #[test]
+    fn saturate_all() {
+        let mut ch1 = SquareChannel::new(ChannelType::CH1);
+
+        let value = 0xFF;
+        ch1.set_length_timer(value);
+
+        assert_eq!(ch1.get_length_timer(), 0xFF)
+    }
+
+    #[test]
+    fn saturate_length_timer() {
+        let mut ch1 = SquareChannel::new(ChannelType::CH1);
+
+        let value = 0x3F;
+        ch1.set_length_timer(value);
+
+        assert_eq!(ch1.get_length_timer(), 0x3F);
+    }
+
+    #[test]
+    fn saturate_duty_cycle() {
+        let mut ch1 = SquareChannel::new(ChannelType::CH1);
+
+        let value = 0xC0;
+        ch1.set_length_timer(value);
+
+        assert_eq!(ch1.get_length_timer(), 0xFF);
+    }
+}
+
+#[cfg(test)]
+mod ch2_length_timer_tests {
+    use super::*;
+
+    #[test]
+    fn default_values() {
+        let ch2 = SquareChannel::new(ChannelType::CH2);
+
+        assert_eq!(ch2.get_length_timer(), 0x3F);
+    }
+
+    #[test]
+    fn empty_fill() {
+        let mut ch2 = SquareChannel::new(ChannelType::CH2);
+
+        let value = 0x00;
+        ch2.set_length_timer(value);
+
+        assert_eq!(ch2.get_length_timer(), 0x3F);
+    }
+
+    #[test]
+    fn saturate_all() {
+        let mut ch2 = SquareChannel::new(ChannelType::CH2);
+
+        let value = 0xFF;
+        ch2.set_length_timer(value);
+
+        assert_eq!(ch2.get_length_timer(), 0xFF)
+    }
+
+    #[test]
+    fn saturate_length_timer() {
+        let mut ch2 = SquareChannel::new(ChannelType::CH2);
+
+        let value = 0x3F;
+        ch2.set_length_timer(value);
+
+        assert_eq!(ch2.get_length_timer(), 0x3F);
+    }
+
+    #[test]
+    fn saturate_duty_cycle() {
+        let mut ch2 = SquareChannel::new(ChannelType::CH2);
+
+        let value = 0xC0;
+        ch2.set_length_timer(value);
+
+        assert_eq!(ch2.get_length_timer(), 0xFF);
+    }
+}
+
+#[cfg(test)]
+mod ch1_volume_envelope_tests {
+    use super::*;
+
+    #[test]
+    fn default_values() {
+        let ch1 = SquareChannel::new(ChannelType::CH1);
+
+        assert_eq!(ch1.volume_envelope.get(), 0xF3);
+    }
+}
+
+#[cfg(test)]
+mod ch2_volume_envelope_tests {
+    use super::*;
+
+    #[test]
+    fn default_values() {
+        let ch1 = SquareChannel::new(ChannelType::CH2);
+
+        assert_eq!(ch1.volume_envelope.get(), 0x00);
+    }
+}
+
+#[cfg(test)]
+mod ch1_frequency_low_tests {
+    use super::*;
+
+    #[test]
+    fn default_values() {
+        let ch1 = SquareChannel::new(ChannelType::CH1);
+
+        assert_eq!(ch1.get_frequency_low(), 0xFF);
+    }
+
+    #[test]
+    fn empty_fill() {
+        let mut ch1 = SquareChannel::new(ChannelType::CH1);
+
+        let value = 0x00;
+        ch1.set_frequency_low(value);
+
+        assert_eq!(ch1.get_frequency_low(), 0xFF);
+    }
+
+    #[test]
+    fn saturate_all() {
+        let mut ch1 = SquareChannel::new(ChannelType::CH1);
+
+        let value = 0xFF;
+        ch1.set_frequency_low(value);
+
+        assert_eq!(ch1.get_frequency_low(), 0xFF);
+    }
+}
+
+#[cfg(test)]
+mod ch2_frequency_low_tests {
+    use super::*;
+
+    #[test]
+    fn default_values() {
+        let ch2 = SquareChannel::new(ChannelType::CH2);
+
+        assert_eq!(ch2.get_frequency_low(), 0xFF);
+    }
+
+    #[test]
+    fn empty_fill() {
+        let mut ch2 = SquareChannel::new(ChannelType::CH2);
+
+        let value = 0x00;
+        ch2.set_frequency_low(value);
+
+        assert_eq!(ch2.get_frequency_low(), 0xFF);
+    }
+
+    #[test]
+    fn saturate_all() {
+        let mut ch2 = SquareChannel::new(ChannelType::CH2);
+
+        let value = 0xFF;
+        ch2.set_frequency_low(value);
+
+        assert_eq!(ch2.get_frequency_low(), 0xFF);
+    }
+}
+
+#[cfg(test)]
+mod ch1_frequency_high_tests {
+    use super::*;
+
+    #[test]
+    fn default_values() {
+        let ch1 = SquareChannel::new(ChannelType::CH1);
+
+        assert_eq!(ch1.get_frequency_high(), 0xBF);
+    }
+
+    #[test]
+    fn empty_fill() {
+        let mut ch1 = SquareChannel::new(ChannelType::CH1);
+
+        let value = 0x00;
+        ch1.set_frequency_high(value);
+
+        assert_eq!(ch1.get_frequency_high(), 0xBF);
+    }
+
+    #[test]
+    fn saturate_all() {
+        let mut ch1 = SquareChannel::new(ChannelType::CH1);
+
+        let value = 0xFF;
+        ch1.set_frequency_high(value);
+
+        assert_eq!(ch1.get_frequency_high(), 0xFF);
+    }
+
+    #[test]
+    fn saturate_frequency_high() {
+        let mut ch1 = SquareChannel::new(ChannelType::CH1);
+
+        let value = 0x07;
+        ch1.set_frequency_high(value);
+
+        assert_eq!(ch1.get_frequency_high(), 0xBF);
+    }
+
+    #[test]
+    fn saturate_length_enabled() {
+        let mut ch1 = SquareChannel::new(ChannelType::CH1);
+
+        let value = 0x40;
+        ch1.set_frequency_high(value);
+
+        assert_eq!(ch1.get_frequency_high(), 0xFF);
+    }
+
+    #[test]
+    fn saturate_trigger() {
+        let mut ch1 = SquareChannel::new(ChannelType::CH1);
+
+        let value = 0x80;
+        ch1.set_frequency_high(value);
+
+        assert_eq!(ch1.get_frequency_high(), 0xBF);
+    }
+}
+
+#[cfg(test)]
+mod ch2_frequency_high_tests {
+    use super::*;
+
+    #[test]
+    fn default_values() {
+        let ch2 = SquareChannel::new(ChannelType::CH2);
+
+        assert_eq!(ch2.get_frequency_high(), 0xBF);
+    }
+
+    #[test]
+    fn empty_fill() {
+        let mut ch2 = SquareChannel::new(ChannelType::CH2);
+
+        let value = 0x00;
+        ch2.set_frequency_high(value);
+
+        assert_eq!(ch2.get_frequency_high(), 0xBF);
+    }
+
+    #[test]
+    fn saturate_all() {
+        let mut ch2 = SquareChannel::new(ChannelType::CH2);
+
+        let value = 0xFF;
+        ch2.set_frequency_high(value);
+
+        assert_eq!(ch2.get_frequency_high(), 0xFF);
+    }
+
+    #[test]
+    fn saturate_frequency_high() {
+        let mut ch2 = SquareChannel::new(ChannelType::CH2);
+
+        let value = 0x07;
+        ch2.set_frequency_high(value);
+
+        assert_eq!(ch2.get_frequency_high(), 0xBF);
+    }
+
+    #[test]
+    fn saturate_length_enabled() {
+        let mut ch2 = SquareChannel::new(ChannelType::CH2);
+
+        let value = 0x40;
+        ch2.set_frequency_high(value);
+
+        assert_eq!(ch2.get_frequency_high(), 0xFF);
+    }
+
+    #[test]
+    fn saturate_trigger() {
+        let mut ch2 = SquareChannel::new(ChannelType::CH2);
+
+        let value = 0x80;
+        ch2.set_frequency_high(value);
+
+        assert_eq!(ch2.get_frequency_high(), 0xBF);
+    }
+}
+

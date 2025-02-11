@@ -178,14 +178,6 @@ impl WaveChannel {
     }
 
     pub fn read_wave_ram(&self, address: u16) -> u8 {
-        if self.core.enabled {
-            let index = self.wave_ram_position as usize;
-            let upper_nibble = (self.wave_ram[index] & 0xF) << 4;
-            let lower_nibble = self.wave_ram[index + 1] & 0xF;
-
-            return upper_nibble | lower_nibble;
-        }
-
         let index = (address - WAVE_PATTERN_START) * 2;
         let upper_nibble = (self.wave_ram[index as usize] & 0xF) << 4;
         let lower_nibble = self.wave_ram[index as usize + 1] & 0xF;
@@ -203,9 +195,7 @@ impl WaveChannel {
         self.core.reset();
         self.length_counter.reset(channel);
         self.volume = 0;
-        self.wave_ram_position = 0;
         self.frequency = 0;
-        self.wave_ram = [0; 32];
     }
 }
 

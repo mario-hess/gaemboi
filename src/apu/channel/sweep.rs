@@ -64,7 +64,7 @@ impl Sweep {
 
     pub fn reset(&mut self) {
         self.step = 0;
-        self.direction = true;
+        self.direction = false;
         self.pace = 0;
         self.sequence = 0;
     }
@@ -77,6 +77,7 @@ impl Sweep {
 #[cfg(test)]
 mod sweep_tests {
     use super::*;
+
     #[test]
     fn default_values() {
         let sweep = Sweep::new();
@@ -111,7 +112,7 @@ mod sweep_tests {
         let value = 0x07;
         sweep.set(value);
 
-        assert_eq!(sweep.get(), 0x87); 
+        assert_eq!(sweep.get(), 0x87);
     }
 
     #[test]

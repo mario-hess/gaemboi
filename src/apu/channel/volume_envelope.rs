@@ -71,7 +71,7 @@ impl VolumeEnvelope {
         self.enabled = false;
         self.counter = 0;
         self.pace = 0;
-        self.direction = true;
+        self.direction = false;
         self.volume = 0;
     }
 }
@@ -79,5 +79,67 @@ impl VolumeEnvelope {
 impl Default for VolumeEnvelope {
     fn default() -> Self {
         Self::new(0x00)
+    }
+}
+
+#[cfg(test)]
+mod volume_envelope_tests {
+    use super::*;
+
+    #[test]
+    fn default_values() {
+        let volume_envelope = VolumeEnvelope::default();
+
+        assert_eq!(volume_envelope.get(), 0x00);
+    }
+
+    #[test]
+    fn empty_fill() {
+        let mut volume_envelope = VolumeEnvelope::default();
+
+        let value = 0x00;
+        volume_envelope.set(value);
+
+        assert_eq!(volume_envelope.get(), 0x00);
+    }
+
+    #[test]
+    fn saturate_all() {
+        let mut volume_envelope = VolumeEnvelope::default();
+
+        let value = 0xFF;
+        volume_envelope.set(value);
+
+        assert_eq!(volume_envelope.get(), 0xFF);
+    }
+
+    #[test]
+    fn saturate_pace() {
+        let mut volume_envelope = VolumeEnvelope::default();
+
+        let value = 0x07;
+        volume_envelope.set(value);
+
+        assert_eq!(volume_envelope.get(), 0x07);
+    }
+
+    #[test]
+    fn saturate_direction() {
+        let mut volume_envelope = VolumeEnvelope::default();
+
+        let value = 0x08;
+        volume_envelope.set(value);
+
+        assert_eq!(volume_envelope.get(), 0x08);
+    }
+
+    #[test]
+    fn saturate_volume() {
+        let mut volume_envelope = VolumeEnvelope::default();
+
+        let value = 0xF0;
+        volume_envelope.set(value);
+
+        assert_eq!(volume_envelope.get(), 0xF0);
     }
 }
