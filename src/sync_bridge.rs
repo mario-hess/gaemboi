@@ -63,10 +63,14 @@ impl SyncBridge {
         fast_forward: &u32,
         adjustment_factor: Option<f64>,
     ) {
-        let base_target_duration = std::time::Duration::from_micros(
-            FRAME_DURATION_MICROS / *fast_forward as u64
-                - frame_start_time.elapsed().as_micros() as u64,
-        );
+        let elapsed = frame_start_time.elapsed();
+        let frame_duration = Duration::from_micros(FRAME_DURATION_MICROS / *fast_forward as u64);
+
+        let base_target_duration = if elapsed < frame_duration {
+            frame_duration - elapsed
+        } else {
+            Duration::from_micros(0)
+        };
 
         let new_target_duration = if base_target_duration > self.last_difference_duration {
             base_target_duration - self.last_difference_duration
