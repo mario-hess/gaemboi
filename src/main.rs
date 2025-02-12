@@ -23,6 +23,7 @@ mod interrupt;
 mod io;
 mod memory_bus;
 mod ppu;
+mod sync_bridge;
 mod ui;
 
 use egui_sdl2_gl::{
