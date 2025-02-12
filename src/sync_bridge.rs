@@ -40,20 +40,12 @@ impl SyncBridge {
                     self.sleep(frame_start_time, fast_forward, None);
                 }
             } else {
-                while frame_start_time.elapsed().as_micros()
-                    < FRAME_DURATION.as_micros() / *fast_forward as u128
-                {
-                    std::hint::spin_loop();
-                }
+                self.spin(frame_start_time, fast_forward);
             }
         } else if performance_mode {
             self.sleep(frame_start_time, fast_forward, None);
         } else {
-            while frame_start_time.elapsed().as_micros()
-                < FRAME_DURATION.as_micros() / *fast_forward as u128
-            {
-                std::hint::spin_loop();
-            }
+            self.spin(frame_start_time, fast_forward);
         }
     }
 
@@ -101,5 +93,13 @@ impl SyncBridge {
         };
 
         self.last_difference_duration = difference_duration;
+    }
+
+    fn spin(&self, frame_start_time: &Instant, fast_forward: &u32) {
+        while frame_start_time.elapsed().as_micros()
+            < FRAME_DURATION.as_micros() / *fast_forward as u128
+        {
+            std::hint::spin_loop();
+        }
     }
 }
