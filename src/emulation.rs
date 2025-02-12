@@ -1,9 +1,7 @@
 use std::{
     cell::RefCell,
-    collections::VecDeque,
     error::Error,
     rc::Rc,
-    sync::{Arc, Mutex},
     time::Instant,
 };
 
@@ -15,7 +13,7 @@ use egui_sdl2_gl::{
 };
 
 use crate::{
-    apu::{audio::create_audio_device, AUDIO_BUFFER_THRESHOLD_MIN},
+    apu::audio::create_audio_device,
     cpu::{
         clock::{Clock, CYCLES_PER_FRAME},
         Cpu,
@@ -24,7 +22,6 @@ use crate::{
     ppu::colors::Colors,
     sync_bridge::SyncBridge,
     ui::UIManager,
-    FRAME_DURATION,
 };
 
 pub trait MemoryAccess {
