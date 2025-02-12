@@ -15,8 +15,8 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-pub const SAMPLING_RATE: u16 = 512;
-pub const SAMPLING_FREQUENCY: u16 = 41000;
+pub const SAMPLING_RATE: u16 = 1476; // 44100×(1/59.7275)≈738(MONO)≈1476(STEREO)
+pub const SAMPLING_FREQUENCY: u16 = 44100;
 
 pub struct Audio<'a> {
     pub audio_buffer: &'a mut Arc<Mutex<VecDeque<u8>>>,

@@ -36,7 +36,8 @@ use crate::{
 pub const APU_CLOCK_SPEED: u16 = 512;
 pub const LENGTH_TIMER_MAX: u16 = 64;
 
-pub const AUDIO_BUFFER_THRESHOLD: usize = SAMPLING_RATE as usize * 8;
+pub const AUDIO_BUFFER_THRESHOLD_MIN: usize = SAMPLING_RATE as usize * 4;
+pub const AUDIO_BUFFER_THRESHOLD_MAX: usize = SAMPLING_RATE as usize * 8;
 
 const CH1_START: u16 = 0xFF10;
 const CH1_END: u16 = 0xFF14;

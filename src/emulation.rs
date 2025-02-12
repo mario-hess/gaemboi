@@ -1,9 +1,7 @@
 use std::{
     cell::RefCell,
-    collections::VecDeque,
     error::Error,
     rc::Rc,
-    sync::{Arc, Mutex},
     time::Instant,
 };
 
@@ -15,15 +13,15 @@ use egui_sdl2_gl::{
 };
 
 use crate::{
-    apu::{self, AUDIO_BUFFER_THRESHOLD},
+    apu::audio::create_audio_device,
     cpu::{
         clock::{Clock, CYCLES_PER_FRAME},
         Cpu,
     },
     event_handler::EventHandler,
     ppu::colors::Colors,
+    sync_bridge::SyncBridge,
     ui::UIManager,
-    FRAME_DURATION, FRAME_DURATION_MICROS,
 };
 
 pub trait MemoryAccess {
@@ -79,7 +77,9 @@ impl Emulation {
         colors: Rc<RefCell<Colors>>,
         audio_subsystem: &AudioSubsystem,
     ) {
-        let audio_device = apu::audio::create_audio_device(
+        let mut sync_bridge = SyncBridge::new();
+
+        let audio_device = create_audio_device(
             audio_subsystem,
             &self.cpu.memory_bus.apu.left_volume,
             &self.cpu.memory_bus.apu.right_volume,
@@ -125,39 +125,6 @@ impl Emulation {
 
             let fast_forward = *event_handler.fast_forward.borrow();
 
-            if self.cpu.memory_bus.apu.enabled {
-                if event_handler.performance_mode {
-                    if should_delay(
-                        frame_start_time,
-                        &self.cpu.memory_bus.apu.audio_buffer,
-                        fast_forward,
-                    ) {
-                        std::thread::sleep(std::time::Duration::from_micros(
-                            FRAME_DURATION_MICROS / fast_forward as u64
-                                - frame_start_time.elapsed().as_micros() as u64,
-                        ));
-                    }
-                } else {
-                    while should_delay(
-                        frame_start_time,
-                        &self.cpu.memory_bus.apu.audio_buffer,
-                        fast_forward,
-                    ) {
-                        std::hint::spin_loop();
-                    }
-                }
-            } else {
-                while frame_start_time.elapsed().as_micros()
-                    < FRAME_DURATION.as_micros() / fast_forward as u128
-                {
-                    std::hint::spin_loop();
-                }
-            }
-
-            let frame_time = frame_start_time.elapsed().as_secs_f32();
-            self.frame_times.push(frame_time);
-            self.frame_count += 1;
-
             if self.last_second.elapsed().as_secs() >= 1 {
                 self.fps = self.frame_count as f32 / self.frame_times.iter().sum::<f32>();
                 self.frame_times.clear();
@@ -165,18 +132,21 @@ impl Emulation {
                 self.last_second = std::time::Instant::now();
             }
 
+            sync_bridge.sync(
+                &frame_start_time,
+                &fast_forward,
+                event_handler.performance_mode,
+                self.cpu.memory_bus.apu.enabled,
+                self.cpu.memory_bus.apu.audio_buffer.clone(),
+            );
+
+            let frame_time = frame_start_time.elapsed().as_secs_f32();
+            self.frame_times.push(frame_time);
+            self.frame_count += 1;
+
             if event_handler.file_path.is_some() {
                 break;
             }
         }
     }
-}
-
-fn should_delay(
-    frame_start_time: std::time::Instant,
-    audio_buffer: &Arc<Mutex<VecDeque<u8>>>,
-    fast_forward: u32,
-) -> bool {
-    frame_start_time.elapsed().as_micros() < FRAME_DURATION.as_micros() / fast_forward as u128
-        && audio_buffer.lock().unwrap().len() > AUDIO_BUFFER_THRESHOLD
 }
