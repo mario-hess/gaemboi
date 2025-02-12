@@ -111,7 +111,7 @@ impl NoiseChannel {
         }
 
         self.core.timer = (DIVISORS[self.clock_divider as usize] as i32) << self.clock_shift;
-        self.lfsr = 0x7FF1;
+        self.lfsr = 0xFFFF;
         self.volume_envelope.counter = 0;
 
         if self.length_counter.timer == 0 {
