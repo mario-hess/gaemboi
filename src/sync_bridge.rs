@@ -29,9 +29,8 @@ impl SyncBridge {
         audio_buffer: Arc<Mutex<VecDeque<u8>>>,
     ) {
         if apu_enabled {
+            let buffer_size = audio_buffer.lock().unwrap().len();
             if performance_mode {
-                let buffer_size = audio_buffer.lock().unwrap().len();
-
                 if buffer_size > AUDIO_BUFFER_THRESHOLD_MAX {
                     self.sleep(frame_start_time, fast_forward, Some(1.2));
                 } else if buffer_size < AUDIO_BUFFER_THRESHOLD_MIN {
@@ -39,7 +38,7 @@ impl SyncBridge {
                 } else {
                     self.sleep(frame_start_time, fast_forward, None);
                 }
-            } else {
+            } else if buffer_size > AUDIO_BUFFER_THRESHOLD_MIN {
                 self.spin(frame_start_time, fast_forward);
             }
         } else if performance_mode {
