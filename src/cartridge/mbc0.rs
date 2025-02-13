@@ -22,11 +22,7 @@ impl MemoryBankController for Mbc0 {
         match (address & MASK_MSB) >> 12 {
             // 0x0000 - 0x7FFF (Bank 00)
             0x0..=0x7 => self.core.rom_data[address as usize],
-            _ => {
-                eprintln!("Unknown address: {:#X}. Can't read byte.", address);
-
-                0xFF
-            }
+            _ => unreachable!(),
         }
     }
 

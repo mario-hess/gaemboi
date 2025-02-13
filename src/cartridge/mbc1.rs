@@ -36,11 +36,7 @@ impl MemoryBankController for Mbc1 {
                 let offset = self.core.rom_offset * self.core.rom_bank as usize;
                 self.core.rom_data[(address as usize - self.core.rom_offset) + offset]
             }
-            _ => {
-                eprintln!("Unknown address: {:#X}. Can't read byte.", address);
-
-                0xFF
-            }
+            _ => unreachable!(),
         }
     }
 
@@ -65,10 +61,7 @@ impl MemoryBankController for Mbc1 {
                 1 => self.mode = Mode::RamBanking,
                 _ => {}
             },
-            _ => eprintln!(
-                "Unknown address: {:#X}. Can't write byte: {:#X}.",
-                address, value
-            ),
+            _ => unreachable!(),
         }
 
         self.core.set_rom_bank();

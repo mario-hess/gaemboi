@@ -27,11 +27,7 @@ impl MemoryBankController for Mbc3 {
                 let offset = self.core.rom_offset * self.core.rom_bank as usize;
                 self.core.rom_data[(address as usize - self.core.rom_offset) + offset]
             }
-            _ => {
-                eprintln!("Unknown address: {:#X}. Can't read byte.", address);
-
-                0xFF
-            }
+            _ => unreachable!(),
         }
     }
 
@@ -42,15 +38,12 @@ impl MemoryBankController for Mbc3 {
             // 0x2000 - 0x3FFF (ROM bank number)
             0x2 | 0x3 => {
                 let bank_number = if value == 0 { 1 } else { value };
-                self.core.rom_bank = (bank_number & 0b0111_1111) as u16;
+                self.core.rom_bank = (bank_number & 0x7F) as u16;
             }
             // 0x4000 - 0x5FFF (RAM bank number)
             0x4 | 0x5 => self.core.ram_bank = value & 0b11,
             0x6 | 0x7 => {}
-            _ => eprintln!(
-                "Unknown address: {:#X}. Can't write byte: {:#X}.",
-                address, value
-            ),
+            _ => unreachable!()
         }
 
         self.core.set_rom_bank();
