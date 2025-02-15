@@ -100,11 +100,7 @@ impl MemoryAccess for Apu {
             MASTER_CONTROL => self.get_master_control(),
             0xFF27..=0xFF2F => 0xFF,
             WAVE_PATTERN_START..=WAVE_PATTERN_END => self.ch3.read_wave_ram(address),
-            _ => {
-                eprintln!("[APU] Unknown address: {:#X} Can't read byte.", address);
-
-                0xFF
-            }
+            _ => unreachable!(),
         }
     }
 
@@ -141,10 +137,7 @@ impl MemoryAccess for Apu {
             PANNING => self.mixer = value.into(),
             MASTER_CONTROL => self.set_master_control(value),
             0xFF27..=0xFF2F => {}
-            _ => eprintln!(
-                "[APU] Unknown address: {:#X} Can't write byte: {:#X}.",
-                address, value
-            ),
+            _ => unreachable!(),
         }
     }
 }
