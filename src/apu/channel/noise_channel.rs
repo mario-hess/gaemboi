@@ -6,7 +6,7 @@
  */
 
 use crate::apu::{
-    channel::{core::ChannelCore, length_counter::LengthCounter, volume_envelope::VolumeEnvelope},
+    channel::{core::ChannelCore, volume_envelope::VolumeEnvelope},
     ComponentTick, MemoryAccess, CH4_END, CH4_START, LENGTH_TIMER_MAX,
 };
 
@@ -22,7 +22,6 @@ const DIVISORS: [u8; 8] = [8, 16, 32, 48, 64, 80, 96, 112];
 // https://nightshade256.github.io/2021/03/27/gb-sound-emulation.html
 pub struct NoiseChannel {
     pub core: ChannelCore,
-    pub length_counter: LengthCounter,
     pub volume_envelope: VolumeEnvelope,
     lfsr: u16,
     clock_divider: u8,
@@ -89,7 +88,6 @@ impl NoiseChannel {
     pub fn new() -> Self {
         Self {
             core: ChannelCore::default(),
-            length_counter: LengthCounter::default(),
             volume_envelope: VolumeEnvelope::default(),
             lfsr: 0x7FFF,
             clock_divider: 0,
@@ -107,13 +105,13 @@ impl NoiseChannel {
         self.lfsr = 0xFFFF;
         self.volume_envelope.counter = 0;
 
-        if self.length_counter.timer == 0 {
-            self.length_counter.timer = LENGTH_TIMER_MAX;
+        if self.core.length_counter.timer == 0 {
+            self.core.length_counter.timer = LENGTH_TIMER_MAX;
         }
     }
 
     fn set_length_timer(&mut self, value: u8) {
-        self.length_counter.timer = LENGTH_TIMER_MAX - (value & 0x3F) as u16;
+        self.core.length_counter.timer = LENGTH_TIMER_MAX - (value & 0x3F) as u16;
     }
 
     fn set_volume_envelope(&mut self, value: u8) {
@@ -140,7 +138,7 @@ impl NoiseChannel {
     }
 
     fn get_control(&self) -> u8 {
-        let length_enabled = if self.length_counter.enabled {
+        let length_enabled = if self.core.length_counter.enabled {
             0x40
         } else {
             0x00
@@ -151,7 +149,7 @@ impl NoiseChannel {
     }
 
     fn set_control(&mut self, value: u8) {
-        self.length_counter.enabled = value & 0x40 != 0;
+        self.core.length_counter.enabled = value & 0x40 != 0;
         let triggered = value & 0x80 != 0;
         if triggered {
             self.trigger();
@@ -160,7 +158,7 @@ impl NoiseChannel {
 
     pub fn reset(&mut self, channel: ChannelType) {
         self.core.reset();
-        self.length_counter.reset(channel);
+        self.core.length_counter.reset(channel);
         self.volume_envelope.reset();
         self.lfsr = 0x7FFF;
         self.clock_divider = 0;

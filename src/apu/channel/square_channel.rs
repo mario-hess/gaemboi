@@ -7,7 +7,7 @@
 
 use crate::apu::{
     channel::{
-        core::ChannelCore, length_counter::LengthCounter, sweep::Sweep,
+        core::ChannelCore, sweep::Sweep,
         volume_envelope::VolumeEnvelope,
     },
     ComponentTick, MemoryAccess, LENGTH_TIMER_MAX,
@@ -44,7 +44,6 @@ pub enum ChannelType {
 
 pub struct SquareChannel {
     pub core: ChannelCore,
-    pub length_counter: LengthCounter,
     pub volume_envelope: VolumeEnvelope,
     pub sweep: Option<Sweep>,
     pub sequence: u8,
@@ -130,7 +129,6 @@ impl SquareChannel {
 
         Self {
             core: ChannelCore::new(sweep_enabled),
-            length_counter: LengthCounter::default(),
             volume_envelope: VolumeEnvelope::new(volume_envelope),
             sweep,
             sequence: 0,
@@ -157,21 +155,21 @@ impl SquareChannel {
             sweep.sequence = 0;
         }
 
-        if self.length_counter.timer == 0 {
-            self.length_counter.timer = LENGTH_TIMER_MAX;
+        if self.core.length_counter.timer == 0 {
+            self.core.length_counter.timer = LENGTH_TIMER_MAX;
         }
     }
 
     fn get_length_timer(&self) -> u8 {
         let wave_duty = (self.wave_duty & 0x03) << 6;
-        let length_timer = (self.length_counter.timer & 0x3F) as u8;
+        let length_timer = (self.core.length_counter.timer & 0x3F) as u8;
 
         0x3F | wave_duty | length_timer
     }
 
     fn set_length_timer(&mut self, value: u8) {
         self.wave_duty = (value & 0xC0) >> 6;
-        self.length_counter.timer = LENGTH_TIMER_MAX - (value & 0x3F) as u16;
+        self.core.length_counter.timer = LENGTH_TIMER_MAX - (value & 0x3F) as u16;
     }
 
     fn set_volume_envelope(&mut self, value: u8) {
@@ -195,7 +193,7 @@ impl SquareChannel {
 
     fn get_frequency_high(&self) -> u8 {
         let frequency_high = ((self.frequency & 0x0700) >> 8) as u8;
-        let length_enabled = if self.length_counter.enabled {
+        let length_enabled = if self.core.length_counter.enabled {
             0x40
         } else {
             0x00
@@ -211,13 +209,13 @@ impl SquareChannel {
             self.trigger();
         }
 
-        self.length_counter.enabled = value & 0x40 != 0;
+        self.core.length_counter.enabled = value & 0x40 != 0;
         self.frequency = (self.frequency & 0x00FF) | ((value & 0x07) as u16) << 8;
     }
 
     pub fn reset(&mut self, channel: ChannelType) {
         self.core.reset();
-        self.length_counter.reset(channel);
+        self.core.length_counter.reset(channel);
         self.volume_envelope.reset();
         self.sequence = 0;
         self.frequency = 0;

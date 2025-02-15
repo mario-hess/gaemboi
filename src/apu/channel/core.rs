@@ -5,7 +5,10 @@
  * @date    September 13, 2024
  */
 
+use super::length_counter::LengthCounter;
+
 pub struct ChannelCore {
+    pub length_counter: LengthCounter,
     pub enabled: bool,
     pub dac_enabled: bool,
     pub output: u8,
@@ -16,6 +19,7 @@ pub struct ChannelCore {
 impl ChannelCore {
     pub fn new(enabled: bool) -> Self {
         Self {
+            length_counter: LengthCounter::default(),
             enabled,
             dac_enabled: false,
             output: 0,
