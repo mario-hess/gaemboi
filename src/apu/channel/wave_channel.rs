@@ -40,14 +40,7 @@ impl MemoryAccess for WaveChannel {
             VOLUME => self.get_output_level(),
             FREQUENCY_LOW => 0xFF,
             FREQUENCY_HIGH => self.get_frequency_high(),
-            _ => {
-                eprintln!(
-                    "[Wave Channel] Unknown address: {:#X} Can't read byte.",
-                    address
-                );
-
-                0xFF
-            }
+            _ => unreachable!(),
         }
     }
 
@@ -58,10 +51,7 @@ impl MemoryAccess for WaveChannel {
             VOLUME => self.set_output_level(value),
             FREQUENCY_LOW => self.set_frequency_low(value),
             FREQUENCY_HIGH => self.set_frequency_high(value),
-            _ => eprintln!(
-                "[Wave Channel] Unknown address: {:#X} Can't write byte: {:#X}.",
-                address, value
-            ),
+            _ => unreachable!(),
         }
     }
 }

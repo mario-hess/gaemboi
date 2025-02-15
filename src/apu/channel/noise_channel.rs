@@ -37,11 +37,7 @@ impl MemoryAccess for NoiseChannel {
             VOLUME_ENVELOPE => self.volume_envelope.get(),
             FREQUENCY_RANDOMNESS => self.get_frequency_randomness(),
             CONTROL => self.get_control(),
-            _ => {
-                eprintln!("[Noise Channel] Unknown address: {:#X} Can't read byte.", address);
-
-                0xFF
-            }
+            _ => unreachable!(),
         }
     }
 
@@ -51,10 +47,7 @@ impl MemoryAccess for NoiseChannel {
             VOLUME_ENVELOPE => self.set_volume_envelope(value),
             FREQUENCY_RANDOMNESS => self.set_frequency_randomness(value),
             CONTROL => self.set_control(value),
-            _ => eprintln!(
-                "[Noise Channel] Unknown address: {:#X} Can't write byte: {:#X}.",
-                address, value
-            ),
+            _ => unreachable!(),
         }
     }
 }

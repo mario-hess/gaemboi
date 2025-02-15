@@ -66,14 +66,7 @@ impl MemoryAccess for SquareChannel {
             VOLUME_ENVELOPE => self.volume_envelope.get(),
             FREQUENCY_LOW => self.get_frequency_low(),
             FREQUENCY_HIGH => self.get_frequency_high(),
-            _ => {
-                eprintln!(
-                    "[Square Channel] Unknown address: {:#X} Can't read byte.",
-                    address
-                );
-
-                0xFF
-            }
+            _ => unreachable!(),
         }
     }
 
@@ -88,10 +81,7 @@ impl MemoryAccess for SquareChannel {
             VOLUME_ENVELOPE => self.set_volume_envelope(value),
             FREQUENCY_LOW => self.set_frequency_low(value),
             FREQUENCY_HIGH => self.set_frequency_high(value),
-            _ => eprintln!(
-                "[Square Channel] Unknown address: {:#X} Can't write byte: {:#X}.",
-                address, value
-            ),
+            _ => unreachable!(),
         }
     }
 }
@@ -554,4 +544,3 @@ mod ch2_frequency_high_tests {
         assert_eq!(ch2.get_frequency_high(), 0xBF);
     }
 }
-
