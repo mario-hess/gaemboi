@@ -170,7 +170,7 @@ impl TopPanel {
                             }
 
                             ui.add_enabled(
-                                event_handler.fast_forward == 1,
+                                *event_handler.fast_forward.borrow_mut() == 1,
                                 |ui: &mut Ui| {
                                     ui.checkbox(
                                         &mut event_handler.performance_mode,
@@ -182,8 +182,8 @@ impl TopPanel {
                             ui.menu_button("Fast Forward                   >", |ui| {
                                 ui.add(
                                     egui_sdl2_gl::egui::Slider::new(
-                                        &mut event_handler.fast_forward,
-                                        1..=8,
+                                        &mut *event_handler.fast_forward.as_ref().borrow_mut(),
+                                        1..=4,
                                     )
                                     .prefix("Speed: ")
                                     .suffix("x"),

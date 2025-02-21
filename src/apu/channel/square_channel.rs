@@ -124,7 +124,6 @@ impl SquareChannel {
         };
 
         let wave_duty = if sweep_enabled { 0x02 } else { 0x0 };
-
         let volume_envelope = if sweep_enabled { 0xF3 } else { 0x00 };
 
         Self {

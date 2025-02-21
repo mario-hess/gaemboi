@@ -23,7 +23,7 @@ impl SyncBridge {
     pub fn sync(
         &mut self,
         frame_start_time: &Instant,
-        fast_forward: &u32,
+        fast_forward: &u8,
         performance_mode: bool,
         apu_enabled: bool,
         audio_buffer: Arc<Mutex<VecDeque<u8>>>,
@@ -51,7 +51,7 @@ impl SyncBridge {
     fn sleep(
         &mut self,
         frame_start_time: &Instant,
-        fast_forward: &u32,
+        fast_forward: &u8,
         adjustment_factor: Option<f64>,
     ) {
         let elapsed = frame_start_time.elapsed();
@@ -94,7 +94,7 @@ impl SyncBridge {
         self.last_difference_duration = difference_duration;
     }
 
-    fn spin(&self, frame_start_time: &Instant, fast_forward: &u32) {
+    fn spin(&self, frame_start_time: &Instant, fast_forward: &u8) {
         while frame_start_time.elapsed().as_micros()
             < FRAME_DURATION.as_micros() / *fast_forward as u128
         {
