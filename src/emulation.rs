@@ -46,7 +46,7 @@ impl Emulation {
     pub fn new(
         rom_data: Vec<u8>,
         colors: Rc<RefCell<Colors>>,
-        fast_forward: Rc<RefCell<u32>>,
+        fast_forward: Rc<RefCell<u8>>,
     ) -> Result<Self, Box<dyn Error>> {
         let frame_times = Vec::new();
         let frame_count = 0;
@@ -81,8 +81,8 @@ impl Emulation {
 
         let audio_device = create_audio_device(
             audio_subsystem,
-            &self.cpu.memory_bus.apu.left_volume,
-            &self.cpu.memory_bus.apu.right_volume,
+            self.cpu.memory_bus.apu.master_volume.get_left_volume(),
+            self.cpu.memory_bus.apu.master_volume.get_right_volume(),
             &event_handler.volume,
             &mut self.cpu.memory_bus.apu.audio_buffer,
         );

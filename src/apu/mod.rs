@@ -8,6 +8,7 @@
 pub mod audio;
 pub mod channel;
 mod frame_sequencer;
+pub mod master_volume;
 mod mixer;
 pub mod wav_player;
 
@@ -17,6 +18,8 @@ use std::{
     rc::Rc,
     sync::{Arc, Mutex},
 };
+
+use master_volume::MasterVolume;
 
 use crate::{
     apu::{
@@ -69,14 +72,11 @@ pub struct Apu {
     pub ch3: WaveChannel,
     ch4: NoiseChannel,
     frame_sequencer: FrameSequencer,
+    pub master_volume: MasterVolume,
     mixer: Mixer,
-    pub right_volume: u8,
-    vin_right: bool,
-    pub left_volume: u8,
-    vin_left: bool,
     pub enabled: bool,
     counter: u32,
-    sampling_frequency: Rc<RefCell<u32>>,
+    fast_forward: Rc<RefCell<u8>>,
     pub audio_buffer: Arc<Mutex<VecDeque<u8>>>,
 }
 
@@ -95,7 +95,7 @@ impl MemoryAccess for Apu {
             CH3_START..=CH3_END => self.ch3.read_byte(address),
             0xFF1F => 0xFF,
             CH4_START..=CH4_END => self.ch4.read_byte(address),
-            MASTER_VOLUME => self.get_master_volume(),
+            MASTER_VOLUME => self.master_volume.get_master_volume(),
             PANNING => (&self.mixer).into(),
             MASTER_CONTROL => self.get_master_control(),
             0xFF27..=0xFF2F => 0xFF,
@@ -133,7 +133,7 @@ impl MemoryAccess for Apu {
             CH3_START..=CH3_END => self.ch3.write_byte(address, value),
             0xFF1F => {}
             CH4_START..=CH4_END => self.ch4.write_byte(address, value),
-            MASTER_VOLUME => self.set_master_volume(value),
+            MASTER_VOLUME => self.master_volume.set_master_volume(value),
             PANNING => self.mixer = value.into(),
             MASTER_CONTROL => self.set_master_control(value),
             0xFF27..=0xFF2F => {}
@@ -163,7 +163,7 @@ impl ComponentTick for Apu {
         self.counter += t_cycles as u32;
 
         let cpu_cycles_per_sample =
-            CPU_CLOCK_SPEED / SAMPLING_FREQUENCY as u32 * *self.sampling_frequency.borrow();
+            CPU_CLOCK_SPEED / SAMPLING_FREQUENCY as u32 * *self.fast_forward.borrow() as u32;
 
         while self.counter >= cpu_cycles_per_sample {
             let (output_left, output_right) = self.mixer.mix([
@@ -182,21 +182,18 @@ impl ComponentTick for Apu {
 }
 
 impl Apu {
-    pub fn new(sampling_frequency: Rc<RefCell<u32>>) -> Self {
+    pub fn new(fast_forward: Rc<RefCell<u8>>) -> Self {
         Self {
             ch1: SquareChannel::new(ChannelType::CH1),
             ch2: SquareChannel::new(ChannelType::CH2),
             ch3: WaveChannel::new(),
             ch4: NoiseChannel::new(),
             frame_sequencer: FrameSequencer::new(),
+            master_volume: MasterVolume::new(),
             mixer: Mixer::default(),
-            right_volume: 0x07,
-            vin_right: false,
-            left_volume: 0x07,
-            vin_left: false,
             enabled: true,
             counter: 0,
-            sampling_frequency,
+            fast_forward,
             audio_buffer: Arc::new(Mutex::new(VecDeque::new())),
         }
     }
@@ -235,30 +232,6 @@ impl Apu {
         }
     }
 
-    /*
-     * 0xFF24 — NR50 (Master volume)
-     * Bit 4-6: Left volume, Bit 0-2: Right volume
-     * These specify the master volume, i.e. how much each outputvshould be scaled.
-     * A value of 0 is treated as a volume of 1 (very quiet), and a value of 7 is
-     * treated as a volume of 8 (no volume reduction). Importantly, the amplifier
-     * never mutes a non-silent input.
-     */
-    fn get_master_volume(&self) -> u8 {
-        let right_volume = self.right_volume;
-        let vin_right = if self.vin_right { 0x08 } else { 0 };
-        let left_volume = self.left_volume << 4;
-        let vin_left = if self.vin_left { 0x80 } else { 0 };
-
-        right_volume | vin_right | left_volume | vin_left
-    }
-
-    fn set_master_volume(&mut self, value: u8) {
-        self.right_volume = value & 0x07;
-        self.vin_right = value & 0x08 != 0;
-        self.left_volume = (value & 0x70) >> 4;
-        self.vin_left = value & 0x80 != 0;
-    }
-
     fn reset(&mut self) {
         self.ch1.reset(ChannelType::CH1);
         self.ch2.reset(ChannelType::CH2);
@@ -266,11 +239,7 @@ impl Apu {
         self.ch4.reset(ChannelType::CH4);
         self.frame_sequencer.reset();
         self.mixer.reset();
-
-        self.left_volume = 0;
-        self.vin_left = false;
-        self.right_volume = 0;
-        self.vin_right = false;
+        self.master_volume.reset();
         self.counter = 0;
         self.audio_buffer.lock().unwrap().clear();
     }

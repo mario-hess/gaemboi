@@ -40,7 +40,7 @@ impl Cpu {
     pub fn new(
         rom_data: Vec<u8>,
         colors: Rc<RefCell<Colors>>,
-        fast_forward: Rc<RefCell<u32>>,
+        fast_forward: Rc<RefCell<u8>>,
     ) -> Result<Self, Box<dyn Error>> {
         // If the header checksum is 0x00, then the carry and
         // half-carry flags are clear; otherwise, they are both set

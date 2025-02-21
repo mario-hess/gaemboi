@@ -5,6 +5,10 @@
  * @date    May 26, 2024
  */
 
+const MASK_STEP: u8 = 0x07;
+const MASK_DIR: u8 = 0x08;
+const MASK_PACE: u8 = 0x70;
+
 pub struct Sweep {
     step: u8,
     direction: bool,
@@ -29,34 +33,36 @@ impl Sweep {
 
         self.sequence += 1;
 
-        if self.sequence >= self.pace {
-            let delta = *frequency >> self.step;
-
-            *frequency = if self.direction {
-                frequency.saturating_sub(delta)
-            } else {
-                frequency.saturating_add(delta)
-            };
-
-            // Overflow check
-            if *frequency > 0x07FF {
-                *channel_enabled = false;
-                *frequency = 0x07FF;
-            }
-
-            self.sequence = 0;
+        if self.sequence < self.pace {
+            return;
         }
+
+        let delta = *frequency >> self.step;
+
+        *frequency = if self.direction {
+            frequency.saturating_sub(delta)
+        } else {
+            frequency.saturating_add(delta)
+        };
+
+        // Overflow check
+        if *frequency > 0x07FF {
+            *channel_enabled = false;
+            *frequency = 0x07FF;
+        }
+
+        self.sequence = 0;
     }
 
     pub fn set(&mut self, value: u8) {
-        self.step = value & 0x07;
-        self.direction = (value & 0x08) != 0x00;
-        self.pace = (value & 0x70) >> 4;
+        self.step = value & MASK_STEP;
+        self.direction = (value & MASK_DIR) != 0x00;
+        self.pace = (value & MASK_PACE) >> 4;
     }
 
     pub fn get(&self) -> u8 {
-        let step = self.step & 0x07;
-        let direction = if self.direction { 0x08 } else { 0x0 };
+        let step = self.step & MASK_STEP;
+        let direction = if self.direction { MASK_DIR } else { 0x0 };
         let pace = (self.pace & 0x07) << 4;
 
         0x80 | step | direction | pace

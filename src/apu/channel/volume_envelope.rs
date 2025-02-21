@@ -5,6 +5,10 @@
  * @date    May 25, 2024
  */
 
+const MASK_PACE: u8 = 0x07;
+const MASK_DIR: u8 = 0x08;
+const MASK_VOL: u8 = 0xF0;
+
 pub struct VolumeEnvelope {
     pub enabled: bool,
     pub counter: u8,
@@ -15,9 +19,9 @@ pub struct VolumeEnvelope {
 
 impl VolumeEnvelope {
     pub fn new(value: u8) -> Self {
-        let pace = value & 0x07;
-        let direction = (value & 0x08) != 0;
-        let volume = (value & 0xF0) >> 4;
+        let pace = value & MASK_PACE;
+        let direction = (value & MASK_DIR) != 0;
+        let volume = (value & MASK_VOL) >> 4;
 
         Self {
             enabled: false,
@@ -52,16 +56,16 @@ impl VolumeEnvelope {
     }
 
     pub fn set(&mut self, value: u8) {
-        self.pace = value & 0x07;
-        self.direction = value & 0x08 != 0;
-        self.volume = (value & 0xF0) >> 4;
+        self.pace = value & MASK_PACE;
+        self.direction = value & MASK_DIR != 0;
+        self.volume = (value & MASK_VOL) >> 4;
         self.enabled = self.pace > 0;
         self.counter = 0;
     }
 
     pub fn get(&self) -> u8 {
-        let pace = self.pace & 0x07;
-        let direction = if self.direction { 0x08 } else { 0x00 };
+        let pace = self.pace & MASK_PACE;
+        let direction = if self.direction { MASK_DIR } else { 0x00 };
         let volume = (self.volume & 0x0F) << 4;
 
         pace | direction | volume
@@ -120,7 +124,7 @@ mod volume_envelope_tests {
         let value = 0x07;
         volume_envelope.set(value);
 
-        assert_eq!(volume_envelope.get(), 0x07);
+        assert_eq!(volume_envelope.get(), MASK_PACE);
     }
 
     #[test]
@@ -130,16 +134,16 @@ mod volume_envelope_tests {
         let value = 0x08;
         volume_envelope.set(value);
 
-        assert_eq!(volume_envelope.get(), 0x08);
+        assert_eq!(volume_envelope.get(), MASK_DIR);
     }
 
     #[test]
     fn saturate_volume() {
         let mut volume_envelope = VolumeEnvelope::default();
 
-        let value = 0xF0;
+        let value = MASK_VOL;
         volume_envelope.set(value);
 
-        assert_eq!(volume_envelope.get(), 0xF0);
+        assert_eq!(volume_envelope.get(), MASK_VOL);
     }
 }

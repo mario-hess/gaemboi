@@ -198,7 +198,7 @@ impl MemoryBus {
     pub fn new(
         rom_data: Vec<u8>,
         colors: Rc<RefCell<Colors>>,
-        fast_forward: Rc<RefCell<u32>>,
+        fast_forward: Rc<RefCell<u8>>,
     ) -> Result<Self, Box<dyn Error>> {
         let cartridge = Cartridge::build(rom_data)?;
 

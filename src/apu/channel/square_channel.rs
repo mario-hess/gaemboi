@@ -181,6 +181,13 @@ impl SquareChannel {
         if !self.core.dac_enabled {
             self.core.enabled = false;
         }
+
+        // Writes to this register while the channel is on
+        // require retriggering it afterwards. If the write
+        // turns the channel off, retriggering is not necessary
+        if self.core.enabled {
+            self.trigger();
+        }
     }
 
     fn get_frequency_low(&self) -> u8 {

@@ -40,7 +40,7 @@ pub struct EventHandler {
     pub volume: u8,
     pub last_volume: u8,
     pub volume_slider: bool,
-    pub fast_forward: Rc<RefCell<u32>>,
+    pub fast_forward: Rc<RefCell<u8>>,
     pub performance_mode: bool,
     pub show_waveform: bool,
     pub show_square_waves: bool,
