@@ -84,7 +84,7 @@ impl Emulation {
             self.cpu.memory_bus.apu.master_volume.get_left_volume(),
             self.cpu.memory_bus.apu.master_volume.get_right_volume(),
             &event_handler.volume,
-            &mut self.cpu.memory_bus.apu.audio_buffer,
+            self.cpu.memory_bus.apu.audio_buffer.clone(),
         );
         audio_device.resume();
 

@@ -19,7 +19,7 @@ pub const SAMPLING_RATE: u16 = 1476; // 44100×(1/59.7275)≈738(MONO)≈1476(ST
 pub const SAMPLING_FREQUENCY: u16 = 44100;
 
 pub struct Audio<'a> {
-    pub audio_buffer: &'a mut Arc<Mutex<VecDeque<u8>>>,
+    pub audio_buffer: Arc<Mutex<VecDeque<u8>>>,
     left_master: &'a u8,
     right_master: &'a u8,
     volume: &'a u8,
@@ -27,7 +27,7 @@ pub struct Audio<'a> {
 
 impl<'a> Audio<'a> {
     pub fn new(
-        audio_buffer: &'a mut Arc<Mutex<VecDeque<u8>>>,
+        audio_buffer: Arc<Mutex<VecDeque<u8>>>,
         left_master: &'a u8,
         right_master: &'a u8,
         volume: &'a u8,
@@ -68,7 +68,7 @@ pub fn create_audio_device<'a>(
     left_volume: &'a u8,
     right_volume: &'a u8,
     volume: &'a u8,
-    audio_buffer: &'a mut Arc<Mutex<VecDeque<u8>>>,
+    audio_buffer: Arc<Mutex<VecDeque<u8>>>,
 ) -> AudioDevice<Audio<'a>> {
     let device = AudioSpecDesired {
         freq: Some(SAMPLING_FREQUENCY as i32),
