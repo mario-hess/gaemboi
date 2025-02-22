@@ -33,6 +33,7 @@ use egui_sdl2_gl::{
 };
 
 use {
+    apu::ogg_player::create_audio_theme,
     emulation::{ComponentTick, Emulation, MemoryAccess},
     ppu::{colors::Colors, VIEWPORT_HEIGHT, VIEWPORT_WIDTH},
     ui::UIManager,
@@ -129,8 +130,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     while !event_handler.quit {
         match event_handler.state {
             State::Splash => {
-                let wav_device = apu::wav_player::create_audio_theme(&audio_subsystem)?;
-                wav_device.resume();
+                let audio_device = create_audio_theme(&audio_subsystem, &event_handler.volume, "./audio/splash.ogg")?;
+                audio_device.resume();
+
                 while !event_handler.quit {
                     let frame_start_time = std::time::Instant::now();
                     let time = start_time.elapsed().as_secs_f64();

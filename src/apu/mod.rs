@@ -10,7 +10,7 @@ pub mod channel;
 mod frame_sequencer;
 pub mod master_volume;
 mod mixer;
-pub mod wav_player;
+pub mod ogg_player;
 
 use std::{
     cell::RefCell,
