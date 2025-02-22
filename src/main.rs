@@ -82,7 +82,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Global colors
     let colors = Rc::new(RefCell::new(Colors::new()));
-    let frame_paths = generate_frame_paths(2, 14);
 
     // Build window
     let mut window = video_subsystem
@@ -122,7 +121,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     // Setup UI
-    let mut ui_manager = UIManager::new(&mut painter, colors.clone(), &frame_paths);
+    let mut ui_manager = UIManager::new(&mut painter, colors.clone());
 
     let start_time = std::time::Instant::now();
 
@@ -130,7 +129,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     while !event_handler.quit {
         match event_handler.state {
             State::Splash => {
-                let audio_device = create_audio_theme(&audio_subsystem, &event_handler.volume, "./audio/splash.ogg")?;
+                let audio_device = create_audio_theme(
+                    &audio_subsystem,
+                    &event_handler.volume,
+                    "./audio/splash.ogg",
+                )?;
                 audio_device.resume();
 
                 while !event_handler.quit {
@@ -255,12 +258,6 @@ fn initialize_gamepad(controller_subsystem: GameControllerSubsystem) -> Option<G
             }
         }
     })
-}
-
-fn generate_frame_paths(start: usize, end: usize) -> Vec<String> {
-    (start..=end)
-        .map(|i| format!("./images/splash/gaemboi{}.png", i))
-        .collect()
 }
 
 fn read_file(file_path: &String) -> Result<Vec<u8>, Box<dyn Error>> {

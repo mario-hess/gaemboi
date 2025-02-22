@@ -14,10 +14,7 @@ use egui_sdl2_gl::{
 };
 
 use image::GenericImageView;
-use std::{
-    path::Path,
-    time::{Duration, Instant},
-};
+use std::time::{Duration, Instant};
 
 use crate::{
     cpu::Cpu,
@@ -43,18 +40,14 @@ pub struct CentralPanel {
 }
 
 impl CentralPanel {
-    pub fn new(
-        painter: &mut Painter,
-        colors: Rc<RefCell<Colors>>,
-        frame_paths: &Vec<String>,
-    ) -> Self {
+    pub fn new(painter: &mut Painter, colors: Rc<RefCell<Colors>>) -> Self {
         let mut splash_frames = Vec::new();
         let mut width = 0;
         let mut height = 0;
 
         // Load all frames into memory
-        for path in frame_paths {
-            let img = image::open(Path::new(path)).expect("Failed to load frame image");
+        for frame_data in get_splash_frames() {
+            let img = image::load_from_memory(frame_data).expect("Failed to load frame image");
             let (img_width, img_height) = img.dimensions();
             width = img_width as usize; // Assuming all frames have the same dimensions
             height = img_height as usize;
@@ -246,4 +239,16 @@ impl CentralPanel {
                 }
             });
     }
+}
+
+macro_rules! include_splash_frames {
+    ($($i:expr),+) => {
+        vec![
+            $(include_bytes!(concat!("../../images/splash/gaemboi", $i, ".png"))),+
+        ]
+    };
+}
+
+fn get_splash_frames() -> Vec<&'static [u8]> {
+    include_splash_frames!(2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14)
 }

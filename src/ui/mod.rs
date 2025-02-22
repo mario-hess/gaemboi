@@ -38,10 +38,10 @@ pub struct UIManager {
 }
 
 impl UIManager {
-    pub fn new(painter: &mut Painter, colors: Rc<RefCell<Colors>>, frame_paths: &Vec<String>) -> Self {
+    pub fn new(painter: &mut Painter, colors: Rc<RefCell<Colors>>) -> Self {
         Self {
             top_panel: TopPanel::new(),
-            central_panel: CentralPanel::new(painter, colors, frame_paths),
+            central_panel: CentralPanel::new(painter, colors),
             current_view: View::Viewport,
             previous_view: View::Viewport,
         }
