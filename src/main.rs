@@ -132,7 +132,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                 let audio_device = create_audio_theme(
                     &audio_subsystem,
                     &event_handler.volume,
-                    "./audio/splash.ogg",
                 )?;
                 audio_device.resume();
 

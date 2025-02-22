@@ -6,8 +6,7 @@ use lewton::inside_ogg::OggStreamReader;
 use lewton::samples::InterleavedSamples;
 use std::{
     error::Error,
-    fs::File,
-    io::BufReader,
+    io::{BufReader, Cursor},
     sync::{Arc, Mutex},
 };
 
@@ -43,9 +42,9 @@ impl AudioCallback for OggPlayer<'_> {
 pub fn create_audio_theme<'a>(
     audio_subsystem: &AudioSubsystem,
     volume: &'a u8,
-    file_path: &str,
 ) -> Result<AudioDevice<OggPlayer<'a>>, Box<dyn Error>> {
-    let file = BufReader::new(File::open(file_path)?);
+    let file_bytes = include_bytes!("../../audio/splash.ogg");
+    let file = BufReader::new(Cursor::new(file_bytes));
     let mut ogg_stream = OggStreamReader::new(file)?;
 
     let mut audio_data = Vec::new();
