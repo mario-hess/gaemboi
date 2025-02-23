@@ -5,7 +5,9 @@
  * @date    May 28, 2024
  */
 
-use std::{cell::RefCell, error::Error, rc::Rc};
+use std::{cell::RefCell, error::Error, rc::Rc, sync::Arc};
+
+use ringbuf::{storage::Heap, wrap::caching::Caching, SharedRb};
 
 use crate::{
     apu::{Apu, AUDIO_END, AUDIO_START},
@@ -199,13 +201,14 @@ impl MemoryBus {
         rom_data: Vec<u8>,
         colors: Rc<RefCell<Colors>>,
         fast_forward: Rc<RefCell<u8>>,
+        prod: Caching<Arc<SharedRb<Heap<u8>>>, true, false>
     ) -> Result<Self, Box<dyn Error>> {
         let cartridge = Cartridge::build(rom_data)?;
 
         Ok(Self {
             cartridge,
             ppu: Ppu::new(colors),
-            apu: Apu::new(fast_forward),
+            apu: Apu::new(fast_forward, prod),
             wram: [0; 8192],
             hram: [0; 128],
             interrupt_enabled: 0x00,

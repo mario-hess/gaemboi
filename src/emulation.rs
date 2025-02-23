@@ -1,15 +1,16 @@
-use std::{
-    cell::RefCell,
-    error::Error,
-    rc::Rc,
-    time::Instant,
-};
+use std::{cell::RefCell, error::Error, rc::Rc, sync::Arc, time::Instant};
 
 use egui_sdl2_gl::{
     egui::Context,
     painter::Painter,
     sdl2::{video::Window, AudioSubsystem, EventPump},
     EguiStateHandler,
+};
+
+use ringbuf::{
+    storage::Heap,
+    wrap::{caching::Caching, Wrap},
+    SharedRb,
 };
 
 use crate::{
@@ -47,6 +48,7 @@ impl Emulation {
         rom_data: Vec<u8>,
         colors: Rc<RefCell<Colors>>,
         fast_forward: Rc<RefCell<u8>>,
+        prod: Caching<Arc<SharedRb<Heap<u8>>>, true, false>,
     ) -> Result<Self, Box<dyn Error>> {
         let frame_times = Vec::new();
         let frame_count = 0;
@@ -54,7 +56,7 @@ impl Emulation {
         let fps = 0.0;
 
         Ok(Self {
-            cpu: Cpu::new(rom_data, colors, fast_forward)?,
+            cpu: Cpu::new(rom_data, colors, fast_forward, prod)?,
             clock: Clock::new(),
             frame_times,
             frame_count,
@@ -76,15 +78,17 @@ impl Emulation {
         ui_manager: &mut UIManager,
         colors: Rc<RefCell<Colors>>,
         audio_subsystem: &AudioSubsystem,
+        cons: Caching<Arc<SharedRb<Heap<u8>>>, false, true>,
     ) {
         let mut sync_bridge = SyncBridge::new();
+        let ring_buffer_ref = cons.rb_ref().clone();
 
         let audio_device = create_audio_device(
             audio_subsystem,
             self.cpu.memory_bus.apu.master_volume.get_left_volume(),
             self.cpu.memory_bus.apu.master_volume.get_right_volume(),
             &event_handler.volume,
-            self.cpu.memory_bus.apu.audio_buffer.clone(),
+            cons,
         );
         audio_device.resume();
 
@@ -137,7 +141,7 @@ impl Emulation {
                 &fast_forward,
                 event_handler.performance_mode,
                 self.cpu.memory_bus.apu.enabled,
-                self.cpu.memory_bus.apu.audio_buffer.clone(),
+                ring_buffer_ref.clone(),
             );
 
             let frame_time = frame_start_time.elapsed().as_secs_f32();
