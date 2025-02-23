@@ -12,24 +12,20 @@ pub mod master_volume;
 mod mixer;
 pub mod ogg_player;
 
-use std::{
-    cell::RefCell,
-    collections::VecDeque,
-    rc::Rc,
-    sync::{Arc, Mutex},
-};
+use std::{cell::RefCell, rc::Rc, sync::Arc};
 
-use master_volume::MasterVolume;
+use ringbuf::{storage::Heap, traits::Producer, wrap::caching::Caching, SharedRb};
 
 use crate::{
     apu::{
-        audio::{SAMPLING_FREQUENCY, SAMPLING_RATE},
+        audio::SAMPLING_FREQUENCY,
         channel::{
             noise_channel::NoiseChannel,
             square_channel::{ChannelType, SquareChannel},
             wave_channel::{WaveChannel, WAVE_PATTERN_END, WAVE_PATTERN_START},
         },
         frame_sequencer::FrameSequencer,
+        master_volume::MasterVolume,
         mixer::Mixer,
     },
     cpu::clock::CPU_CLOCK_SPEED,
@@ -38,9 +34,6 @@ use crate::{
 
 pub const APU_CLOCK_SPEED: u16 = 512;
 pub const LENGTH_TIMER_MAX: u16 = 64;
-
-pub const AUDIO_BUFFER_THRESHOLD_MIN: usize = SAMPLING_RATE as usize * 4;
-pub const AUDIO_BUFFER_THRESHOLD_MAX: usize = SAMPLING_RATE as usize * 8;
 
 const CH1_START: u16 = 0xFF10;
 const CH1_END: u16 = 0xFF14;
@@ -75,9 +68,9 @@ pub struct Apu {
     pub master_volume: MasterVolume,
     mixer: Mixer,
     pub enabled: bool,
-    counter: u32,
+    counter: f64,
     fast_forward: Rc<RefCell<u8>>,
-    pub audio_buffer: Arc<Mutex<VecDeque<u8>>>,
+    prod: Caching<Arc<SharedRb<Heap<u8>>>, true, false>,
 }
 
 impl MemoryAccess for Apu {
@@ -160,10 +153,10 @@ impl ComponentTick for Apu {
 
         self.tick_channels(m_cycles);
 
-        self.counter += t_cycles as u32;
+        self.counter += t_cycles as f64;
 
-        let cpu_cycles_per_sample =
-            CPU_CLOCK_SPEED / SAMPLING_FREQUENCY as u32 * *self.fast_forward.borrow() as u32;
+        let cpu_cycles_per_sample = CPU_CLOCK_SPEED as f64 / (SAMPLING_FREQUENCY as f64)
+            * *self.fast_forward.borrow() as f64;
 
         while self.counter >= cpu_cycles_per_sample {
             let (output_left, output_right) = self.mixer.mix([
@@ -173,8 +166,8 @@ impl ComponentTick for Apu {
                 &self.ch4.core,
             ]);
 
-            self.audio_buffer.lock().unwrap().push_back(output_left);
-            self.audio_buffer.lock().unwrap().push_back(output_right);
+            if let Ok(()) = self.prod.try_push(output_left) {};
+            if let Ok(()) = self.prod.try_push(output_right) {};
 
             self.counter -= cpu_cycles_per_sample;
         }
@@ -182,7 +175,10 @@ impl ComponentTick for Apu {
 }
 
 impl Apu {
-    pub fn new(fast_forward: Rc<RefCell<u8>>) -> Self {
+    pub fn new(
+        fast_forward: Rc<RefCell<u8>>,
+        prod: Caching<Arc<SharedRb<Heap<u8>>>, true, false>,
+    ) -> Self {
         Self {
             ch1: SquareChannel::new(ChannelType::CH1),
             ch2: SquareChannel::new(ChannelType::CH2),
@@ -192,9 +188,9 @@ impl Apu {
             master_volume: MasterVolume::new(),
             mixer: Mixer::default(),
             enabled: true,
-            counter: 0,
+            counter: 0.0,
             fast_forward,
-            audio_buffer: Arc::new(Mutex::new(VecDeque::new())),
+            prod,
         }
     }
 
@@ -240,8 +236,7 @@ impl Apu {
         self.frame_sequencer.reset();
         self.mixer.reset();
         self.master_volume.reset();
-        self.counter = 0;
-        self.audio_buffer.lock().unwrap().clear();
+        self.counter = 0.0;
     }
 }
 

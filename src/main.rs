@@ -32,6 +32,8 @@ use egui_sdl2_gl::{
     DpiScaling, ShaderVersion,
 };
 
+use ringbuf::{traits::Split, HeapRb};
+
 use {
     apu::ogg_player::create_audio_theme,
     emulation::{ComponentTick, Emulation, MemoryAccess},
@@ -41,7 +43,7 @@ use {
 
 use std::{cell::RefCell, error::Error, io::Read, rc::Rc};
 
-const FRAME_DURATION_MS: f64 = 16.7433;
+const FRAME_DURATION_MS: f64 = 16.742706458499015;
 const FRAME_DURATION_MICROS: u64 = (FRAME_DURATION_MS * 1_000.0) as u64;
 const FRAME_DURATION: std::time::Duration = std::time::Duration::from_micros(FRAME_DURATION_MICROS);
 pub const FPS: f32 = 59.7275;
@@ -129,10 +131,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     while !event_handler.quit {
         match event_handler.state {
             State::Splash => {
-                let audio_device = create_audio_theme(
-                    &audio_subsystem,
-                    &event_handler.volume,
-                )?;
+                let audio_device = create_audio_theme(&audio_subsystem, &event_handler.volume)?;
                 audio_device.resume();
 
                 while !event_handler.quit {
@@ -188,10 +187,14 @@ fn main() -> Result<(), Box<dyn Error>> {
                     }
                 };
 
+                let ring_buffer = HeapRb::<u8>::new(512 * 16);
+                let (prod, cons) = ring_buffer.split();
+
                 let mut emulation = match Emulation::new(
                     rom_data,
                     colors.clone(),
                     event_handler.fast_forward.clone(),
+                    prod,
                 ) {
                     Ok(emulation) => emulation,
                     Err(error) => {
@@ -217,6 +220,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     &mut ui_manager,
                     colors.clone(),
                     &audio_subsystem,
+                    cons,
                 );
 
                 emulation

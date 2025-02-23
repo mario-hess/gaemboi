@@ -183,7 +183,7 @@ impl TopPanel {
                                 ui.add(
                                     egui_sdl2_gl::egui::Slider::new(
                                         &mut *event_handler.fast_forward.as_ref().borrow_mut(),
-                                        1..=4,
+                                        1..=16,
                                     )
                                     .prefix("Speed: ")
                                     .suffix("x"),

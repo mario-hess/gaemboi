@@ -1,13 +1,14 @@
 use std::{
-    collections::VecDeque,
-    sync::{Arc, Mutex},
+    sync::Arc,
     time::{Duration, Instant},
 };
 
-use crate::{
-    apu::{AUDIO_BUFFER_THRESHOLD_MAX, AUDIO_BUFFER_THRESHOLD_MIN},
-    FRAME_DURATION, FRAME_DURATION_MICROS,
-};
+use ringbuf::{storage::Heap, traits::Observer, SharedRb};
+
+use crate::{apu::audio::SAMPLING_RATE, FRAME_DURATION, FRAME_DURATION_MICROS};
+
+const THRESHOLD_MIN: usize = SAMPLING_RATE as usize * 4;
+const THRESHOLD_MAX: usize = SAMPLING_RATE as usize * 8;
 
 pub struct SyncBridge {
     last_difference_duration: Duration,
@@ -26,34 +27,30 @@ impl SyncBridge {
         fast_forward: &u8,
         performance_mode: bool,
         apu_enabled: bool,
-        audio_buffer: Arc<Mutex<VecDeque<u8>>>,
+        ring_buffer_ref: Arc<SharedRb<Heap<u8>>>,
     ) {
         if apu_enabled {
-            let buffer_size = audio_buffer.lock().unwrap().len();
-            if performance_mode {
-                if buffer_size > AUDIO_BUFFER_THRESHOLD_MAX {
-                    self.sleep(frame_start_time, fast_forward, Some(1.2));
-                } else if buffer_size < AUDIO_BUFFER_THRESHOLD_MIN {
-                    self.sleep(frame_start_time, fast_forward, Some(0.8));
+            if ring_buffer_ref.occupied_len() > THRESHOLD_MIN {
+                if performance_mode {
+                    self.sleep(frame_start_time, fast_forward);
+
+                    if ring_buffer_ref.occupied_len() > THRESHOLD_MAX {
+                        while ring_buffer_ref.occupied_len() > THRESHOLD_MIN {
+                            std::thread::sleep(std::time::Duration::from_millis(1));
+                        }
+                    }
                 } else {
-                    self.sleep(frame_start_time, fast_forward, None);
+                    self.spin(frame_start_time, fast_forward);
                 }
-            } else if buffer_size > AUDIO_BUFFER_THRESHOLD_MIN {
-                self.spin(frame_start_time, fast_forward);
             }
         } else if performance_mode {
-            self.sleep(frame_start_time, fast_forward, None);
+            self.sleep(frame_start_time, fast_forward);
         } else {
             self.spin(frame_start_time, fast_forward);
         }
     }
 
-    fn sleep(
-        &mut self,
-        frame_start_time: &Instant,
-        fast_forward: &u8,
-        adjustment_factor: Option<f64>,
-    ) {
+    fn sleep(&mut self, frame_start_time: &Instant, fast_forward: &u8) {
         let elapsed = frame_start_time.elapsed();
         let frame_duration = Duration::from_micros(FRAME_DURATION_MICROS / *fast_forward as u64);
 
@@ -69,14 +66,8 @@ impl SyncBridge {
             base_target_duration
         };
 
-        let adjusted_target_duration = if let Some(factor) = adjustment_factor {
-            new_target_duration.mul_f64(factor)
-        } else {
+        let target_duration = if new_target_duration.as_micros() > 0 {
             new_target_duration
-        };
-
-        let target_duration = if adjusted_target_duration.as_micros() > 0 {
-            adjusted_target_duration
         } else {
             Duration::from_micros(0)
         };
