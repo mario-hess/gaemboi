@@ -41,6 +41,12 @@ impl SyncBridge {
                     }
                 } else {
                     self.spin(frame_start_time, fast_forward);
+
+                    if ring_buffer_ref.occupied_len() > THRESHOLD_MAX {
+                        while ring_buffer_ref.occupied_len() > THRESHOLD_MIN {
+                            std::hint::spin_loop();
+                        }
+                    }
                 }
             }
         } else if performance_mode {
