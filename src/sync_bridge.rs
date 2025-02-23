@@ -34,25 +34,19 @@ impl SyncBridge {
                 if performance_mode {
                     self.sleep(frame_start_time, fast_forward);
 
-                    if ring_buffer_ref.occupied_len() > THRESHOLD_MAX {
-                        while ring_buffer_ref.occupied_len() > THRESHOLD_MIN {
-                            std::thread::sleep(std::time::Duration::from_millis(1));
-                        }
-                    }
+                    balance_buffer(&ring_buffer_ref, || {
+                        std::thread::sleep(std::time::Duration::from_millis(1))
+                    });
                 } else {
-                    self.spin(frame_start_time, fast_forward);
+                    spin(frame_start_time, fast_forward);
 
-                    if ring_buffer_ref.occupied_len() > THRESHOLD_MAX {
-                        while ring_buffer_ref.occupied_len() > THRESHOLD_MIN {
-                            std::hint::spin_loop();
-                        }
-                    }
+                    balance_buffer(&ring_buffer_ref, || std::hint::spin_loop());
                 }
             }
         } else if performance_mode {
             self.sleep(frame_start_time, fast_forward);
         } else {
-            self.spin(frame_start_time, fast_forward);
+            spin(frame_start_time, fast_forward);
         }
     }
 
@@ -90,12 +84,23 @@ impl SyncBridge {
 
         self.last_difference_duration = difference_duration;
     }
+}
 
-    fn spin(&self, frame_start_time: &Instant, fast_forward: &u8) {
-        while frame_start_time.elapsed().as_micros()
-            < FRAME_DURATION.as_micros() / *fast_forward as u128
-        {
-            std::hint::spin_loop();
+fn spin(frame_start_time: &Instant, fast_forward: &u8) {
+    while frame_start_time.elapsed().as_micros()
+        < FRAME_DURATION.as_micros() / *fast_forward as u128
+    {
+        std::hint::spin_loop();
+    }
+}
+
+fn balance_buffer<F>(ring_buffer_ref: &Arc<SharedRb<Heap<u8>>>, wait_action: F)
+where
+    F: Fn(),
+{
+    if ring_buffer_ref.occupied_len() > THRESHOLD_MAX {
+        while ring_buffer_ref.occupied_len() > THRESHOLD_MIN {
+            wait_action();
         }
     }
 }
