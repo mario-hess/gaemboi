@@ -11,7 +11,6 @@
 This is a Nintendo Game Boy emulator written in Rust. It aims to accurately emulate the functionality and behaviour of the original Game Boy hardware.
 
 > [!NOTE]
-> 🚧 **Major Rewrite in Progress** 🚧  
 > This project is undergoing a complete rewrite!  
 > - The **emulator will be structured as a library**, fully decoupled from the frontend.  
 > - A **new frontend** will be developed once the rewrite is complete.  
