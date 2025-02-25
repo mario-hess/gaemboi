@@ -36,7 +36,7 @@ https://github.com/user-attachments/assets/6b97481f-a2d1-4a82-ada2-1b08983c6b42
 - [x] Save/Load game progress
 - [x] Input handling
 - [x] Gamepad support
-- [x] Fast forward (Up to 4x)
+- [x] Fast forward (Up to 16x)
 - [x] Custom Color Scheme
 - [x] Custom Keybinds
 
