@@ -93,22 +93,22 @@ Replace <rom_file_name> with the name of your Game Boy ROM file (.gb).
 
 | Status | Failure Example | Failure Description | Functionality Tested |
 | ------ | --------------- | ------------------- | -------------------- |
-| :heavy_check_mark: | ![failure image](images/dmg_acid2/1_nose_missing.png) |  Nose missing | Object Palette (bit 4) |
-| :heavy_check_mark: | ![failure image](images/dmg_acid2/2_nose_tiles_fipped.png) | Nose tiles flipped, right eyelash flipped | Object Horizontal Flip (bit 5) |
-| :heavy_check_mark: | ![failure image](images/dmg_acid2/3_nose_tiles_flipped.png) | Nose tiles filpped, mouth straight, eye whites bottom left wrong | Object Vertical Flip (bit 6) |
-| :heavy_check_mark: | ![failure image](images/dmg_acid2/4_eye_whites_left.png) | Eye whites left half wrong | Object to Background Priority (bit 7) |
-| :heavy_check_mark: | ![failure image](images/dmg_acid2/5_hair_visible.png) | Hair visible | Background Enable (bit 0) |
-| :heavy_check_mark: | ![failure image](images/dmg_acid2/6_tongue_visible.png) | Tongue visible | Object Enable (bit 1) |
-| :heavy_check_mark: | ![failure image](images/dmg_acid2/7_half_mouth_missing.png) | Half of mouth missing | Object Size (bit 2) |
-| :heavy_check_mark: | ![failure image](images/dmg_acid2/8_footer_missing.png) | Footer missing | Background Tile Map (bit 3) |
-| :heavy_check_mark: | ![failure image](images/dmg_acid2/9_eye_whites_top_left.png) | Eye whites top left quadrant wrong | Background/Window Tile Data (bit 4) |
-| :heavy_check_mark: | ![failure image](images/dmg_acid2/10_half_footer_missing.png) | Half of footer missing | Window Enable (bit 5) |
-| :heavy_check_mark: | ![failure image](images/dmg_acid2/11_right_chin_missing.png) | Right chin missing | Window Tile Map (bit 6) |
-| :heavy_check_mark: | ![failure image](images/dmg_acid2/12_eye_displayed.png) | Eye displayed instead of right chin | Window internal line counter |
-| :heavy_check_mark: | ![failure image](images/dmg_acid2/13_left_mole.png) | Left mole visible | Object Priority Lower X Coordinate |
-| :heavy_check_mark: | ![failure image](images/dmg_acid2/14_right_mole.png) | Right mole visible | Object Priority Same X Coordinate |
-| :heavy_check_mark: | ![failure image](images/dmg_acid2/15_hello_world.png) | Hello World missing exclaimation mark (!) | 10 object per line limit |
-| :heavy_check_mark: | ![failure image](images/dmg_acid2/16_half_mouth.png) | Half of mouth missing | Bit 0 of tile index for 8x16 objects should be ignored |
+| :heavy_check_mark: | ![failure image](media/images/dmg_acid2/1_nose_missing.png) |  Nose missing | Object Palette (bit 4) |
+| :heavy_check_mark: | ![failure image](media/images/dmg_acid2/2_nose_tiles_fipped.png) | Nose tiles flipped, right eyelash flipped | Object Horizontal Flip (bit 5) |
+| :heavy_check_mark: | ![failure image](media/images/dmg_acid2/3_nose_tiles_flipped.png) | Nose tiles filpped, mouth straight, eye whites bottom left wrong | Object Vertical Flip (bit 6) |
+| :heavy_check_mark: | ![failure image](media/images/dmg_acid2/4_eye_whites_left.png) | Eye whites left half wrong | Object to Background Priority (bit 7) |
+| :heavy_check_mark: | ![failure image](media/images/dmg_acid2/5_hair_visible.png) | Hair visible | Background Enable (bit 0) |
+| :heavy_check_mark: | ![failure image](media/images/dmg_acid2/6_tongue_visible.png) | Tongue visible | Object Enable (bit 1) |
+| :heavy_check_mark: | ![failure image](media/images/dmg_acid2/7_half_mouth_missing.png) | Half of mouth missing | Object Size (bit 2) |
+| :heavy_check_mark: | ![failure image](media/images/dmg_acid2/8_footer_missing.png) | Footer missing | Background Tile Map (bit 3) |
+| :heavy_check_mark: | ![failure image](media/images/dmg_acid2/9_eye_whites_top_left.png) | Eye whites top left quadrant wrong | Background/Window Tile Data (bit 4) |
+| :heavy_check_mark: | ![failure image](media/images/dmg_acid2/10_half_footer_missing.png) | Half of footer missing | Window Enable (bit 5) |
+| :heavy_check_mark: | ![failure image](media/images/dmg_acid2/11_right_chin_missing.png) | Right chin missing | Window Tile Map (bit 6) |
+| :heavy_check_mark: | ![failure image](media/images/dmg_acid2/12_eye_displayed.png) | Eye displayed instead of right chin | Window internal line counter |
+| :heavy_check_mark: | ![failure image](media/images/dmg_acid2/13_left_mole.png) | Left mole visible | Object Priority Lower X Coordinate |
+| :heavy_check_mark: | ![failure image](media/images/dmg_acid2/14_right_mole.png) | Right mole visible | Object Priority Same X Coordinate |
+| :heavy_check_mark: | ![failure image](media/images/dmg_acid2/15_hello_world.png) | Hello World missing exclaimation mark (!) | 10 object per line limit |
+| :heavy_check_mark: | ![failure image](media/images/dmg_acid2/16_half_mouth.png) | Half of mouth missing | Bit 0 of tile index for 8x16 objects should be ignored |
 
 ## Tested Games
 | Status | Game Title |
