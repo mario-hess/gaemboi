@@ -244,7 +244,7 @@ impl CentralPanel {
 macro_rules! include_splash_frames {
     ($($i:expr),+) => {
         vec![
-            $(include_bytes!(concat!("../../images/splash/gaemboi", $i, ".png"))),+
+            $(include_bytes!(concat!("../../media/images/splash/gaemboi", $i, ".png"))),+
         ]
     };
 }

@@ -2,7 +2,7 @@
 
 <div align="center">
 <a href="https://github.com/mario-hess/gaemboi">
-<img src="https://i.imgur.com/YLVsUAa.gif" alt="Logo" width="360">
+<img src="https://i.imgur.com/XbTtMdU.gif" alt="Logo" width="360">
 </a>
 </div>
 
@@ -18,6 +18,10 @@ This is a Nintendo Game Boy emulator written in Rust. It aims to accurately emul
 >  
 > **Important:** The rewrite is happening in a separate branch and **will not be merged into `main` until it is finished**.  
 > Stay tuned for updates!
+
+## Showcase
+
+https://github.com/user-attachments/assets/6b97481f-a2d1-4a82-ada2-1b08983c6b42
 
 ## Features
 
@@ -35,13 +39,6 @@ This is a Nintendo Game Boy emulator written in Rust. It aims to accurately emul
 - [x] Fast forward (Up to 4x)
 - [x] Custom Color Scheme
 - [x] Custom Keybinds
-
-## Screenshots
-
-<div>
-<img src="https://i.imgur.com/W8PJx8G.gif" alt="Pokemon Intro" width="320">
-<img src="https://i.imgur.com/87n0Ovh.gif" alt="Pokemon Idle" width="320">
-</div>
 
 ## Getting Started
 

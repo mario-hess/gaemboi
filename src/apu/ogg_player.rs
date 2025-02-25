@@ -43,7 +43,7 @@ pub fn create_audio_theme<'a>(
     audio_subsystem: &AudioSubsystem,
     volume: &'a u8,
 ) -> Result<AudioDevice<OggPlayer<'a>>, Box<dyn Error>> {
-    let file_bytes = include_bytes!("../../audio/splash.ogg");
+    let file_bytes = include_bytes!("../../media/audio/splash.ogg");
     let file = BufReader::new(Cursor::new(file_bytes));
     let mut ogg_stream = OggStreamReader::new(file)?;
 
