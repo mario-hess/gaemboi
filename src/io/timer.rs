@@ -90,12 +90,14 @@ impl ComponentTick for Timer {
         self.tima_counter += t_cycles;
 
         while self.tima_counter >= self.tac_cycles {
-            if self.tima == u8::MAX {
-                self.tima_overflowed = true;
+            let (value, overflowed) = self.tima.overflowing_add(1);
+            self.tima = value;
+            self.tima_overflowed = overflowed;
+
+            if self.tima_overflowed {
                 return;
             }
 
-            self.tima = self.tima.wrapping_add(1);
             self.tima_counter -= self.tac_cycles;
         }
     }
