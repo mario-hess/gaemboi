@@ -53,13 +53,13 @@ pub fn add_n(cpu: &mut Cpu, bus: &Bus) -> CycleDuration {
 pub fn add_a_hl(cpu: &mut Cpu, bus: &Bus) -> CycleDuration {
     let a = cpu.registers.get_a();
     let hl = cpu.registers.get_hl();
-    let value = bus.read_byte(hl);
+    let byte = bus.read_byte(hl);
 
-    let result = a.wrapping_add(value);
+    let result = a.wrapping_add(byte);
     cpu.registers.set_a(result);
 
-    let half_carry = HalfCarry::add_from_u8(a, value);
-    let carry = Carry::add_from_u8(a, value);
+    let half_carry = HalfCarry::add_from_u8(a, byte);
+    let carry = Carry::add_from_u8(a, byte);
 
     cpu.registers.flags.set_zero(result == 0);
     cpu.registers.flags.set_subtract(false);
@@ -69,7 +69,7 @@ pub fn add_a_hl(cpu: &mut Cpu, bus: &Bus) -> CycleDuration {
     CycleDuration::Default
 }
 
-// Add the value in r16 to HL
+// Add the byte in r16 to HL
 pub fn add_hl_rr(cpu: &mut Cpu, target: Target) -> CycleDuration {
     let rr = cpu.registers.get_pair(&target);
     let hl = cpu.registers.get_hl();
@@ -78,7 +78,7 @@ pub fn add_hl_rr(cpu: &mut Cpu, target: Target) -> CycleDuration {
     cpu.registers.set_hl(result);
 
     let half_carry = HalfCarry::add_from_u16(hl, rr);
-    let carry = Carry::add_from_u16(result, hl);
+    let carry = Carry::add_from_u16(hl, rr);
 
     cpu.registers.flags.set_subtract(false);
     cpu.registers.flags.set_half_carry(half_carry);
@@ -87,7 +87,7 @@ pub fn add_hl_rr(cpu: &mut Cpu, target: Target) -> CycleDuration {
     CycleDuration::Default
 }
 
-// Add the value in SP to HL
+// Add the byte in SP to HL
 pub fn add_hl_sp(cpu: &mut Cpu) -> CycleDuration {
     let hl = cpu.registers.get_hl();
     let sp = cpu.stack.get_pointer();
@@ -96,7 +96,7 @@ pub fn add_hl_sp(cpu: &mut Cpu) -> CycleDuration {
     cpu.registers.set_hl(result);
 
     let half_carry = HalfCarry::add_from_u16(hl, sp);
-    let carry = Carry::add_from_u16(result, hl);
+    let carry = Carry::add_from_u16(hl, sp);
 
     cpu.registers.flags.set_subtract(false);
     cpu.registers.flags.set_half_carry(half_carry);
@@ -105,7 +105,7 @@ pub fn add_hl_sp(cpu: &mut Cpu) -> CycleDuration {
     CycleDuration::Default
 }
 
-// Add the signed immediate value to SP
+// Add the signed immediate byte to SP
 pub fn add_sp_n(cpu: &mut Cpu, bus: &Bus) -> CycleDuration {
     let n = bus.read_byte(cpu.program_counter.next()) as i8;
     let sp = cpu.stack.get_pointer() as i32;
@@ -174,14 +174,14 @@ pub fn adc_n(cpu: &mut Cpu, bus: &Bus) -> CycleDuration {
 pub fn adc_hl(cpu: &mut Cpu, bus: &Bus) -> CycleDuration {
     let a = cpu.registers.get_a();
     let hl = cpu.registers.get_hl();
-    let value = bus.read_byte(hl);
+    let byte = bus.read_byte(hl);
     let carry: u8 = cpu.registers.flags.get_carry().into();
 
-    let result = a.wrapping_add(carry).wrapping_add(value);
+    let result = a.wrapping_add(carry).wrapping_add(byte);
     cpu.registers.set_a(result);
 
-    let half_carry = HalfCarry::add_from_u8_with_carry(a, value, carry);
-    let carry = Carry::add_from_u8_with_carry(a, value, carry);
+    let half_carry = HalfCarry::add_from_u8_with_carry(a, byte, carry);
+    let carry = Carry::add_from_u8_with_carry(a, byte, carry);
 
     cpu.registers.flags.set_zero(result == 0);
     cpu.registers.flags.set_subtract(false);
@@ -240,13 +240,13 @@ pub fn sub_n(cpu: &mut Cpu, bus: &Bus) -> CycleDuration {
 pub fn sub_hl(cpu: &mut Cpu, bus: &Bus) -> CycleDuration {
     let a = cpu.registers.get_a();
     let hl = cpu.registers.get_hl();
-    let value = bus.read_byte(hl);
+    let byte = bus.read_byte(hl);
 
-    let result = a.wrapping_sub(value);
+    let result = a.wrapping_sub(byte);
     cpu.registers.set_a(result);
 
-    let half_carry = HalfCarry::sub_from_u8(a, value);
-    let carry = Carry::sub_from_u8(a, value);
+    let half_carry = HalfCarry::sub_from_u8(a, byte);
+    let carry = Carry::sub_from_u8(a, byte);
 
     cpu.registers.flags.set_zero(result == 0);
     cpu.registers.flags.set_subtract(true);
@@ -308,14 +308,14 @@ pub fn sbc_n(cpu: &mut Cpu, bus: &Bus) -> CycleDuration {
 pub fn sbc_hl(cpu: &mut Cpu, bus: &Bus) -> CycleDuration {
     let a = cpu.registers.get_a();
     let hl = cpu.registers.get_hl();
-    let value = bus.read_byte(hl);
+    let byte = bus.read_byte(hl);
     let carry: u8 = cpu.registers.flags.get_carry().into();
 
-    let result = a.wrapping_sub(carry).wrapping_sub(value);
+    let result = a.wrapping_sub(carry).wrapping_sub(byte);
     cpu.registers.set_a(result);
 
-    let half_carry = HalfCarry::sub_from_u8_with_carry(a, value, carry);
-    let carry = Carry::sub_from_u8_with_carry(a, value, carry);
+    let half_carry = HalfCarry::sub_from_u8_with_carry(a, byte, carry);
+    let carry = Carry::sub_from_u8_with_carry(a, byte, carry);
 
     cpu.registers.flags.set_zero(result == 0);
     cpu.registers.flags.set_subtract(true);
@@ -368,9 +368,9 @@ pub fn and_n(cpu: &mut Cpu, bus: &Bus) -> CycleDuration {
 pub fn and_hl(cpu: &mut Cpu, bus: &Bus) -> CycleDuration {
     let a = cpu.registers.get_a();
     let hl = cpu.registers.get_hl();
-    let data = bus.read_byte(hl);
+    let byte = bus.read_byte(hl);
 
-    let result = a & data;
+    let result = a & byte;
     cpu.registers.set_a(result);
 
     cpu.registers.flags.set_zero(result == 0);
@@ -399,8 +399,8 @@ pub fn inc_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
 
 // Increments data in the 16-bit target register by 1
 pub fn inc_rr(cpu: &mut Cpu, target: Target) -> CycleDuration {
-    let value = cpu.registers.get_pair(&target);
-    cpu.registers.set_pair(target, value.wrapping_add(1));
+    let byte = cpu.registers.get_pair(&target);
+    cpu.registers.set_pair(target, byte.wrapping_add(1));
 
     CycleDuration::Default
 }
@@ -409,12 +409,12 @@ pub fn inc_rr(cpu: &mut Cpu, target: Target) -> CycleDuration {
 // by the 16-bit register HL
 pub fn inc_hl(cpu: &mut Cpu, bus: &mut Bus) -> CycleDuration {
     let hl = cpu.registers.get_hl();
-    let value = bus.read_byte(hl);
+    let byte = bus.read_byte(hl);
 
-    let result = value.wrapping_add(1);
+    let result = byte.wrapping_add(1);
     bus.write_byte(hl, result);
 
-    let half_carry = HalfCarry::add_from_u8(value, 1);
+    let half_carry = HalfCarry::add_from_u8(byte, 1);
 
     cpu.registers.flags.set_zero(result == 0);
     cpu.registers.flags.set_subtract(false);
@@ -469,12 +469,12 @@ pub fn dec_sp(cpu: &mut Cpu) -> CycleDuration {
 // specified by the 16-bit register HL
 pub fn dec_hl(cpu: &mut Cpu, bus: &mut Bus) -> CycleDuration {
     let hl = cpu.registers.get_hl();
-    let value = bus.read_byte(hl);
+    let byte = bus.read_byte(hl);
 
-    let result = value.wrapping_sub(1);
+    let result = byte.wrapping_sub(1);
     bus.write_byte(hl, result);
 
-    let half_carry = HalfCarry::sub_from_u8(value, 1);
+    let half_carry = HalfCarry::sub_from_u8(byte, 1);
 
     cpu.registers.flags.set_zero(result == 0);
     cpu.registers.flags.set_subtract(true);
@@ -526,9 +526,9 @@ pub fn or_n(cpu: &mut Cpu, bus: &Bus) -> CycleDuration {
 pub fn or_hl(cpu: &mut Cpu, bus: &Bus) -> CycleDuration {
     let a = cpu.registers.get_a();
     let hl = cpu.registers.get_hl();
-    let value = bus.read_byte(hl);
+    let byte = bus.read_byte(hl);
 
-    let result = a | value;
+    let result = a | byte;
     cpu.registers.set_a(result);
 
     cpu.registers.flags.set_zero(result == 0);
@@ -544,9 +544,9 @@ pub fn or_hl(cpu: &mut Cpu, bus: &Bus) -> CycleDuration {
 // and stores the result back into the A register
 pub fn xor_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
     let a = cpu.registers.get_a();
-    let value = cpu.registers.get_register(&target);
+    let byte = cpu.registers.get_register(&target);
 
-    let result = a ^ value;
+    let result = a ^ byte;
     cpu.registers.set_a(result);
 
     cpu.registers.flags.set_zero(result == 0);
@@ -582,9 +582,9 @@ pub fn xor_n(cpu: &mut Cpu, bus: &Bus) -> CycleDuration {
 pub fn xor_hl(cpu: &mut Cpu, bus: &Bus) -> CycleDuration {
     let a = cpu.registers.get_a();
     let hl = cpu.registers.get_hl();
-    let value = bus.read_byte(hl);
+    let byte = bus.read_byte(hl);
 
-    let result = a ^ value;
+    let result = a ^ byte;
     cpu.registers.set_a(result);
 
     cpu.registers.flags.set_zero(result == 0);
@@ -645,12 +645,12 @@ pub fn cp_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
 pub fn cp_hl(cpu: &mut Cpu, bus: &Bus) -> CycleDuration {
     let a = cpu.registers.get_a();
     let hl = cpu.registers.get_hl();
-    let value = bus.read_byte(hl);
+    let byte = bus.read_byte(hl);
 
-    let result = a.wrapping_sub(value);
+    let result = a.wrapping_sub(byte);
 
-    let half_carry = HalfCarry::sub_from_u8(a, value);
-    let carry = Carry::sub_from_u8(a, value);
+    let half_carry = HalfCarry::sub_from_u8(a, byte);
+    let carry = Carry::sub_from_u8(a, byte);
 
     cpu.registers.flags.set_zero(result == 0);
     cpu.registers.flags.set_subtract(true);

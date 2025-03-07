@@ -4,19 +4,16 @@ use crate::{
         instruction::{CycleDuration, Target},
         Cpu,
     },
+    utils::constants::{BIT_0_MASK, BIT_7_MASK},
 };
-
-const MSB: u8 = 0x80;
-const LSB: u8 = 0x01;
 
 // Shifts all the bits of the register to the
 // right by one position
 pub fn srl_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
     let r = cpu.registers.get_register(&target);
 
-    let shifted_out = (r & LSB) != 0;
+    let shifted_out = (r & BIT_0_MASK) != 0;
     let result = r >> 1;
-
     cpu.registers.set_register(target, result);
 
     cpu.registers.flags.set_zero(result == 0);
@@ -33,9 +30,8 @@ pub fn srl_hl(cpu: &mut Cpu, bus: &mut Bus) -> CycleDuration {
     let address = cpu.registers.get_hl();
     let byte = bus.read_byte(address);
 
-    let shifted_out = (byte & LSB) != 0;
+    let shifted_out = (byte & BIT_0_MASK) != 0;
     let result = byte >> 1;
-
     bus.write_byte(address, result);
 
     cpu.registers.flags.set_zero(result == 0);
@@ -50,11 +46,10 @@ pub fn srl_hl(cpu: &mut Cpu, bus: &mut Bus) -> CycleDuration {
 pub fn sla_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
     let r = cpu.registers.get_register(&target);
 
-    let shifted_out = (r & MSB) != 0;
+    let shifted_out = (r & BIT_7_MASK) != 0;
     let result = r << 1;
 
     cpu.registers.set_register(target, result);
-
     cpu.registers.flags.set_zero(result == 0);
     cpu.registers.flags.set_subtract(false);
     cpu.registers.flags.set_half_carry(false);
@@ -68,9 +63,8 @@ pub fn sla_hl(cpu: &mut Cpu, bus: &mut Bus) -> CycleDuration {
     let address = cpu.registers.get_hl();
     let byte = bus.read_byte(address);
 
-    let shifted_out = (byte & MSB) != 0;
+    let shifted_out = (byte & BIT_7_MASK) != 0;
     let result = byte << 1;
-
     bus.write_byte(address, result);
 
     cpu.registers.flags.set_zero(result == 0);
@@ -85,9 +79,8 @@ pub fn sla_hl(cpu: &mut Cpu, bus: &mut Bus) -> CycleDuration {
 pub fn sra_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
     let r = cpu.registers.get_register(&target);
 
-    let shifted_out = (r & LSB) != 0;
-    let result = (r >> 1) | (r & MSB);
-
+    let shifted_out = (r & BIT_0_MASK) != 0;
+    let result = (r >> 1) | (r & BIT_7_MASK);
     cpu.registers.set_register(target, result);
 
     cpu.registers.flags.set_zero(result == 0);
@@ -103,9 +96,8 @@ pub fn sra_hl(cpu: &mut Cpu, bus: &mut Bus) -> CycleDuration {
     let address = cpu.registers.get_hl();
     let byte = bus.read_byte(address);
 
-    let shifted_out = (byte & LSB) != 0;
-    let result = (byte >> 1) | (byte & MSB);
-
+    let shifted_out = (byte & BIT_0_MASK) != 0;
+    let result = (byte >> 1) | (byte & BIT_7_MASK);
     bus.write_byte(address, result);
 
     cpu.registers.flags.set_zero(result == 0);
@@ -120,8 +112,7 @@ pub fn sra_hl(cpu: &mut Cpu, bus: &mut Bus) -> CycleDuration {
 pub fn swap_r(cpu: &mut Cpu, target: Target) -> CycleDuration {
     let r = cpu.registers.get_register(&target);
 
-    let result = (r >> 4) | (r << 4);
-
+    let result = r.rotate_left(4);
     cpu.registers.set_register(target, result);
 
     cpu.registers.flags.set_zero(result == 0);
@@ -137,8 +128,7 @@ pub fn swap_hl(cpu: &mut Cpu, bus: &mut Bus) -> CycleDuration {
     let address = cpu.registers.get_hl();
     let byte = bus.read_byte(address);
 
-    let result = (byte >> 4) | (byte << 4);
-
+    let result = byte.rotate_left(4);
     bus.write_byte(address, result);
 
     cpu.registers.flags.set_zero(result == 0);

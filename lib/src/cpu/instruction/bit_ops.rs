@@ -13,9 +13,8 @@ pub fn bit_r(cpu: &mut Cpu, position: u8, target: Target) -> CycleDuration {
 
     let bitmask: u8 = 1 << position;
     let result = byte & bitmask;
-    let is_set = result != 0;
 
-    cpu.registers.flags.set_zero(!is_set);
+    cpu.registers.flags.set_zero(result == 0);
     cpu.registers.flags.set_subtract(false);
     cpu.registers.flags.set_half_carry(true);
 
@@ -30,9 +29,8 @@ pub fn bit_hl(cpu: &mut Cpu, bus: &mut Bus, position: u8) -> CycleDuration {
 
     let bitmask: u8 = 1 << position;
     let result = byte & bitmask;
-    let is_set = result != 0;
 
-    cpu.registers.flags.set_zero(!is_set);
+    cpu.registers.flags.set_zero(result == 0);
     cpu.registers.flags.set_subtract(false);
     cpu.registers.flags.set_half_carry(true);
 
@@ -45,7 +43,6 @@ pub fn res_r(cpu: &mut Cpu, position: u8, target: Target) -> CycleDuration {
 
     let bitmask: u8 = !(1 << position);
     let result = byte & bitmask;
-
     cpu.registers.set_register(target, result);
 
     CycleDuration::Default
@@ -58,7 +55,6 @@ pub fn res_hl(cpu: &mut Cpu, bus: &mut Bus, position: u8) -> CycleDuration {
 
     let bitmask: u8 = !(1 << position);
     let result = byte & bitmask;
-
     bus.write_byte(address, result);
 
     CycleDuration::Default
@@ -70,7 +66,6 @@ pub fn set_r(cpu: &mut Cpu, position: u8, target: Target) -> CycleDuration {
 
     let bitmask: u8 = 1 << position;
     let result = byte | bitmask;
-
     cpu.registers.set_register(target, result);
 
     CycleDuration::Default
@@ -83,7 +78,6 @@ pub fn set_hl(cpu: &mut Cpu, bus: &mut Bus, position: u8) -> CycleDuration {
 
     let bitmask: u8 = 1 << position;
     let result = byte | bitmask;
-
     bus.write_byte(address, result);
 
     CycleDuration::Default
