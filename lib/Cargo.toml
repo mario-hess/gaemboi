@@ -1,0 +1,8 @@
+[package]
+name = "gaemboi"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "gaemboi"
+path = "src/lib.rs"
