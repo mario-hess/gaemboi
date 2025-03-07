@@ -5,7 +5,6 @@ use gbc::GameBoyColor;
 mod apu;
 mod bus;
 mod cartridge;
-mod config;
 mod cpu;
 mod gbc;
 mod interrupt;
