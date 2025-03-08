@@ -5,10 +5,8 @@ use crate::{
     FrameBufferObserver, InputProvider,
 };
 
-pub struct GameBoyFactory;
-
 pub trait Emulator {
-    fn build(gb_type: GameBoyType, rom_data: &Vec<u8>) -> Result<Self, Box<dyn Error>>
+    fn build(gb_type: &GameBoyType, rom_data: &Vec<u8>) -> Result<Self, Box<dyn Error>>
     where
         Self: Sized;
     fn step_frame(&mut self);
@@ -23,18 +21,20 @@ pub enum GameBoyType {
     GameBoyAdvance,
 }
 
+pub struct GameBoyFactory;
+
 impl GameBoyFactory {
     pub fn build(
-        gb_type: GameBoyType,
+        gb_type: &GameBoyType,
         rom_data: &Vec<u8>,
     ) -> Result<Box<dyn Emulator>, Box<dyn Error>> {
         match gb_type {
             GameBoyType::GameBoyClassic | GameBoyType::GameBoyColor => {
-                let gbc = GameBoyClassic::build(gb_type, rom_data)?;
+                let gbc = GameBoyClassic::build(&gb_type, rom_data)?;
                 Ok(Box::new(gbc))
             }
             GameBoyType::GameBoyAdvance => {
-                let gba = GameBoyAdvance::build(gb_type, rom_data)?;
+                let gba = GameBoyAdvance::build(&gb_type, rom_data)?;
                 Ok(Box::new(gba))
             }
         }

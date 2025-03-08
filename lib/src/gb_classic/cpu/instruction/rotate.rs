@@ -1,8 +1,10 @@
-use crate::gb_classic::{
-    bus::Bus,
-    cpu::{
-        instruction::{CycleDuration, Target},
-        Cpu,
+use crate::{
+    gb_classic::{
+        bus::Bus,
+        cpu::{
+            instruction::{CycleDuration, Target},
+            Cpu,
+        },
     },
     utils::constants::{BIT_0_MASK, BIT_7_MASK},
 };

@@ -1,5 +1,5 @@
 #![cfg_attr(rustfmt, rustfmt::skip)]
-use crate::{gb_factory::GameBoyType, InputProvider, input_buttons::InputButtons};
+use crate::{utils::input_buttons::InputButtons, InputProvider};
 
 const A_RIGHT_MASK: u8 = 0x01;
 const B_LEFT_MASK: u8 = 0x02;
@@ -18,7 +18,7 @@ pub struct Joypad {
 impl Joypad {
     pub fn new() -> Self {
         Self {
-            input_buttons: InputButtons::new(GameBoyType::GameBoyClassic),
+            input_buttons: InputButtons::new(),
             select_dpad: false,
             select_buttons: false,
             input_provider: None,
@@ -55,7 +55,5 @@ impl Joypad {
 
     pub fn set_inputs(&mut self, input_buttons: InputButtons) {
         self.input_buttons = input_buttons;
-
-        //println!("{:?}", self.input_buttons);
     }
 }

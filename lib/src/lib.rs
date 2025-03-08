@@ -1,9 +1,8 @@
 mod gb_advance;
 mod gb_classic;
-mod gb_factory;
-mod input_buttons;
+mod utils;
 
-pub use crate::{
+pub use crate::utils::{
     gb_factory::{GameBoyFactory, GameBoyType},
     input_buttons::{InputButton, InputButtons},
 };

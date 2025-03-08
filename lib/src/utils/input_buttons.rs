@@ -1,5 +1,3 @@
-use crate::gb_factory::GameBoyType;
-
 pub enum InputButton {
     Left,
     Right,
@@ -13,7 +11,7 @@ pub enum InputButton {
     R,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 pub struct InputButtons {
     left: bool,
     right: bool,
@@ -23,17 +21,12 @@ pub struct InputButtons {
     b: bool,
     select: bool,
     start: bool,
-    l: Option<bool>,
-    r: Option<bool>,
+    l: bool,
+    r: bool,
 }
 
 impl InputButtons {
-    pub fn new(gb_type: GameBoyType) -> Self {
-        let (l, r) = match gb_type {
-            GameBoyType::GameBoyAdvance => (Some(false), Some(false)),
-            _ => (None, None),
-        };
-
+    pub fn new() -> Self {
         Self {
             left: false,
             right: false,
@@ -43,8 +36,8 @@ impl InputButtons {
             b: false,
             select: false,
             start: false,
-            l,
-            r,
+            l: false,
+            r: false,
         }
     }
 
@@ -104,17 +97,17 @@ impl InputButtons {
         self.start = value;
     }
 
-    pub fn get_l(&self) -> Option<bool> {
+    pub fn get_l(&self) -> bool {
         self.l
     }
-    pub fn set_l(&mut self, value: Option<bool>) {
+    pub fn set_l(&mut self, value: bool) {
         self.l = value;
     }
 
-    pub fn get_r(&self) -> Option<bool> {
+    pub fn get_r(&self) -> bool {
         self.r
     }
-    pub fn set_r(&mut self, value: Option<bool>) {
+    pub fn set_r(&mut self, value: bool) {
         self.r = value;
     }
 }

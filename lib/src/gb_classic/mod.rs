@@ -16,7 +16,7 @@ use crate::{
             Cpu,
         },
     },
-    gb_factory::{Emulator, GameBoyType},
+    utils::gb_factory::{Emulator, GameBoyType},
     AudioSamplesObserver, FrameBufferObserver, InputProvider,
 };
 
@@ -29,7 +29,7 @@ pub struct GameBoyClassic {
 }
 
 impl Emulator for GameBoyClassic {
-    fn build(gb_type: GameBoyType, rom_data: &Vec<u8>) -> Result<Self, Box<dyn Error>> {
+    fn build(gb_type: &GameBoyType, rom_data: &Vec<u8>) -> Result<Self, Box<dyn Error>> {
         // If the header checksum is 0x00, then the carry and
         // half-carry flags are clear; otherwise, they are both set
         let flags_enabled = rom_data[HEADER_CHECKSUM_ADDRESS] != 0x00;
