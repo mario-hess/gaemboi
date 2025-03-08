@@ -6,3 +6,6 @@ edition = "2024"
 [dependencies]
 sdl2 = "0.37.0"
 gaemboi = { path = "../../lib" }
+
+[profile.release]
+debug = true
