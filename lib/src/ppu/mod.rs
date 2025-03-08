@@ -72,6 +72,10 @@ pub const LIGHT: u8 = 0b01;
 pub const DARK: u8 = 0b10;
 pub const BLACK: u8 = 0b11;
 
+pub trait FrameBufferObserver {
+    fn on_frame_ready(&mut self, frame_buffer: &[u8]);
+}
+
 // https://gbdev.io/pandocs/Graphics.html
 // https://hacktix.github.io/GBEDG/ppu/
 pub struct Ppu {
@@ -100,8 +104,8 @@ pub struct Ppu {
     tile_height: u8,
     counter: u16,
     pub overlap_map: [bool; OVERLAP_MAP_SIZE],
-    pub viewport_buffer: [u8; BUFFER_SIZE],
-    pub should_draw: bool,
+    pub frame_buffer: [u8; BUFFER_SIZE],
+    frame_observer: Option<Box<dyn FrameBufferObserver>>,
 }
 
 impl Ppu {
@@ -124,9 +128,13 @@ impl Ppu {
             tile_height: TILE_HEIGHT,
             counter: 0,
             overlap_map: [false; OVERLAP_MAP_SIZE],
-            viewport_buffer: [WHITE; BUFFER_SIZE],
-            should_draw: false,
+            frame_buffer: [WHITE; BUFFER_SIZE],
+            frame_observer: None,
         }
+    }
+
+    pub fn set_frame_observer<T: FrameBufferObserver + 'static>(&mut self, observer: T) {
+        self.frame_observer = Some(Box::new(observer));
     }
 
     pub fn read_byte(&self, address: u16) -> u8 {
@@ -270,8 +278,11 @@ impl Ppu {
 
                 if self.scan_y >= LINES_Y {
                     // Draw the current frame to the screen
-                    // TODO: Draw Screen
-                    // TODO: Clear overlap map after draw
+                    if let Some(observer) = &mut self.frame_observer {
+                        observer.on_frame_ready(&self.frame_buffer);
+                    }
+                    self.clear_screen();
+
                     self.interrupts |= VBLANK_MASK;
                     self.lcd_status
                         .set_mode(RenderMode::VBLANK, &mut self.interrupts);
@@ -404,7 +415,7 @@ impl Ppu {
 
             // Calculate the offset for the current pixel and update the viewport buffer
             let offset = scan_x as usize + base_offset;
-            self.viewport_buffer[offset] = pixel;
+            self.frame_buffer[offset] = pixel;
         }
     }
 
@@ -475,7 +486,7 @@ impl Ppu {
 
                 // Calculate the offset for the current pixel and update the viewport buffer
                 let offset = x_offset as usize + base_offset;
-                self.viewport_buffer[offset] = pixel;
+                self.frame_buffer[offset] = pixel;
             }
         }
     }

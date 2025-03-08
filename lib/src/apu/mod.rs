@@ -48,6 +48,10 @@ const MASTER_CONTROL: u16 = 0xFF26; // NR52
 pub const AUDIO_START: u16 = CH1_START;
 pub const AUDIO_END: u16 = WAVE_PATTERN_END;
 
+pub trait AudioSamplesObserver {
+    fn on_samples_ready(&mut self, audio_samples: &(u8, u8));
+}
+
 /*
  * https://gbdev.io/pandocs/Audio.html
  * https://gbdev.gg8.se/wiki/articles/Gameboy_sound_hardware
@@ -63,6 +67,7 @@ pub struct Apu {
     mixer: Mixer,
     pub enabled: bool,
     counter: f64,
+    samples_observer: Option<Box<dyn AudioSamplesObserver>>,
 }
 
 impl Apu {
@@ -77,7 +82,12 @@ impl Apu {
             mixer: Mixer::default(),
             enabled: true,
             counter: 0.0,
+            samples_observer: None,
         }
+    }
+
+    pub fn set_samples_observer<T: AudioSamplesObserver + 'static>(&mut self, observer: T) {
+        self.samples_observer = Some(Box::new(observer));
     }
 
     pub fn read_byte(&self, address: u16) -> u8 {
@@ -160,7 +170,7 @@ impl Apu {
         self.counter += t_cycles as f64;
 
         let cpu_cycles_per_sample = CPU_CLOCK_SPEED as f64 / (SAMPLING_FREQUENCY as f64);
-        // TODO multiply by fast_foward value 
+        // TODO multiply by fast_foward value
 
         while self.counter >= cpu_cycles_per_sample {
             let (output_left, output_right) = self.mixer.mix([
@@ -170,9 +180,9 @@ impl Apu {
                 &self.ch4.core,
             ]);
 
-            // TODO: Deliver samples to frontend
-            // if let Ok(()) = self.prod.try_push(output_left) {};
-            // if let Ok(()) = self.prod.try_push(output_right) {};
+            if let Some(observer) = &mut self.samples_observer {
+                observer.on_samples_ready(&(output_left, output_right));
+            }
 
             self.counter -= cpu_cycles_per_sample;
         }
