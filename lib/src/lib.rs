@@ -1,17 +1,15 @@
-use std::error::Error;
-
-use gbc::GameBoyColor;
-
 mod apu;
 mod bus;
 mod cartridge;
 mod cpu;
-mod gbc;
+mod gb;
 mod interrupt;
 mod io;
 mod ppu;
 mod utils;
 
-pub fn build(rom_data: &Vec<u8>) -> Result<GameBoyColor, Box<dyn Error>> {
-    GameBoyColor::new(rom_data)
-}
+pub use crate::{
+    apu::AudioSamplesObserver,
+    gb::factory::{GameBoyFactory, GameBoyType},
+    ppu::FrameBufferObserver,
+};

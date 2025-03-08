@@ -67,7 +67,7 @@ pub struct Apu {
     mixer: Mixer,
     pub enabled: bool,
     counter: f64,
-    samples_observer: Option<Box<dyn AudioSamplesObserver>>,
+    pub samples_observer: Option<Box<dyn AudioSamplesObserver>>,
 }
 
 impl Apu {
@@ -84,10 +84,6 @@ impl Apu {
             counter: 0.0,
             samples_observer: None,
         }
-    }
-
-    pub fn set_samples_observer<T: AudioSamplesObserver + 'static>(&mut self, observer: T) {
-        self.samples_observer = Some(Box::new(observer));
     }
 
     pub fn read_byte(&self, address: u16) -> u8 {

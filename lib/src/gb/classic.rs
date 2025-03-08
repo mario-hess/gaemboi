@@ -1,3 +1,8 @@
+use crate::{
+    apu::AudioSamplesObserver,
+    gb::factory::{Emulator, GameBoyType},
+    ppu::FrameBufferObserver,
+};
 use std::error::Error;
 
 use crate::{
@@ -10,14 +15,14 @@ use crate::{
 
 const HEADER_CHECKSUM_ADDRESS: usize = 0x014D;
 
-pub struct GameBoyColor {
+pub struct GameBoyClassic {
     cpu: Cpu,
     bus: Bus,
     clock: Clock,
 }
 
-impl GameBoyColor {
-    pub fn new(rom_data: &Vec<u8>) -> Result<Self, Box<dyn Error>> {
+impl Emulator for GameBoyClassic {
+    fn build(gb_type: GameBoyType, rom_data: &Vec<u8>) -> Result<Self, Box<dyn Error>> {
         // If the header checksum is 0x00, then the carry and
         // half-carry flags are clear; otherwise, they are both set
         let flags_enabled = rom_data[HEADER_CHECKSUM_ADDRESS] != 0x00;
@@ -32,7 +37,7 @@ impl GameBoyColor {
         })
     }
 
-    pub fn step_frame(&mut self) {
+    fn step_frame(&mut self) {
         while self.clock.cycles_passed <= CYCLES_PER_FRAME {
             let m_cycles = self.cpu.step(&mut self.bus);
             // TODO: Handle user inputs (self.bus.joypad.handle_input(event_handler));
@@ -41,5 +46,13 @@ impl GameBoyColor {
         }
 
         self.clock.reset();
+    }
+
+    fn set_frame_buffer_observer(&mut self, observer: Box<dyn FrameBufferObserver>) {
+        self.bus.ppu.frame_observer = Some(observer);
+    }
+
+    fn set_audio_samples_observer(&mut self, observer: Box<dyn AudioSamplesObserver>) {
+        self.bus.apu.samples_observer = Some(observer);
     }
 }

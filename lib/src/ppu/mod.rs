@@ -105,7 +105,7 @@ pub struct Ppu {
     counter: u16,
     pub overlap_map: [bool; OVERLAP_MAP_SIZE],
     pub frame_buffer: [u8; BUFFER_SIZE],
-    frame_observer: Option<Box<dyn FrameBufferObserver>>,
+    pub frame_observer: Option<Box<dyn FrameBufferObserver>>,
 }
 
 impl Ppu {
@@ -131,10 +131,6 @@ impl Ppu {
             frame_buffer: [WHITE; BUFFER_SIZE],
             frame_observer: None,
         }
-    }
-
-    pub fn set_frame_observer<T: FrameBufferObserver + 'static>(&mut self, observer: T) {
-        self.frame_observer = Some(Box::new(observer));
     }
 
     pub fn read_byte(&self, address: u16) -> u8 {
