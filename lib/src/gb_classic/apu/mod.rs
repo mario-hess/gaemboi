@@ -179,8 +179,7 @@ impl Apu {
                 let left_volume = self.master_volume.get_left_volume();
                 let right_volume = self.master_volume.get_right_volume();
 
-                observer
-                    .on_samples_ready(&(output_left, output_right), &(left_volume, right_volume));
+                observer.on_samples_ready((output_left, output_right), (left_volume, right_volume));
             }
 
             self.counter -= cpu_cycles_per_sample;

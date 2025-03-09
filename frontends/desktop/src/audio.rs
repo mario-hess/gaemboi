@@ -17,9 +17,9 @@ impl AudioProducer {
         Self { rb_producer }
     }
 
-    fn queue_samples(&mut self, audio_samples: &(u8, u8), volumes: &(u8, u8)) {
-        let (left_sample, right_sample) = *audio_samples;
-        let (left_volume, right_volume) = *volumes;
+    fn queue_samples(&mut self, audio_samples: (u8, u8), volumes: (u8, u8)) {
+        let (left_sample, right_sample) = audio_samples;
+        let (left_volume, right_volume) = volumes;
 
         if let Ok(()) = self.rb_producer.try_push(left_sample * left_volume) {};
         if let Ok(()) = self.rb_producer.try_push(right_sample * right_volume) {};
@@ -31,7 +31,7 @@ impl AudioProducer {
 }
 
 impl AudioSamplesObserver for AudioProducer {
-    fn on_samples_ready(&mut self, audio_samples: &(u8, u8), volumes: &(u8, u8)) {
+    fn on_samples_ready(&mut self, audio_samples: (u8, u8), volumes: (u8, u8)) {
         self.queue_samples(audio_samples, volumes);
     }
 }

@@ -12,7 +12,7 @@ pub trait FrameBufferObserver {
 }
 
 pub trait AudioSamplesObserver {
-    fn on_samples_ready(&mut self, audio_samples: &(u8, u8), volumes: &(u8, u8));
+    fn on_samples_ready(&mut self, audio_samples: (u8, u8), volumes: (u8, u8));
 }
 
 pub trait InputProvider {
