@@ -48,10 +48,12 @@ impl Emulator for GameBoyClassic {
         while self.clock.cycles_passed <= CYCLES_PER_FRAME {
             let m_cycles = self.cpu.step(&mut self.bus);
 
+            /*
             if let Some(provider) = &mut self.bus.joypad.input_provider {
                 let button_state = provider.get_inputs();
                 self.bus.joypad.set_inputs(button_state);
             }
+            */
 
             self.bus.tick(m_cycles);
             self.clock.tick(m_cycles);

@@ -31,6 +31,7 @@ pub enum ChannelType {
 
 pub const APU_CLOCK_SPEED: u16 = 512;
 pub const LENGTH_TIMER_MAX: u16 = 64;
+const CPU_CYCLES_PER_SAMPLE: f64 = CPU_CLOCK_SPEED as f64 / (SAMPLING_FREQUENCY as f64);
 
 const CH1_START: u16 = 0xFF10;
 const CH1_END: u16 = 0xFF14;
@@ -68,7 +69,6 @@ pub struct Apu {
     counter: f64,
     pub samples_observer: Option<Box<dyn AudioSamplesObserver>>,
 }
-
 impl Apu {
     pub fn new() -> Self {
         Self {
@@ -164,10 +164,7 @@ impl Apu {
 
         self.counter += t_cycles as f64;
 
-        let cpu_cycles_per_sample = CPU_CLOCK_SPEED as f64 / (SAMPLING_FREQUENCY as f64);
-        // TODO multiply by fast_foward value
-
-        while self.counter >= cpu_cycles_per_sample {
+        while self.counter >= CPU_CYCLES_PER_SAMPLE {
             let (output_left, output_right) = self.mixer.mix([
                 &self.ch1.core,
                 &self.ch2.core,
@@ -179,10 +176,10 @@ impl Apu {
                 let left_volume = self.master_volume.get_left_volume();
                 let right_volume = self.master_volume.get_right_volume();
 
-                observer.on_samples_ready((output_left, output_right), (left_volume, right_volume));
+                observer.on_samples_ready((output_left * left_volume, output_right * right_volume));
             }
 
-            self.counter -= cpu_cycles_per_sample;
+            self.counter -= CPU_CYCLES_PER_SAMPLE;
         }
     }
 

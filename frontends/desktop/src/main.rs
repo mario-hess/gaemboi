@@ -5,13 +5,16 @@ mod screen;
 mod sync_audio;
 mod utils;
 
-extern crate egui_sdl2_gl as ui;
-
 use gaemboi::{GameBoyFactory, FRAME_DURATION};
+use sdl2::{audio::AudioSpecDesired, pixels::Color};
 use std::{cell::RefCell, error::Error, rc::Rc, time::Instant};
-use ui::sdl2::{audio::AudioSpecDesired, pixels::Color};
 
-use ringbuf::{traits::Split, wrap::Wrap, HeapRb};
+use ringbuf::{
+    storage::Heap,
+    traits::Split,
+    wrap::Wrap,
+    SharedRb,
+};
 
 use crate::{
     audio::{AudioConsumer, AudioProducer},
@@ -22,11 +25,11 @@ use crate::{
 };
 
 const SAMPLING_RATE: u16 = 512;
-const RING_BUFFER_MAX_SIZE: u16 = SAMPLING_RATE * 16;
+const RING_BUFFER_MAX_SIZE: u16 = SAMPLING_RATE * 24;
 const SAMPLING_FREQUENCY: u16 = 44100;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let sdl_context = ui::sdl2::init()?;
+    let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
     let audio_subsystem = sdl_context.audio()?;
 
@@ -55,14 +58,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         channels: Some(2),
     };
 
-    let ring_buffer = HeapRb::<u8>::new(RING_BUFFER_MAX_SIZE.into());
+    let ring_buffer = SharedRb::<Heap<u8>>::new(RING_BUFFER_MAX_SIZE.into());
     let (rb_producer, rb_consumer) = ring_buffer.split();
-    let ring_buffer_ref = rb_consumer.rb_ref().clone();
+    let cons_ref = rb_consumer.rb_ref().clone();
 
-    let audio_producer = AudioProducer::new(rb_producer);
     let audio_consumer = AudioConsumer::new(rb_consumer);
-
     let audio_device = audio_subsystem.open_playback(None, &device, |_spec| audio_consumer)?;
+    let audio_producer = AudioProducer::new(rb_producer);
 
     let screen = Screen::new();
     let inputs = Rc::new(RefCell::new(Inputs::new()));
@@ -73,7 +75,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     gameboy.set_input_provider(Box::new(InputProviderWrapper(inputs.clone())));
 
     let mut sync_bridge = SyncBridge::new();
-
     audio_device.resume();
 
     while !event_handler.quit {
@@ -81,9 +82,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         event_handler.poll(&mut event_pump);
 
         gameboy.step_frame();
+        canvas.present();
 
         //spin(&frame_start_time);
-        sync_bridge.sync(&frame_start_time, ring_buffer_ref.clone());
+        sync_bridge.sync(&frame_start_time, cons_ref.clone());
     }
 
     Ok(())

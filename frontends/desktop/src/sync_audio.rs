@@ -3,12 +3,12 @@ use std::{
     time::{Duration, Instant},
 };
 
-use ringbuf::{SharedRb, storage::Heap, traits::Observer};
+use ringbuf::{storage::Heap, traits::Observer, SharedRb};
 
 use crate::{FRAME_DURATION, SAMPLING_RATE};
 
-const THRESHOLD_MIN: usize = SAMPLING_RATE as usize * 6;
-const THRESHOLD_MAX: usize = SAMPLING_RATE as usize * 12;
+const THRESHOLD_MIN: usize = SAMPLING_RATE as usize * 8;
+const THRESHOLD_MAX: usize = SAMPLING_RATE as usize * 16;
 
 pub struct SyncBridge {
     last_difference_duration: Duration,

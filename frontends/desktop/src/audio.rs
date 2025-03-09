@@ -1,12 +1,12 @@
 use gaemboi::AudioSamplesObserver;
 use ringbuf::{
-    SharedRb,
     storage::Heap,
     traits::{Consumer, Observer, Producer},
     wrap::caching::Caching,
+    SharedRb,
 };
+use sdl2::audio::AudioCallback;
 use std::sync::Arc;
-use ui::sdl2::audio::AudioCallback;
 
 pub struct AudioProducer {
     rb_producer: Caching<Arc<SharedRb<Heap<u8>>>, true, false>,
@@ -17,12 +17,11 @@ impl AudioProducer {
         Self { rb_producer }
     }
 
-    fn queue_samples(&mut self, audio_samples: (u8, u8), volumes: (u8, u8)) {
+    fn queue_samples(&mut self, audio_samples: (u8, u8)) {
         let (left_sample, right_sample) = audio_samples;
-        let (left_volume, right_volume) = volumes;
 
-        if let Ok(()) = self.rb_producer.try_push(left_sample * left_volume) {};
-        if let Ok(()) = self.rb_producer.try_push(right_sample * right_volume) {};
+        if let Ok(()) = self.rb_producer.try_push(left_sample) {}
+        if let Ok(()) = self.rb_producer.try_push(right_sample) {}
     }
 
     pub fn set_volume(&mut self, volume: u8) {
@@ -31,8 +30,8 @@ impl AudioProducer {
 }
 
 impl AudioSamplesObserver for AudioProducer {
-    fn on_samples_ready(&mut self, audio_samples: (u8, u8), volumes: (u8, u8)) {
-        self.queue_samples(audio_samples, volumes);
+    fn on_samples_ready(&mut self, audio_samples: (u8, u8)) {
+        self.queue_samples(audio_samples);
     }
 }
 
@@ -57,7 +56,5 @@ impl AudioCallback for AudioConsumer {
                 *sample = 0;
             }
         }
-
-        //println!("{}", self.rb_consumer.occupied_len());
     }
 }

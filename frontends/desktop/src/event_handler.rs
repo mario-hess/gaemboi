@@ -1,6 +1,6 @@
 use gaemboi::InputButton;
 use std::{cell::RefCell, rc::Rc};
-use ui::sdl2::{EventPump, event::Event, keyboard::Keycode};
+use sdl2::{EventPump, event::Event, keyboard::Keycode};
 
 use crate::inputs::Inputs;
 
