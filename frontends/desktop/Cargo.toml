@@ -1,11 +1,9 @@
 [package]
 name = "desktop"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
 egui_sdl2_gl = "0.31.0"
 gaemboi = { path = "../../lib" }
-
-[profile.release]
-debug = true
+ringbuf = "0.4.7"

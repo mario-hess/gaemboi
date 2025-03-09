@@ -16,6 +16,7 @@ use crate::{
             mixer::Mixer,
         },
         cpu::clock::CPU_CLOCK_SPEED,
+        utils::constants::SAMPLING_FREQUENCY,
     },
     AudioSamplesObserver,
 };
@@ -28,7 +29,6 @@ pub enum ChannelType {
     CH4,
 }
 
-const SAMPLING_FREQUENCY: u16 = 44100;
 pub const APU_CLOCK_SPEED: u16 = 512;
 pub const LENGTH_TIMER_MAX: u16 = 64;
 
@@ -176,7 +176,11 @@ impl Apu {
             ]);
 
             if let Some(observer) = &mut self.samples_observer {
-                observer.on_samples_ready(&(output_left, output_right));
+                let left_volume = self.master_volume.get_left_volume();
+                let right_volume = self.master_volume.get_right_volume();
+
+                observer
+                    .on_samples_ready(&(output_left, output_right), &(left_volume, right_volume));
             }
 
             self.counter -= cpu_cycles_per_sample;

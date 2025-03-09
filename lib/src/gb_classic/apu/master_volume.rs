@@ -31,12 +31,12 @@ impl MasterVolume {
         self.left_vin = value & 0x80 != 0;
     }
 
-    pub fn get_left_volume(&self) -> &u8 {
-        &self.left_volume
+    pub fn get_left_volume(&self) -> u8 {
+        self.left_volume
     }
 
-    pub fn get_right_volume(&self) -> &u8 {
-        &self.right_volume
+    pub fn get_right_volume(&self) -> u8 {
+        self.right_volume
     }
 
     pub fn reset(&mut self) {

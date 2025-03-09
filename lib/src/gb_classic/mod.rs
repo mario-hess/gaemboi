@@ -4,7 +4,7 @@ mod cartridge;
 mod cpu;
 mod io;
 mod ppu;
-mod utils;
+pub mod utils;
 
 use std::error::Error;
 
