@@ -1,0 +1,9 @@
+[package]
+name = "egui_sdl2"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+gaemboi = { path = "../../../lib" }
+egui_sdl2_gl = "0.31.0"
+ringbuf = "0.4.7"
