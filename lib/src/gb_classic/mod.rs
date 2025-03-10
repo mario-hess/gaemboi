@@ -23,7 +23,7 @@ pub struct GameBoyClassic {
     clock: Clock,
 }
 
-impl Emulator<u8> for GameBoyClassic {
+impl Emulator for GameBoyClassic {
     fn build(gb_type: &GameBoyType, rom_data: &[u8]) -> Result<Self, Box<dyn Error>> {
         let cpu = Cpu::new(rom_data)?;
 
@@ -47,7 +47,7 @@ impl Emulator<u8> for GameBoyClassic {
         self.clock.reset();
     }
 
-    fn set_frame_buffer_listener(&mut self, listener: Box<dyn FrameBufferListener<u8>>) {
+    fn set_frame_buffer_listener(&mut self, listener: Box<dyn FrameBufferListener>) {
         self.cpu
             .memory_bus
             .ppu

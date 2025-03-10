@@ -10,8 +10,9 @@ use crate::{
         joypad::{InputProviderWrapper, Joypad},
     },
     screen::screen_adapter::ScreenAdapter,
+    utils::fps_counter::FpsCounter,
 };
-use gaemboi::{FRAME_DURATION, GameBoyFactory, GameBoyType};
+use gaemboi::{FRAME_DURATION, GameBoyFactory};
 
 use egui_sdl2_gl::sdl2;
 use sdl2::{audio::AudioSpecDesired, pixels::Color};
@@ -63,28 +64,19 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Screen Adapter
     let screen_adapter = ScreenAdapter::new();
-    match gb_type {
-        GameBoyType::GameBoyClassic | GameBoyType::GameBoyColor => {
-            gameboy.set_frame_buffer_listener_u8(Box::new(screen_adapter))
-        }
-        GameBoyType::GameBoyAdvance => {
-            gameboy.set_frame_buffer_listener_u16(Box::new(screen_adapter))
-        }
-    }?;
+    gameboy.set_frame_buffer_listener(Box::new(screen_adapter));    
 
     // Inputs
     let joypad = Rc::new(RefCell::new(Joypad::new()));
     gameboy.set_input_provider(Box::new(InputProviderWrapper(joypad.clone())));
     let mut input_handler = InputHandler::new(joypad.clone());
 
+    let mut fps_counter = FpsCounter::new();
     let mut audio_sync = AudioSync::new();
 
     canvas.present();
-    let mut i = 0;
     while !input_handler.quit {
         let frame_start_time = Instant::now();
-        i = (i + 1) % 255;
-        canvas.set_draw_color(Color::RGB(i, 64, 255 - i));
         canvas.clear();
         input_handler.poll(&mut event_pump);
 
@@ -92,6 +84,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         canvas.present();
 
         audio_sync.sync(&frame_start_time, rb_ref.clone());
+        fps_counter.show(&frame_start_time);
     }
 
     Ok(())
