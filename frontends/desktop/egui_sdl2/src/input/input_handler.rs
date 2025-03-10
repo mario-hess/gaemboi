@@ -1,15 +1,16 @@
-use crate::joypad;
+use crate::input::joypad::Joypad;
+
 use crate::sdl2::{EventPump, event::Event, keyboard::Keycode};
 use gaemboi::{InputAction, InputButton, InputEvent};
 use std::{cell::RefCell, rc::Rc};
 
 pub struct InputHandler {
     pub quit: bool,
-    joypad: Rc<RefCell<joypad::Joypad>>,
+    joypad: Rc<RefCell<Joypad>>,
 }
 
 impl InputHandler {
-    pub fn new(joypad: Rc<RefCell<joypad::Joypad>>) -> Self {
+    pub fn new(joypad: Rc<RefCell<Joypad>>) -> Self {
         Self {
             quit: false,
             joypad,

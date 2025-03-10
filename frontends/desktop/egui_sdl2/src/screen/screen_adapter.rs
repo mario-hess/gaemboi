@@ -1,4 +1,4 @@
-use gaemboi::FrameBufferListener;
+use gaemboi::{FrameBuffer, FrameBufferListener};
 
 pub struct ScreenAdapter;
 impl ScreenAdapter {
@@ -15,14 +15,11 @@ impl ScreenAdapter {
     }
 }
 
-impl FrameBufferListener<u8> for ScreenAdapter {
-    fn on_frame_ready(&mut self, frame_buffer: &[u8]) {
-        self.render_u8(frame_buffer);
-    }
-}
-
-impl FrameBufferListener<u16> for ScreenAdapter {
-    fn on_frame_ready(&mut self, frame_buffer: &[u16]) {
-        self.render_u16(frame_buffer);
+impl FrameBufferListener for ScreenAdapter {
+    fn on_frame_ready(&mut self, frame_buffer: &FrameBuffer) {
+        match frame_buffer {
+            FrameBuffer::U8(buffer) => self.render_u8(buffer),
+            FrameBuffer::U16(buffer) => self.render_u16(buffer),
+        }
     }
 }
