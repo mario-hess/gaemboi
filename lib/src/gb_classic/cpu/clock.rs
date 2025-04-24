@@ -1,5 +1,4 @@
 const FPS: f32 = 59.7275;
-
 pub const CPU_CLOCK_SPEED: u32 = 4194304;
 pub const CYCLES_PER_FRAME: u32 = (CPU_CLOCK_SPEED as f32 / FPS) as u32;
 

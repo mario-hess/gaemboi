@@ -2,10 +2,11 @@ use std::error::Error;
 
 use crate::{Emulator, gb_advance::GameBoyAdvance, gb_classic::GameBoyClassic};
 
+#[derive(Clone)]
 pub enum GameBoyType {
-    GameBoyClassic,
-    GameBoyColor,
-    GameBoyAdvance,
+    Classic,
+    Color,
+    Advance,
 }
 
 pub struct GameBoyFactory;
@@ -16,11 +17,11 @@ impl GameBoyFactory {
         rom_data: &[u8],
     ) -> Result<Box<dyn Emulator>, Box<dyn Error>> {
         match gb_type {
-            GameBoyType::GameBoyClassic | GameBoyType::GameBoyColor => {
+            GameBoyType::Classic | GameBoyType::Color => {
                 let gbc = GameBoyClassic::build(gb_type, rom_data)?;
                 Ok(Box::new(gbc))
             }
-            GameBoyType::GameBoyAdvance => {
+            GameBoyType::Advance => {
                 let gba = GameBoyAdvance::build(gb_type, rom_data)?;
                 Ok(Box::new(gba))
             }

@@ -18,7 +18,7 @@ impl AudioCallback for AudioConsumer {
     fn callback(&mut self, out: &mut [i16]) {
         for sample in out.iter_mut() {
             if let Some(s) = self.rb_consumer.try_pop() {
-                *sample = s as i16 * 50 as i16;
+                *sample = s as i16 * 50_i16;
             } else {
                 *sample = 0;
             }

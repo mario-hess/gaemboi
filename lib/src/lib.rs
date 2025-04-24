@@ -3,7 +3,13 @@ mod gb_classic;
 mod utils;
 
 pub use crate::{
-    gb_classic::utils::FRAME_DURATION,
+    gb_advance::utils::constants::{
+        SCREEN_HEIGHT as ADVANCE_SCREEN_HEIGHT, SCREEN_WIDTH as ADVANCE_SCREEN_WIDTH,
+    },
+    gb_classic::utils::{
+        FRAME_DURATION, SCREEN_HEIGHT as CLASSIC_SCREEN_HEIGHT,
+        SCREEN_WIDTH as CLASSIC_SCREEN_WIDTH,
+    },
     utils::{
         frame_buffer::FrameBuffer,
         gb_factory::{GameBoyFactory, GameBoyType},
@@ -17,16 +23,16 @@ pub trait Emulator {
     where
         Self: Sized;
     fn step_frame(&mut self);
-    fn set_frame_buffer_listener(&mut self, listener: Box<dyn FrameBufferListener>);
-    fn set_audio_samples_listener(&mut self, listener: Box<dyn AudioSamplesListener>);
+    fn set_frame_buffer_observer(&mut self, observer: Box<dyn FrameBufferObserver>);
+    fn set_audio_samples_observer(&mut self, observer: Box<dyn AudioSamplesObserver>);
     fn set_input_provider(&mut self, provider: Box<dyn InputProvider>);
 }
 
-pub trait FrameBufferListener {
+pub trait FrameBufferObserver {
     fn on_frame_ready(&mut self, frame_buffer: &FrameBuffer);
 }
 
-pub trait AudioSamplesListener {
+pub trait AudioSamplesObserver {
     fn on_samples_ready(&mut self, audio_samples: &(u8, u8));
 }
 

@@ -9,9 +9,9 @@ pub fn extract_from_path(file_path: &String) -> Result<(GameBoyType, Vec<u8>), B
         .ok_or("File has no valid extension")?;
 
     let gb_type = match extension {
-        "gb" => GameBoyType::GameBoyClassic,
-        "gbc" => GameBoyType::GameBoyColor,
-        "gba" => GameBoyType::GameBoyAdvance,
+        "gb" => GameBoyType::Classic,
+        "gbc" => GameBoyType::Color,
+        "gba" => GameBoyType::Advance,
         _ => return Err(format!("Unsupported file extension: {}", extension).into()),
     };
 

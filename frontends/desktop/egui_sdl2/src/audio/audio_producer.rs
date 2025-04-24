@@ -1,6 +1,6 @@
 use crate::AudioConsumer;
 use crate::sdl2::audio::AudioDevice;
-use gaemboi::AudioSamplesListener;
+use gaemboi::AudioSamplesObserver;
 use ringbuf::{SharedRb, storage::Heap, traits::Producer, wrap::caching::Caching};
 use std::sync::Arc;
 
@@ -35,7 +35,7 @@ impl AudioProducer {
     }
 }
 
-impl AudioSamplesListener for AudioProducer {
+impl AudioSamplesObserver for AudioProducer {
     fn on_samples_ready(&mut self, audio_samples: &(u8, u8)) {
         self.queue_samples(audio_samples);
     }
