@@ -6,7 +6,7 @@ mod tile;
 mod window;
 
 use crate::{
-    FrameBuffer, FrameBufferListener,
+    FrameBuffer, FrameBufferObserver, GameBoyType,
     gb_classic::{
         interrupt::{LCD_STAT_MASK, VBLANK_MASK},
         memory_bus::{OAM_END, OAM_START, VRAM_END, VRAM_START},
@@ -105,7 +105,7 @@ pub struct Ppu {
     counter: u16,
     overlap_map: [bool; OVERLAP_MAP_SIZE],
     frame_buffer: FrameBuffer,
-    frame_buffer_listener: Option<Box<dyn FrameBufferListener>>,
+    frame_buffer_observer: Option<Box<dyn FrameBufferObserver>>,
 }
 
 impl Ppu {
@@ -129,7 +129,7 @@ impl Ppu {
             counter: 0,
             overlap_map: [false; OVERLAP_MAP_SIZE],
             frame_buffer: FrameBuffer::U8(Box::new([0b00; BUFFER_SIZE])),
-            frame_buffer_listener: None,
+            frame_buffer_observer: None,
         }
     }
 
@@ -273,8 +273,8 @@ impl Ppu {
 
                 if self.scan_y >= LINES_Y {
                     // Draw the current frame to the screen
-                    if let Some(listener) = &mut self.frame_buffer_listener {
-                        listener.on_frame_ready(&self.frame_buffer);
+                    if let Some(observer) = &mut self.frame_buffer_observer {
+                        observer.on_frame_ready(&self.frame_buffer);
                     }
                     self.clear_screen();
 
@@ -408,7 +408,7 @@ impl Ppu {
 
             // Calculate the offset for the current pixel and update the viewport buffer
             let offset = scan_x as usize + base_offset;
-            let _ = self.frame_buffer.set_pixel_u8(offset, pixel);
+            self.frame_buffer.set_pixel_u8(offset, pixel).unwrap();
         }
     }
 
@@ -479,7 +479,7 @@ impl Ppu {
 
                 // Calculate the offset for the current pixel and update the viewport buffer
                 let offset = x_offset as usize + base_offset;
-                let _ =self.frame_buffer.set_pixel_u8(offset, pixel);
+                self.frame_buffer.set_pixel_u8(offset, pixel).unwrap();
             }
         }
     }
@@ -533,13 +533,7 @@ impl Ppu {
     }
 
     fn pixel_color(&self, palette: &u8, color_index: &u8) -> u8 {
-        match (palette >> (color_index << 1)) & 0b11 {
-            0b00 => WHITE,
-            0b01 => LIGHT,
-            0b10 => DARK,
-            0b11 => BLACK,
-            _ => unreachable!(),
-        }
+        (palette >> (color_index << 1)) & 0b11
     }
 
     pub fn tiletable(&self) -> [u8; TILETABLE_WIDTH * TILETABLE_HEIGHT] {
@@ -623,8 +617,8 @@ impl Ppu {
         tilemap_buffer
     }
 
-    pub fn set_frame_buffer_listener(&mut self, listener: Option<Box<dyn FrameBufferListener>>) {
-        self.frame_buffer_listener = listener;
+    pub fn set_frame_buffer_observer(&mut self, observer: Option<Box<dyn FrameBufferObserver>>) {
+        self.frame_buffer_observer = observer;
     }
 }
 

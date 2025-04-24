@@ -10,7 +10,7 @@ pub mod utils;
 use std::error::Error;
 
 use crate::{
-    AudioSamplesListener, Emulator, FrameBufferListener, InputProvider,
+    AudioSamplesObserver, Emulator, FrameBufferObserver, InputProvider,
     gb_classic::cpu::{
         Cpu,
         clock::{CYCLES_PER_FRAME, Clock},
@@ -47,18 +47,18 @@ impl Emulator for GameBoyClassic {
         self.clock.reset();
     }
 
-    fn set_frame_buffer_listener(&mut self, listener: Box<dyn FrameBufferListener>) {
+    fn set_frame_buffer_observer(&mut self, observer: Box<dyn FrameBufferObserver>) {
         self.cpu
             .memory_bus
             .ppu
-            .set_frame_buffer_listener(Some(listener));
+            .set_frame_buffer_observer(Some(observer));
     }
 
-    fn set_audio_samples_listener(&mut self, listener: Box<dyn AudioSamplesListener>) {
+    fn set_audio_samples_observer(&mut self, observer: Box<dyn AudioSamplesObserver>) {
         self.cpu
             .memory_bus
             .apu
-            .set_audio_samples_listener(Some(listener));
+            .set_audio_samples_observer(Some(observer));
     }
 
     fn set_input_provider(&mut self, provider: Box<dyn InputProvider>) {

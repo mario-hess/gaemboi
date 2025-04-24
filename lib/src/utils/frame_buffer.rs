@@ -4,7 +4,11 @@ pub enum FrameBuffer {
 }
 
 impl FrameBuffer {
-    pub fn set_pixel_u8(&mut self, offset: usize, pixel: u8) -> Result<(), &'static str> {
+    pub fn set_pixel_u8(
+        &mut self,
+        offset: usize,
+        pixel: u8,
+    ) -> Result<(), &'static str> {
         match self {
             FrameBuffer::U8(buffer) => {
                 buffer[offset] = pixel;
@@ -24,5 +28,3 @@ impl FrameBuffer {
         }
     }
 }
-
-

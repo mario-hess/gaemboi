@@ -4,7 +4,7 @@ pub mod master_volume;
 mod mixer;
 
 use crate::{
-    AudioSamplesListener,
+    AudioSamplesObserver,
     gb_classic::{
         apu::{
             channel::{
@@ -57,7 +57,7 @@ pub struct Apu {
     mixer: Mixer,
     pub enabled: bool,
     counter: f64,
-    audio_samples_listener: Option<Box<dyn AudioSamplesListener>>,
+    audio_samples_observer: Option<Box<dyn AudioSamplesObserver>>,
 }
 
 impl Apu {
@@ -72,7 +72,7 @@ impl Apu {
             mixer: Mixer::default(),
             enabled: true,
             counter: 0.0,
-            audio_samples_listener: None,
+            audio_samples_observer: None,
         }
     }
 
@@ -165,14 +165,14 @@ impl Apu {
                 &self.ch4.core,
             ]);
 
-            if let Some(listener) = &mut self.audio_samples_listener {
+            if let Some(observer) = &mut self.audio_samples_observer {
                 let left_volume = self.master_volume.get_left_volume();
                 let right_volume = self.master_volume.get_right_volume();
 
                 let left_sample = output_left * left_volume;
                 let right_sample = output_right * right_volume;
 
-                listener.on_samples_ready(&(left_sample, right_sample));
+                observer.on_samples_ready(&(left_sample, right_sample));
             }
 
             self.counter -= cpu_cycles_per_sample;
@@ -224,8 +224,8 @@ impl Apu {
         self.counter = 0.0;
     }
 
-    pub fn set_audio_samples_listener(&mut self, listener: Option<Box<dyn AudioSamplesListener>>) {
-        self.audio_samples_listener = listener;
+    pub fn set_audio_samples_observer(&mut self, observer: Option<Box<dyn AudioSamplesObserver>>) {
+        self.audio_samples_observer = observer;
     }
 }
 

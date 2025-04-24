@@ -28,7 +28,7 @@ impl FpsCounter {
 
         if self.last_second.elapsed().as_secs() >= 1 {
             self.fps = self.frame_count as f32 / self.frame_times.iter().sum::<f32>();
-            println!("{:.4}", self.fps);
+            println!("{:.2}", self.fps);
             self.frame_times.clear();
             self.frame_count = 0;
             self.last_second = std::time::Instant::now();

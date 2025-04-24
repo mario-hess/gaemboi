@@ -1,5 +1,6 @@
+pub mod utils;
 use crate::{
-    AudioSamplesListener, Emulator, FrameBufferListener, InputProvider,
+    AudioSamplesObserver, Emulator, FrameBufferObserver, InputProvider,
     utils::gb_factory::GameBoyType,
 };
 use std::error::Error;
@@ -12,7 +13,7 @@ impl Emulator for GameBoyAdvance {
     }
 
     fn step_frame(&mut self) {}
-    fn set_frame_buffer_listener(&mut self, listener: Box<dyn FrameBufferListener>) {}
-    fn set_audio_samples_listener(&mut self, listener: Box<dyn AudioSamplesListener>) {}
+    fn set_frame_buffer_observer(&mut self, observer: Box<dyn FrameBufferObserver>) {}
+    fn set_audio_samples_observer(&mut self, observer: Box<dyn AudioSamplesObserver>) {}
     fn set_input_provider(&mut self, provider: Box<dyn InputProvider>) {}
 }
